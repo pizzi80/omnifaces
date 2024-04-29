@@ -1910,33 +1910,6 @@ public final class FacesLocal {
     }
 
     /**
-     * @see Faces#sendFile(String, boolean, org.omnifaces.util.Callback.Output)
-     */
-    public static void sendFile(FacesContext context, String filename, boolean attachment, Callback.Output outputCallback) {
-        ExternalContext externalContext = context.getExternalContext();
-
-        // Prepare the response and set the necessary headers.
-        externalContext.setResponseBufferSize(DEFAULT_SENDFILE_BUFFER_SIZE);
-        externalContext.setResponseContentType(getMimeType(context, filename));
-        externalContext.setResponseHeader("Content-Disposition", formatContentDispositionHeader(filename, attachment));
-
-        // Not exactly mandatory, but this fixes at least a MSIE quirk: http://support.microsoft.com/kb/316431
-        if (isSecure((HttpServletRequest) externalContext.getRequest())) {
-            externalContext.setResponseHeader("Cache-Control", "public");
-            externalContext.setResponseHeader("Pragma", "public");
-        }
-
-        try (OutputStream output = externalContext.getResponseOutputStream()) {
-            outputCallback.writeTo(output);
-        }
-        catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-
-        context.responseComplete();
-    }
-
-    /**
      * Internal global method to send the given input stream to the response.
      * @param input The file content as input stream.
      * @param filename The file name which should appear in content disposition header.
@@ -1960,6 +1933,38 @@ public final class FacesLocal {
                 externalContext.setResponseHeader("Content-Length", String.valueOf(size));
             }
         });
+    }
+
+    /**
+     * @see Faces#sendFile(String, boolean, org.omnifaces.util.Callback.Output)
+     */
+    public static void sendFile(FacesContext context, String filename, boolean attachment, Callback.Output outputCallback) {
+        ExternalContext externalContext = context.getExternalContext();
+
+        // Prepare the response and set the necessary headers.
+        if ( !externalContext.isResponseCommitted() ) {
+            externalContext.setResponseBufferSize(DEFAULT_SENDFILE_BUFFER_SIZE);
+            logger.info("ResponseBuffer size: "+externalContext.getResponseBufferSize());
+        } else {
+            logger.warning("can't change the response buffer size because the response is committed");
+        }
+        externalContext.setResponseContentType(getMimeType(context, filename));
+        externalContext.setResponseHeader("Content-Disposition", formatContentDispositionHeader(filename, attachment));
+
+        // Not exactly mandatory, but this fixes at least a MSIE quirk: http://support.microsoft.com/kb/316431
+        if (isSecure((HttpServletRequest) externalContext.getRequest())) {
+            externalContext.setResponseHeader("Cache-Control", "public");
+            externalContext.setResponseHeader("Pragma", "public");
+        }
+
+        try (OutputStream output = externalContext.getResponseOutputStream()) {
+            outputCallback.writeTo(output);
+        }
+        catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        context.responseComplete();
     }
 
 }
