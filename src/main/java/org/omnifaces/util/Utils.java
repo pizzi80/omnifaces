@@ -14,7 +14,6 @@ package org.omnifaces.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Level.FINEST;
 import static java.util.regex.Pattern.quote;
 import static org.omnifaces.util.FacesLocal.getRequestDomainURL;
@@ -77,7 +76,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -125,7 +126,6 @@ public final class Utils {
     private static final int UNICODE_BEGIN_PRINTABLE_ASCII = 0x20;
     private static final Map<Class<?>, Object> PRIMITIVE_DEFAULTS = collectPrimitiveDefaults();
     private static final Map<Class<?>, Class<?>> PRIMITIVE_TYPES = collectPrimitiveTypes();
-    private static final String ERROR_UNSUPPORTED_ENCODING = "UTF-8 is apparently not supported on this platform.";
     private static final String ERROR_UNSUPPORTED_DATE = "Only java.util.Date, java.util.Calendar and java.time.Temporal are supported.";
     private static final String ERROR_UNSUPPORTED_TIMEZONE = "Only java.lang.String, java.util.TimeZone and java.time.ZoneId are supported.";
 
@@ -156,10 +156,8 @@ public final class Utils {
                 Byte.class, byte.class,
                 Short.class, short.class,
                 Character.class, char.class,
-                Integer.class,
-                int.class,
-                Long.class,
-                long.class,
+                Integer.class, int.class,
+                Long.class, long.class,
                 Float.class, float.class,
                 Double.class, double.class
         );
@@ -274,7 +272,7 @@ public final class Utils {
             Long.parseLong(string);
             return true;
         }
-        catch (NumberFormatException ignore) {
+        catch (Exception ignore) {
             logger.log(FINEST, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
             return false;
         }
@@ -293,7 +291,7 @@ public final class Utils {
             Double.parseDouble(string);
             return true;
         }
-        catch (NumberFormatException ignore) {
+        catch (Exception ignore) {
             logger.log(FINEST, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
             return false;
         }
@@ -633,8 +631,8 @@ public final class Utils {
         }
         else {
             List<E> list = new ArrayList<>();
-            for (E e : iterable) {
-                list.add(e);
+            for (E element : iterable) {
+                list.add(element);
             }
 
             return list;
@@ -764,7 +762,7 @@ public final class Utils {
             return Stream.empty();
         }
         if (object instanceof Collection) {
-            return ((Collection<T>)object).stream();
+            return ((Collection<T>) object).stream();
         }
         if (object instanceof Iterable) {
             return StreamSupport.stream(((Iterable<T>) object).spliterator(), false);
@@ -834,6 +832,55 @@ public final class Utils {
      */
     public static void forEach(Object object, Consumer<? super Object> action) {
         stream(object).forEach(action);
+    }
+
+    // Concurrency ----------------------------------------------------------------------------------------------------
+
+    /**
+     * A {@link FunctionalInterface} to be used with {@link Utils#execAtomic(Lock, Action)}
+     * @since 4.5
+     */
+    @FunctionalInterface
+    public interface Action {
+        void execute() throws Exception;
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link FunctionalInterface} to be executed atomically
+     * @since 4.5
+     */
+    public static void execAtomic(Lock lock, Action task) {
+        lock.lock();
+
+        try {
+            task.execute();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Execute the passed task and return the computed result atomically using the passed lock.
+     * @param lock The {@link Lock} to be used for atomic execution
+     * @param task The {@link Supplier} to be executed atomically
+     * @return The result of the passed task.
+     * @since 4.5
+     */
+    public static <R> R execAtomic(Lock lock, Supplier<R> task) {
+        lock.lock();
+
+        try {
+            return task.get();
+        }
+        finally {
+            lock.unlock();
+        }
     }
 
     // Dates ----------------------------------------------------------------------------------------------------------

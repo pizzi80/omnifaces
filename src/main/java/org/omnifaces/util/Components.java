@@ -250,14 +250,13 @@ public final class Components {
 
     /**
      * Set the attribute value on the specified component for the specified name.
-     * @param <T> The expected value type.
      * @param component The component on which to set the attribute.
      * @param name The name of the attribute.
      * @param value The value of the attribute.
      * @since 4.5
      */
-    public static <T> void setAttribute( UIComponent component , String name , T value ) {
-        component.getAttributes().put(name,value);
+    public static void setAttribute(UIComponent component, String name, Object value) {
+        component.getAttributes().put(name, value);
     }
 
     /**
@@ -275,24 +274,6 @@ public final class Components {
         }
 
         return true;
-    }
-
-    /**
-     * Disable the passed UI component.
-     * @param component The component to disable.
-     * @since 4.5
-     */
-    public static void disableInputComponent( UIComponent component ) {
-        setAttribute(component,"disabled",true);
-    }
-
-    /**
-     * Disable the UI component matching the given client ID search expression.
-     * @param clientId The client ID search expression.
-     * @since 4.5
-     */
-    public static void disableInputComponent( String clientId ) {
-        disableInputComponent(findComponent(clientId));
     }
 
     // Traversal ------------------------------------------------------------------------------------------------------
@@ -1465,6 +1446,24 @@ public final class Components {
      */
     public static void resetInputs(UIComponent component) {
         forEachComponent().fromRoot(component).ofTypes(UIInput.class).invoke(UIInput::resetValue);
+    }
+
+    /**
+     * Disable the passed {@link UIInput} component.
+     * @param input The {@link UIInput} component to disable.
+     * @since 4.5
+     */
+    public static void disableInput(UIInput input) {
+        setAttribute(input, "disabled", true);
+    }
+
+    /**
+     * Disable the {@link UIInput} component matching the given client ID search expression.
+     * @param clientId The client ID search expression.
+     * @since 4.5
+     */
+    public static void disableInput(String clientId) {
+        disableInput(findComponent(clientId));
     }
 
     /**

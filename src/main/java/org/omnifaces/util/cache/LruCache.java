@@ -12,14 +12,14 @@
  */
 package org.omnifaces.util.cache;
 
-import static java.util.Collections.unmodifiableCollection;
-import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -49,8 +49,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
     private final int maximumCapacity;
     private final SerializableBiConsumer<K, V> evictionListener;
     private final LinkedHashMap<K, V> entries;
-
-    private final Lock lock = new ReentrantLock();
+    private final ReentrantLock lock = new ReentrantLock();
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
