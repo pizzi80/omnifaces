@@ -12,21 +12,20 @@
  */
 package org.omnifaces.util.cache;
 
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
+import static org.omnifaces.util.Utils.execAtomic;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 
 import org.omnifaces.util.Callback.SerializableBiConsumer;
 
@@ -59,7 +58,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
      * @throws IllegalArgumentException when maximum capacity is less than 2.
      */
     public LruCache(int maximumCapacity) {
-        this(maximumCapacity, null); // emptySerializableBiConsumer()
+        this(maximumCapacity, null);
     }
 
     /**
@@ -73,7 +72,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
             throw new IllegalArgumentException("It does not make sense having a maximum capacity less than 2.");
         }
 
-        requireNonNull(evictionListener, "Use the other constructor when you do not have an eviction listener.");
+        //requireNonNull(evictionListener, "Use the other constructor when you do not have an eviction listener.");
 
         this.maximumCapacity = maximumCapacity;
         this.evictionListener = evictionListener;
@@ -164,7 +163,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
 
     @Override
     public void clear() {
-        execAtomic(lock, () -> { entries.clear(); return null; });
+        execAtomic(lock, entries::clear);
     }
 
     // Readonly methods -----------------------------------------------------------------------------------------------
@@ -205,32 +204,6 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
     @SuppressWarnings("unchecked")
     public Set<Entry<K, V>> entrySet() {
         return unmodifiableSet((Set<? extends Entry<K, V>>) entries.keySet());
-    }
-
-    // Utils -------------------------------------------------------------------------------------------------------
-
-//    private static final SerializableBiConsumer<?,?> BI_CONSUMER_NO_OP = ((k, v) -> {});
-//
-//    @SuppressWarnings("unchecked")
-//    private static <K,V> SerializableBiConsumer<K,V> emptySerializableBiConsumer() {
-//        return (SerializableBiConsumer<K,V>) BI_CONSUMER_NO_OP;
-//    }
-
-    /**
-     * Execute the passed task and return the computed result atomically using the passed lock.
-     * @param lock The {@link Lock} to be used for atomic execution
-     * @param task The {@link Supplier} to be executed atomically
-     * @return The result of the passed task.
-     */
-    public static <R> R execAtomic(Lock lock, Supplier<R> task) {
-        lock.lock();
-
-        try {
-            return task.get();
-        }
-        finally {
-            lock.unlock();
-        }
     }
 
 }
