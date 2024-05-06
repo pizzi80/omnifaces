@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
+    "target": "ES5",
     "module": "commonjs",
     "rootDir": "src/main/resources/META-INF/resources/omnifaces/omnifaces.js",
     "outDir": "target/tsc",

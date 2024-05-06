@@ -76,7 +76,7 @@ export module Form {
     }
 
     function containsNamedChild(executeIds: string[], key: string) {
-        const name = key.replaceAll("%3A", "\\:");
+        const name = key.replace(/%3A/g, "\\:");
 
         try {
             for (const executeId of executeIds) {
