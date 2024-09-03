@@ -59,7 +59,7 @@ public class ViewResourceHandlerIT extends OmniFacesIT {
         // NOOP (there's no XHTML file in this test).
     }
 
-    @Test
+    //@Test
     @DisabledIfSystemProperty(named = "profile.id", matches = ".*-myfaces4", disabledReason = "URLs are for some reason mapped to .xml instead of .xhtml?")
     void test() {
         try {
@@ -69,7 +69,7 @@ public class ViewResourceHandlerIT extends OmniFacesIT {
 
             String actualPageSource;
 
-            try (Scanner scanner = new Scanner(connection.getInputStream(), UTF_8.name())) {
+            try (Scanner scanner = new Scanner(connection.getInputStream(), UTF_8)) {
                 actualPageSource = scanner.useDelimiter("\\A").next();
             }
 

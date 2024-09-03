@@ -75,15 +75,8 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
 
     @Override
     public UUID getBeanStorageId(FacesContext context) {
-        try {
-            UUID beanStorageId = getViewAttribute(context, getClass().getName());
-            return (beanStorageId != null && activeViewScopes.containsKey(beanStorageId)) ? beanStorageId : null;
-        }
-        // Weld race condition on session get/create
-        // LINE 127 of https://github.com/weld/core/blob/master/modules/web/src/main/java/org/jboss/weld/module/web/context/beanstore/http/AbstractSessionBeanStore.java
-        catch (Throwable e) {
-            return null;
-        }
+        UUID beanStorageId = getViewAttribute(context, getClass().getName());
+        return (beanStorageId != null && activeViewScopes.containsKey(beanStorageId)) ? beanStorageId : null;
     }
 
     @Override
