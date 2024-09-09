@@ -301,7 +301,16 @@ public final class ComponentsLocal {
             oncomplete(context, script);
         }
         else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
-            subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> addScriptToBody(context, script)); // Just to avoid it misses when view rebuilds in the meanwhile.
+            // Just to avoid it misses when view rebuilds in the meanwhile.
+            subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> {
+                // Note: We need to retrieve the current FacesContext in the callback
+                var facesContext = FacesContext.getCurrentInstance();
+                // we have to check if the FacesContext is not released
+                // otherwise if there is an error in the view,
+                // we got a java.lang.IllegalStateException
+                if (!facesContext.isReleased())
+                    addScriptToBody(facesContext, script);
+            });
         }
         else {
             addScriptToBody(context, script);
