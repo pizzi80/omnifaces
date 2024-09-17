@@ -43,6 +43,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
+import org.omnifaces.util.Faces;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
@@ -179,7 +180,7 @@ public class ViewScopeManager {
     // Helpers --------------------------------------------------------------------------------------------------------
 
     private <T> BeanStorage getBeanStorage(Contextual<T> type) {
-        var context = FacesContext.getCurrentInstance();
+        var context = getContext();
         ViewScopeStorage storage = storageInSession;
         var beanClass = ((Bean<T>) type).getBeanClass();
         var annotation = beanClass.getAnnotation(ViewScoped.class);
@@ -214,9 +215,7 @@ public class ViewScopeManager {
         return beanStorage;
     }
 
-    private static void checkStateSavingMethod(Class<?> beanClass) {
-        var context = getContext();
-
+    private static void checkStateSavingMethod(FacesContext context, Class<?> beanClass) {
         if (!context.getApplication().getStateManager().isSavingStateInClient(context)) {
             throw new IllegalStateException(format(ERROR_INVALID_STATE_SAVING, beanClass.getName()));
         }
