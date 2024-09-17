@@ -43,7 +43,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
-import org.omnifaces.util.Faces;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
