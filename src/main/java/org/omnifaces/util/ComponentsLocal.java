@@ -302,17 +302,7 @@ public final class ComponentsLocal {
             oncomplete(context, script);
         }
         else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
-            // Just to avoid it misses when view rebuilds in the meanwhile.
-            subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> {
-                // Note: We need to retrieve the current FacesContext in the callback
-                var facesContext = getContext();
-                // we have to check if the FacesContext is not released
-                // otherwise if there is an error in the view,
-                // we got a java.lang.IllegalStateException
-                if (!facesContext.isReleased()) {
-                    addScriptToBody(facesContext, script);
-                }
-            });
+            subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> addScriptToBody(getContext(), script)); // Just to avoid it misses when view rebuilds in the meanwhile.
         }
         else {
             addScriptToBody(context, script);
@@ -329,18 +319,7 @@ public final class ComponentsLocal {
             }
             else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
                 addScriptResourceToHead(context, libraryName, resourceName);
-                subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> {
-                    // Note: We need to retrieve the current FacesContext in the callback
-                    var facesContext = getContext();
-
-                    // we have to check if the FacesContext is not released
-                    // otherwise if there is an error in the view,
-                    // we got a java.lang.IllegalStateException
-                    if (!facesContext.isReleased()) {
-                        // Fallback in case view rebuilds in the meanwhile. It will re-check if already added.
-                        addScriptResourceToBody(facesContext, libraryName, resourceName);
-                    }
-                });
+                subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> addScriptResourceToBody(getContext(), libraryName, resourceName)); // Fallback in case view rebuilds in the meanwhile. It will re-check if already added.
             }
             else if (TRUE.equals(context.getAttributes().get(IS_BUILDING_INITIAL_STATE))) {
                 addScriptResourceToHead(context, libraryName, resourceName);
@@ -564,7 +543,7 @@ public final class ComponentsLocal {
      */
     public static String getLabel(FacesContext context, UIComponent component) {
         var label = getOptionalLabel(context, component);
-        return label != null ? label : component.getClientId();
+        return label != null ? label : component.getClientId(context);
     }
 
     /**
