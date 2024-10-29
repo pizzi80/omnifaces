@@ -12,11 +12,9 @@
  */
 package org.omnifaces.cdi.viewscope;
 
-import java.util.Map;
 import java.util.UUID;
 
 import jakarta.enterprise.context.Dependent;
-import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.FacesContext;
 
 import org.omnifaces.cdi.BeanStorage;

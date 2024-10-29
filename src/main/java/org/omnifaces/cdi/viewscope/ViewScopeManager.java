@@ -212,7 +212,6 @@ public class ViewScopeManager {
 
         if (beanStorage == null) {
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
 
                 if (isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
                     var viewId = context.getViewRoot().getViewId();

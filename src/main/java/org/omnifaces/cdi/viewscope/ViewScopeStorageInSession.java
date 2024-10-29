@@ -20,11 +20,9 @@ import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MOJARRA_NU
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MYFACES_NUMBER_OF_VIEWS;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.isUnloadRequest;
 import static org.omnifaces.util.Faces.getInitParameter;
+import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.getViewAttribute;
 import static org.omnifaces.util.FacesLocal.setViewAttribute;
-import static org.omnifaces.util.Faces.getViewAttribute;
-import static org.omnifaces.util.Faces.setViewAttribute;
-import static org.omnifaces.util.FacesLocal.getRequestParameter;
 
 import java.io.Serializable;
 import java.util.UUID;
