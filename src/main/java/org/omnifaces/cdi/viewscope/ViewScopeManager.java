@@ -27,6 +27,7 @@ import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.getViewId;
 import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
+import static org.omnifaces.util.FacesLocal.isPostback;
 
 import java.util.UUID;
 import java.util.logging.Level;
@@ -37,6 +38,7 @@ import jakarta.enterprise.context.spi.Contextual;
 import jakarta.enterprise.context.spi.CreationalContext;
 import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.faces.application.ViewExpiredException;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -93,6 +95,8 @@ public class ViewScopeManager {
 
     private static final String ERROR_INVALID_STATE_SAVING = "@ViewScoped(saveInViewState=true) %s"
             + " requires web.xml context parameter 'jakarta.faces.STATE_SAVING_METHOD' being set to 'client'.";
+
+    private static final String ERROR_VIEW_ALREADY_UNLOADED = "View %s was already unloaded.";
 
     // Variables ------------------------------------------------------------------------------------------------------
 
@@ -169,7 +173,7 @@ public class ViewScopeManager {
             }
 
             if (beanStorageId != null) {
-                storageInSession.destroyBeans(beanStorageId);
+                storageInSession.destroyBeans(context, beanStorageId);
             }
         }
 
@@ -207,6 +211,15 @@ public class ViewScopeManager {
         var beanStorage = storage.getBeanStorage(context, beanStorageId);
 
         if (beanStorage == null) {
+            if (storage instanceof ViewScopeStorageInSession) {
+                var context = getContext();
+
+                if (isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
+                    var viewId = context.getViewRoot().getViewId();
+                    throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
+                }
+            }
+
             beanStorage = new BeanStorage(DEFAULT_BEANS_PER_VIEW_SCOPE);
             storage.setBeanStorage(context, beanStorageId, beanStorage);
         }
