@@ -9,16 +9,18 @@
     </xsl:template>
 
     <xsl:template match="jakartaee:facelet-taglib/jakartaee:description/text()">
-        This is a copy of omnifaces-ui.taglib.xml with old namespace for sake of backwards compatibility.
+        This is a copy of omnifaces.taglib.xml into omnifaces-ui.taglib.xml with old namespace for sake of backwards compatibility.
         This will be removed in a future OmniFaces version.
-        So, you need to migrate XML namespace from xmlns:o="http://omnifaces.org/ui" to xmlns:o="omnifaces.ui" namespace as soon as possible.
+        So, you need to migrate XML namespace from xmlns:o="http://omnifaces.org/ui" to xmlns:o="omnifaces" namespace as soon as possible.
     </xsl:template>
 
     <xsl:template match="jakartaee:namespace/text()">http://omnifaces.org/ui</xsl:template>
 
     <xsl:template match="jakartaee:facelet-taglib/jakartaee:tag/jakartaee:description/text()">
-        Please migrate XML namespace from xmlns:o="http://omnifaces.org/ui" to xmlns:o="omnifaces.ui" as soon as possible.
+        Please migrate XML namespace from xmlns:o="http://omnifaces.org/ui" to xmlns:o="omnifaces" as soon as possible.
     </xsl:template>
 
     <xsl:template match="jakartaee:facelet-taglib/jakartaee:tag/jakartaee:attribute/jakartaee:description" />
+
+    <xsl:template match="jakartaee:facelet-taglib/jakartaee:function" />
 </xsl:stylesheet>

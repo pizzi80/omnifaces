@@ -338,13 +338,15 @@
                     <transformationSets>
                         <transformationSet>
                             <dir>src/main/resources/META-INF</dir>
-                            <includes><include>omnifaces-ui.taglib.xml</include></includes>
+                            <includes><include>omnifaces.taglib.xml</include></includes>
                             <stylesheet>src/main/generate-omnifaces-ui.old.taglib.xsl</stylesheet>
+                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-ui</outputDir>
                         </transformationSet>
                         <transformationSet>
                             <dir>src/main/resources/META-INF</dir>
-                            <includes><include>omnifaces-functions.taglib.xml</include></includes>
+                            <includes><include>omnifaces.taglib.xml</include></includes>
                             <stylesheet>src/main/generate-omnifaces-functions.old.taglib.xsl</stylesheet>
+                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-functions</outputDir>
                         </transformationSet>
                     </transformationSets>
                 </configuration>
@@ -365,12 +367,12 @@
                         <configuration>
                             <fileSets>
                                 <fileSet>
-                                    <sourceFile>target/generated-resources/xml/xslt/omnifaces-ui.taglib.xml</sourceFile>
-                                    <destinationFile>${project.build.outputDirectory}/META-INF/omnifaces-ui.old.taglib.xml</destinationFile>
+                                    <sourceFile>${project.build.directory}/generated-resources/xslt/omnifaces-ui/omnifaces.taglib.xml</sourceFile>
+                                    <destinationFile>${project.build.outputDirectory}/META-INF/omnifaces-ui.taglib.xml</destinationFile>
                                 </fileSet>
                                 <fileSet>
-                                    <sourceFile>target/generated-resources/xml/xslt/omnifaces-functions.taglib.xml</sourceFile>
-                                    <destinationFile>${project.build.outputDirectory}/META-INF/omnifaces-functions.old.taglib.xml</destinationFile>
+                                    <sourceFile>${project.build.directory}/generated-resources/xslt/omnifaces-functions/omnifaces.taglib.xml</sourceFile>
+                                    <destinationFile>${project.build.outputDirectory}/META-INF/omnifaces-functions.taglib.xml</destinationFile>
                                 </fileSet>
                             </fileSets>
                         </configuration>
