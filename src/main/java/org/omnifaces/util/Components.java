@@ -350,25 +350,6 @@ public final class Components {
     }
 
     /**
-     * Invokes an operation on every component in the component tree.
-     * <p>
-     * This is a simplified version of regular component visiting that uses the builder pattern to provide the various
-     * optional parameters. Includes supports for only visiting components of a certain class type and two
-     * simplified functional interfaces / lambdas.
-     * <p>
-     * See {@link UIComponent#visitTree(VisitContext, VisitCallback)}
-     *
-     * @param facesContext the faces context used for tree visiting
-     * @return A new instance of {@link ForEach}, using the given faces context.
-     * @since 2.0
-     * @deprecated use {@link ComponentsLocal#forEachComponent(FacesContext)}
-     */
-    @Deprecated(since = "4.6", forRemoval = true)
-    public static ForEach forEachComponent(FacesContext facesContext) {
-        return new ForEach(facesContext);
-    }
-
-    /**
      * Builder class used to collect a number of query parameters for a visit (for each) of components in the Faces
      * component tree. The chain of collecting parameters is terminated by calling one of the invoke methods.
      *
@@ -547,23 +528,6 @@ public final class Components {
      */
     public static <C extends UIComponent> C createComponent(String componentType) {
         return ComponentsLocal.createComponent(getContext(), componentType);
-    }
-
-    /**
-     * Creates a new component.
-     * @param <C> The generic component type.
-     * @param context The involved faces context.
-     * @param componentType The component type to create.
-     * @return The newly created component.
-     * @see Application#createComponent(String)
-     * @throws ClassCastException When <code>C</code> is of wrong type.
-     * @since 4.4
-     * @deprecated use {@link ComponentsLocal#createComponent(FacesContext, String)}
-     */
-    @Deprecated(since = "4.6", forRemoval = true)
-    @SuppressWarnings("unchecked")
-    public static <C extends UIComponent> C createComponent(FacesContext context, String componentType) {
-        return (C) context.getApplication().createComponent(componentType);
     }
 
 
@@ -882,12 +846,8 @@ public final class Components {
         var params = new ArrayList<ParamHolder<T>>(component.getChildCount());
 
         for (var child : component.getChildren()) {
-            if (child instanceof UIParameter) {
-                var param = (UIParameter) child;
-
-                if (!isEmpty(param.getName()) && !param.isDisable()) {
-                    params.add(new SimpleParam<>(param));
-                }
+            if ((child instanceof UIParameter param) && (!isEmpty(param.getName()) && !param.isDisable())) {
+                params.add(new SimpleParam<>(param));
             }
         }
 

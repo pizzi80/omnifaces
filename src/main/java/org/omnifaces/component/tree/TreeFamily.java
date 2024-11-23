@@ -102,16 +102,6 @@ public abstract class TreeFamily extends UIComponentBase {
 
     /**
      * Validate the component hierarchy. This should only be called when project stage is <code>Development</code>.
-     * @throws IllegalStateException When component hierarchy is wrong.
-     * @deprecated Use {@link #validateHierarchy(FacesContext)} instead.
-     */
-    @Deprecated(since = "4.6", forRemoval = true)
-    protected void validateHierarchy() {
-        validateHierarchy(getFacesContext());
-    }
-
-    /**
-     * Validate the component hierarchy. This should only be called when project stage is <code>Development</code>.
      * @param context The faces context to work with.
      * @throws IllegalStateException When component hierarchy is wrong.
      * @since 4.6
