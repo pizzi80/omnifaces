@@ -14,7 +14,6 @@ package org.omnifaces.resourcehandler;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
-import static java.util.Collections.emptySet;
 import static org.omnifaces.util.Components.isRendered;
 import static org.omnifaces.util.Events.subscribeToApplicationEvent;
 import static org.omnifaces.util.Faces.evaluateExpressionGet;
@@ -30,6 +29,7 @@ import static org.omnifaces.util.Utils.isOneOf;
 import static org.omnifaces.util.Utils.splitAndTrim;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
