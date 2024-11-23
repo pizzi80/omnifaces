@@ -190,12 +190,7 @@ import org.omnifaces.util.cache.Cache;
  * <p>
  * Note that this combined resource handler is <strong>not</strong> able to combine resources which are <em>not</em>
  * been added as a component resource, but are been hardcoded in some renderer (such as <code>theme.css</code> in case
- * of PrimeFaces and several JavaScript files in case of RichFaces), or are been definied using plain HTML
- * <code>&lt;link&gt;</code> or <code>&lt;script&gt;</code> elements. Also, when you're using RichFaces with the context
- * parameter <code>org.richfaces.resourceOptimization.enabled</code> set to <code>true</code>, then the to-be-combined
- * resource cannot be resolved by a classpath URL due to RichFaces design limitations, so this combined resource handler
- * will use an internal workaround to get it to work anyway, but this involves firing a HTTP request for every resource.
- * The impact should however be relatively negligible as this is performed on localhost.
+ * of PrimeFaces), or are been definied using plain HTML <code>&lt;link&gt;</code> or <code>&lt;script&gt;</code> elements.
  *
  * <h2>Conditionally disable combined resource handler</h2>
  * <p>

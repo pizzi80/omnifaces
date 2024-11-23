@@ -20,7 +20,6 @@ import static jakarta.faces.component.visit.VisitResult.ACCEPT;
 import static jakarta.faces.component.visit.VisitResult.REJECT;
 import static jakarta.faces.event.PhaseId.INVOKE_APPLICATION;
 
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -92,10 +91,6 @@ import jakarta.faces.event.SystemEventListener;
  * </pre>
  * </ul>
  * <p>
- * This works with standard Faces, PrimeFaces and RichFaces actions. Only for RichFaces there's a reflection hack,
- * because its <code>ExtendedPartialViewContextImpl</code> <i>always</i> returns an empty collection for render IDs.
- * See also <a href="https://issues.jboss.org/browse/RF-11112">RF issue 11112</a>.
- * <p>
  * Design notice: being a phase listener was mandatory in order to be able to hook on every single ajax action as
  * standard Faces API does not (seem to?) offer any ways to register some kind of {@link AjaxBehaviorListener} in an
  * application wide basis, let alone on a per <code>&lt;f:ajax&gt;</code> tag basis, so that it also get applied to
@@ -115,7 +110,7 @@ public class ResetInputAjaxActionListener extends DefaultPhaseListener implement
 
     private static final Set<VisitHint> VISIT_HINTS = EnumSet.of(SKIP_TRANSIENT, SKIP_UNRENDERED);
     private static final VisitCallback VISIT_CALLBACK = (context, target) -> {
-        FacesContext facesContext = context.getFacesContext();
+        var facesContext = context.getFacesContext();
 
         if (facesContext.getPartialViewContext().getExecuteIds().contains(target.getClientId(facesContext))) {
             return REJECT;
@@ -181,11 +176,11 @@ public class ResetInputAjaxActionListener extends DefaultPhaseListener implement
      */
     @Override
     public void processAction(ActionEvent event) {
-        FacesContext context = FacesContext.getCurrentInstance();
-        PartialViewContext partialViewContext = context.getPartialViewContext();
+        var context = FacesContext.getCurrentInstance();
+        var partialViewContext = context.getPartialViewContext();
 
         if (partialViewContext.isAjaxRequest()) {
-            Collection<String> renderIds = partialViewContext.getRenderIds();
+            var renderIds = partialViewContext.getRenderIds();
 
             if (!renderIds.isEmpty() && !partialViewContext.getExecuteIds().containsAll(renderIds)) {
                 context.getViewRoot().visitTree(createVisitContext(context, renderIds, VISIT_HINTS), VISIT_CALLBACK);
