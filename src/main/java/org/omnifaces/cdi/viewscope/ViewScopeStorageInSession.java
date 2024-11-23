@@ -12,14 +12,17 @@
  */
 package org.omnifaces.cdi.viewscope;
 
+import static jakarta.faces.render.ResponseStateManager.VIEW_STATE_PARAM;
 import static java.lang.String.format;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.DEFAULT_MAX_ACTIVE_VIEW_SCOPES;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MAX_ACTIVE_VIEW_SCOPES;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MOJARRA_NUMBER_OF_VIEWS;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MYFACES_NUMBER_OF_VIEWS;
+import static org.omnifaces.cdi.viewscope.ViewScopeManager.isUnloadRequest;
 import static org.omnifaces.util.Faces.getInitParameter;
 import static org.omnifaces.util.Faces.getViewAttribute;
 import static org.omnifaces.util.Faces.setViewAttribute;
+import static org.omnifaces.util.FacesLocal.getRequestParameter;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -28,6 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.SessionScoped;
+import jakarta.faces.context.FacesContext;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
@@ -60,6 +64,7 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
     // Variables ------------------------------------------------------------------------------------------------------
 
     private ConcurrentMap<UUID, BeanStorage> activeViewScopes;
+	private ConcurrentMap<String, Boolean> recentlyUnloadedViewStates;
 
     // Actions --------------------------------------------------------------------------------------------------------
 
@@ -70,6 +75,7 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
     @PostConstruct
     public void postConstructSession() {
         activeViewScopes = new LruCache<>(getMaxActiveViewScopes(), (uuid, storage) -> storage.destroyBeans());
+        recentlyUnloadedViewStates = new LruCache<>(getMaxActiveViewScopes());
     }
 
     @Override
@@ -91,15 +97,30 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
 
     /**
      * Destroys all beans associated with given bean storage identifier.
+     * @param context The involved faces context.
      * @param beanStorageId The bean storage identifier.
      */
-    public void destroyBeans(UUID beanStorageId) {
+    public void destroyBeans(FacesContext context, UUID beanStorageId) {
         var storage = activeViewScopes.get(beanStorageId);
 
         if (storage != null) {
             storage.destroyBeans();
             activeViewScopes.remove(beanStorageId);
         }
+
+        if (isUnloadRequest(context)) {
+            recentlyUnloadedViewStates.put(getRequestParameter(context, VIEW_STATE_PARAM), true);
+        }
+    }
+
+    /**
+     * Returns {@code true} if given faces context is recently unloaded.
+     * @param context The involved faces context.
+     * @return {@code true} if given faces context is recently unloaded.
+     * @since 2.7.27
+     */
+    public boolean isRecentlyUnloaded(FacesContext context) {
+        return recentlyUnloadedViewStates.containsKey(getRequestParameter(context, VIEW_STATE_PARAM));
     }
 
     /**

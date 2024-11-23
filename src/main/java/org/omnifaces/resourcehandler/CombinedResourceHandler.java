@@ -14,6 +14,7 @@ package org.omnifaces.resourcehandler;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
+import static java.util.Collections.emptySet;
 import static org.omnifaces.util.Components.isRendered;
 import static org.omnifaces.util.Events.subscribeToApplicationEvent;
 import static org.omnifaces.util.Faces.evaluateExpressionGet;
@@ -29,7 +30,6 @@ import static org.omnifaces.util.Utils.isOneOf;
 import static org.omnifaces.util.Utils.splitAndTrim;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -295,14 +295,14 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
 
     // Properties -----------------------------------------------------------------------------------------------------
 
-    private String disabledParam;
-    private Set<ResourceIdentifier> excludedResources;
-    private Set<ResourceIdentifier> suppressedResources;
-    private boolean inlineCSS;
-    private boolean inlineJS;
-    private Integer cacheTTL;
-    private String crossorigin;
-    private boolean needsIntegrity;
+    private final String disabledParam;
+    private final Set<ResourceIdentifier> excludedResources;
+    private final Set<ResourceIdentifier> suppressedResources;
+    private final boolean inlineCSS;
+    private final boolean inlineJS;
+    private final Integer cacheTTL;
+    private final String crossorigin;
+    private final boolean needsIntegrity;
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
@@ -403,7 +403,7 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
      * set if the parameter is not been set.
      */
     private static Set<ResourceIdentifier> initResources(String name) {
-        Set<ResourceIdentifier> resources = new HashSet<>(1);
+        var resources = new HashSet<ResourceIdentifier>(1);
         var configuredResources = getInitParameter(name);
 
         if (configuredResources != null) {
@@ -476,11 +476,11 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
 
         // General stylesheet/script builder --------------------------------------------------------------------------
 
-        private Builder criticalStylesheets;
-        private Builder stylesheets;
-        private Builder scripts;
-        private Map<String, Builder> deferredScripts;
-        private List<UIComponent> componentResourcesToRemove;
+        private final Builder criticalStylesheets;
+        private final Builder stylesheets;
+        private final Builder scripts;
+        private final Map<String, Builder> deferredScripts;
+        private final List<UIComponent> componentResourcesToRemove;
 
         public CombinedResourceBuilder() {
             criticalStylesheets = new Builder(EXTENSION_CSS, TARGET_HEAD, inlineCSS ? InlineStylesheetRenderer.RENDERER_TYPE : CriticalStylesheetRenderer.RENDERER_TYPE);
@@ -657,7 +657,7 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
                 if (resource instanceof CDNResource cdnResource) {
                     setFallbackURL(context, cdnResource);
                 }
-                else if (isOneOf(rendererType, RENDERER_TYPE_JS, RENDERER_TYPE_CSS)) {
+                else if (isOneOf(rendererType, RENDERER_TYPE_JS, RENDERER_TYPE_CSS, CriticalStylesheetRenderer.RENDERER_TYPE)) {
                     componentResource.getPassThroughAttributes().put("crossorigin", crossorigin);
                     componentResource.getPassThroughAttributes().put("integrity", getIntegrityIfNecessary(context, resource));
                 }
@@ -673,7 +673,7 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
                 componentResource.getPassThroughAttributes().put("onerror", "document.write('<script src=\"" + fallbackURL
                     + "\" crossorigin=\"" + crossorigin + "\" integrity=\"" + getIntegrityIfNecessary(context, cdnResource) + "\"></script>')");
             }
-            else if (RENDERER_TYPE_CSS.equals(rendererType)) {
+            else if (isOneOf(rendererType, RENDERER_TYPE_CSS, CriticalStylesheetRenderer.RENDERER_TYPE)) {
                 componentResource.getPassThroughAttributes().put("onerror", "this.onerror=null;this.href='" + fallbackURL + "'");
             }
             else if (DeferredScriptRenderer.RENDERER_TYPE.equals(rendererType)) {

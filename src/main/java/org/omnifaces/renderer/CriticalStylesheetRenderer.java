@@ -74,11 +74,12 @@ public class CriticalStylesheetRenderer extends Renderer<CriticalStylesheet> {
     public void encodeEnd(FacesContext context, CriticalStylesheet component) throws IOException {
         var writer = context.getResponseWriter();
         writer.endElement("link");
-        writer.startElement("noscript", component);
+        writer.startElement("noscript", null);
         writer.startElement("link", component);
         writeAttribute(writer, "rel", "stylesheet");
         writer.writeURIAttribute("href", getAttribute(component, "href"), "href");
         writeAttribute(writer, component, "media");
+        writer.endElement("link");
         writer.endElement("noscript");
 
         context.getApplication().getResourceHandler().markResourceRendered(context, getAttribute(component, "name"), getAttribute(component, "library"));

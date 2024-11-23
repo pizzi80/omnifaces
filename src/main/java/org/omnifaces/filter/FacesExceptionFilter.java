@@ -71,6 +71,10 @@ import org.omnifaces.exceptionhandler.FullAjaxExceptionHandler;
  *     &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
  * &lt;/filter-mapping&gt;
  * </pre>
+ * <p>
+ * Note that since OmniFaces 4.5, the {@link FullAjaxExceptionHandler} will automatically register the
+ * {@link FacesExceptionFilter} on its default URL pattern of {@code /*} when it is absent in {@code web.xml}, so you
+ * do not need to explicitly register it then.
  *
  * <h2>Error pages</h2>
  * <p>
