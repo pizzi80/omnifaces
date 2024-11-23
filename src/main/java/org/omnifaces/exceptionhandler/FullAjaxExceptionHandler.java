@@ -119,7 +119,7 @@ import org.omnifaces.util.Reflection;
  * normal synchronous error page response. You could for example show them in the error page as follows:
  * <pre>
  * &lt;ul&gt;
- *     &lt;li&gt;Date/time: #{of:formatDate(now, 'yyyy-MM-dd HH:mm:ss')}&lt;/li&gt;
+ *     &lt;li&gt;Date/time: #{o:formatDate(now, 'yyyy-MM-dd HH:mm:ss')}&lt;/li&gt;
  *     &lt;li&gt;User agent: #{header['user-agent']}&lt;/li&gt;
  *     &lt;li&gt;User IP: #{request.remoteAddr}&lt;/li&gt;
  *     &lt;li&gt;Request URI: #{requestScope['jakarta.servlet.error.request_uri']}&lt;/li&gt;
@@ -129,7 +129,7 @@ import org.omnifaces.util.Reflection;
  *     &lt;li&gt;Exception message: #{requestScope['jakarta.servlet.error.message']}&lt;/li&gt;
  *     &lt;li&gt;Exception UUID: #{requestScope['org.omnifaces.exception_uuid']}&lt;/li&gt;
  *     &lt;li&gt;Stack trace:
- *         &lt;pre&gt;#{of:printStackTrace(requestScope['jakarta.servlet.error.exception'])}&lt;/pre&gt;
+ *         &lt;pre&gt;#{o:printStackTrace(requestScope['jakarta.servlet.error.exception'])}&lt;/pre&gt;
  *     &lt;/li&gt;
  * &lt;/ul&gt;
  * </pre>

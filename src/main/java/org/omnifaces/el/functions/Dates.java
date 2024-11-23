@@ -46,10 +46,10 @@ import org.omnifaces.util.Faces;
 
 /**
  * <p>
- * Collection of EL functions for date and time: <code>of:formatDate()</code>, <code>of:formatDateWithTimezone()</code>,
- * <code>of:addXxx()</code> like <code>of:addDays()</code>, <code>of:xxxBetween()</code> like <code>of:daysBetween()</code>,
- * <code>of:getMonths()</code>, <code>of:getShortMonths()</code>, <code>of:getDaysOfWeek()</code>, <code>of:getShortDaysOfWeek()</code>,
- * <code>of:getMonth()</code>, <code>of:getShortMonth()</code>, <code>of:getDayOfWeek()</code> and <code>of:getShortDayOfWeek()</code>.
+ * Collection of EL functions for date and time: <code>o:formatDate()</code>, <code>o:formatDateWithTimezone()</code>,
+ * <code>o:addXxx()</code> like <code>o:addDays()</code>, <code>o:xxxBetween()</code> like <code>o:daysBetween()</code>,
+ * <code>o:getMonths()</code>, <code>o:getShortMonths()</code>, <code>o:getDaysOfWeek()</code>, <code>o:getShortDaysOfWeek()</code>,
+ * <code>o:getMonth()</code>, <code>o:getShortMonth()</code>, <code>o:getDayOfWeek()</code> and <code>o:getShortDayOfWeek()</code>.
  * <p>
  * Historical note: before OmniFaces 3.6, these functions accepted <code>java.util.Date</code> and <code>java.util.TimeZone</code> only.
  * Since OmniFaces 3.6, these functions <em>also</em> accept <code>java.time.Temporal</code> and <code>java.time.ZoneId</code>.
@@ -341,7 +341,7 @@ public final class Dates {
      * @see DateFormatSymbols#getMonths()
      */
     public static Map<String, Integer> getMonths() {
-        Locale locale = getLocale();
+        var locale = getLocale();
         return MONTHS_CACHE.computeIfAbsent(locale, k -> mapMonths(FULL, locale));
     }
 
@@ -354,7 +354,7 @@ public final class Dates {
      * @see DateFormatSymbols#getShortMonths()
      */
     public static Map<String, Integer> getShortMonths() {
-        Locale locale = getLocale();
+        var locale = getLocale();
         return SHORT_MONTHS_CACHE.computeIfAbsent(locale, k -> mapMonths(SHORT, locale));
     }
 
@@ -376,7 +376,7 @@ public final class Dates {
      * @see DateFormatSymbols#getWeekdays()
      */
     public static Map<String, Integer> getDaysOfWeek() {
-        Locale locale = getLocale();
+        var locale = getLocale();
         return DAYS_OF_WEEK_CACHE.computeIfAbsent(locale, k -> mapDaysOfWeek(FULL, locale));
     }
 
@@ -389,7 +389,7 @@ public final class Dates {
      * @see DateFormatSymbols#getShortWeekdays()
      */
     public static Map<String, Integer> getShortDaysOfWeek() {
-        Locale locale = getLocale();
+        var locale = getLocale();
         return SHORT_DAYS_OF_WEEK_CACHE.computeIfAbsent(locale, k -> mapDaysOfWeek(SHORT, locale));
     }
 

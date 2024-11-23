@@ -27,11 +27,11 @@ import org.omnifaces.util.Utils;
 
 /**
  * <p>
- * Collection of EL functions for string manipulation: <code>of:abbreviate()</code>, <code>of:capitalize()</code>, <code>of:concat()</code>,
- * <code>of:prettyURL()</code>, <code>of:encodeURL()</code>, <code>of:encodeURI()</code>, <code>of:encodeBase64()</code>,
- * <code>of:escapeJS()</code>,  <code>of:stripTags()</code> and <code>of:formatX()</code>.
+ * Collection of EL functions for string manipulation: <code>o:abbreviate()</code>, <code>o:capitalize()</code>, <code>o:concat()</code>,
+ * <code>o:prettyURL()</code>, <code>o:encodeURL()</code>, <code>o:encodeURI()</code>, <code>o:encodeBase64()</code>,
+ * <code>o:escapeJS()</code>,  <code>o:stripTags()</code> and <code>o:formatX()</code>.
  * <p>
- * Instead of <code>of:formatX()</code>, you can also use <code>&lt;o:outputFormat&gt;</code>.
+ * Instead of <code>o:formatX()</code>, you can also use <code>&lt;o:outputFormat&gt;</code>.
  *
  * @author Bauke Scholtz
  */
@@ -171,8 +171,8 @@ public final class Strings {
             return null;
         }
 
-        String normalized = Normalizer.normalize(string.toLowerCase(), Form.NFD);
-        String withoutDiacriticalMarks = PATTERN_DIACRITICAL_MARKS.matcher(normalized).replaceAll("");
+        var normalized = Normalizer.normalize(string.toLowerCase(), Form.NFD);
+        var withoutDiacriticalMarks = PATTERN_DIACRITICAL_MARKS.matcher(normalized).replaceAll("");
         return PATTERN_NON_ALPHANUMERIC_CHARS.matcher(withoutDiacriticalMarks).replaceAll("-");
     }
 
@@ -234,7 +234,7 @@ public final class Strings {
             return string;
         }
 
-        String withoutTags = PATTERN_XML_TAGS.matcher(string).replaceAll("");
+        var withoutTags = PATTERN_XML_TAGS.matcher(string).replaceAll("");
         return PATTERN_MULTIPLE_SPACES.matcher(withoutTags).replaceAll(" ").trim();
     }
 
@@ -319,7 +319,7 @@ public final class Strings {
      * The main string format method taking varargs.
      */
     private static String format(String pattern, Object... params) {
-        StringBuffer result = new StringBuffer();
+        var result = new StringBuffer();
         new MessageFormat(pattern, getLocale()).format(params, result, null);
         return result.toString();
     }

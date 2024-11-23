@@ -3315,7 +3315,7 @@ If <code>#{bean.bar}</code> is any other value, then it will appear in the hash 
 &lt;ui:composition
     xmlns:ui="jakarta.faces.facelets"
     xmlns:h="jakarta.faces.html"
-    xmlns:o="omnifaces.ui"
+    xmlns:o="omnifaces"
 &gt;
     &lt;o:methodParam name="method" value="#{action}"/&gt;
 
@@ -8012,7 +8012,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                 <p>
                 Usage example:
                 <pre>
-&lt;a href="#{of:graphicImageURL('images.full(product.imageId)')}"&gt;
+&lt;a href="#{o:graphicImageURL('images.full(product.imageId)')}"&gt;
     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" /&gt;
 &lt;/a&gt;
                 </pre>
@@ -8032,7 +8032,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                 <p>
                 Usage example:
                 <pre>
-&lt;a href="#{of:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
+&lt;a href="#{o:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" /&gt;
 &lt;/a&gt;
                 </pre>
@@ -8054,7 +8054,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                 <p>
                 Usage example:
                 <pre>
-&lt;a href="#{of:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
+&lt;a href="#{o:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" lastModified="#{product.lastModified}" /&gt;
 &lt;/a&gt;
                 </pre>

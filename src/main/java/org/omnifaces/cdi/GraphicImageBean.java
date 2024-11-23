@@ -37,7 +37,7 @@ import org.omnifaces.resourcehandler.GraphicResourceHandler;
  * <p>
  * Stereo type that designates a bean with one or more methods returning <code>byte[]</code> or <code>InputStream</code>
  * as a named application scoped bean specifically for serving graphic images via <code>&lt;o:graphicImage&gt;</code>
- * component or <code>#{of:graphicImageURL()}</code> EL functions.
+ * component or <code>#{o:graphicImageURL()}</code> EL functions.
  * <pre>
  * import org.omnifaces.cdi.GraphicImageBean;
  *
@@ -63,30 +63,30 @@ import org.omnifaces.resourcehandler.GraphicResourceHandler;
  *
  * <h2>Usage</h2>
  * <p>
- * You can use <code>#{of:graphicImageURL()}</code> EL functions to generate URLs referring the
+ * You can use <code>#{o:graphicImageURL()}</code> EL functions to generate URLs referring the
  * <code>&#64;GraphicImageBean</code> bean, optionally with the image <code>type</code> and <code>lastModified</code>
  * arguments. Below are some usage examples:
  * <pre>
  * &lt;ui:repeat value="#{bean.products}" var="product"&gt;
  *
  *     &lt;!-- Basic, using default type and last modified. --&gt;
- *     &lt;a href="#{of:graphicImageURL('images.full(product.imageId)')}"&gt;
+ *     &lt;a href="#{o:graphicImageURL('images.full(product.imageId)')}"&gt;
  *         &lt;o:graphicImage value="#{images.thumb(product.imageId)}" /&gt;
  *     &lt;/a&gt;
  *
  *     &lt;!-- With specified type and default last modified. --&gt;
- *     &lt;a href="#{of:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
+ *     &lt;a href="#{o:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
  *         &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" /&gt;
  *     &lt;/a&gt;
  *
  *     &lt;!-- With specified type and last modified. --&gt;
- *     &lt;a href="#{of:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
+ *     &lt;a href="#{o:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
  *         &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" lastModified="#{product.lastModified}" /&gt;
  *     &lt;/a&gt;
  * &lt;/ui:repeat&gt;
  * </pre>
  * <p>
- * Note that in the <code>#{of:graphicImageURL()}</code> EL functions the expression string represents the same value as
+ * Note that in the <code>#{o:graphicImageURL()}</code> EL functions the expression string represents the same value as
  * you would use in <code>&lt;o:graphicImage&gt;</code> and that it must be a quoted string. Any nested quotes can be
  * escaped with backslash.
  * <p>

@@ -26,9 +26,9 @@ import org.omnifaces.util.Faces;
 
 /**
  * <p>
- * Collection of EL functions for number formatting: <code>of:formatBytes()</code>, <code>of:formatCurrency()</code>,
- * <code>of:formatNumber()</code>, <code>of:formatNumberDefault()</code>, <code>of:formatPercent()</code>,
- * <code>of:formatThousands()</code> and <code>of:formatThousandsUnit()</code>.
+ * Collection of EL functions for number formatting: <code>o:formatBytes()</code>, <code>o:formatCurrency()</code>,
+ * <code>o:formatNumber()</code>, <code>o:formatNumberDefault()</code>, <code>o:formatPercent()</code>,
+ * <code>o:formatThousands()</code> and <code>o:formatThousandsUnit()</code>.
  *
  * @author Bauke Scholtz
  * @since 1.2

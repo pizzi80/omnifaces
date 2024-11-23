@@ -19,8 +19,8 @@ import java.util.stream.IntStream;
 
 /**
  * <p>
- * Collection of EL functions for array manipulation: <code>of:createArray()</code>, <code>of:createIntegerArray()</code>,
- * <code>of:contains()</code> and <code>of:reverseArray()</code>.
+ * Collection of EL functions for array manipulation: <code>o:createArray()</code>, <code>o:createIntegerArray()</code>,
+ * <code>o:contains()</code> and <code>o:reverseArray()</code>.
  *
  * @author Bauke Scholtz
  */
@@ -64,7 +64,7 @@ public final class Arrays {
      * @return An integer array which starts at the given integer and ends at the given integer, inclusive
      */
     public static Integer[] createIntegerArray(int begin, int end) {
-        IntStream range = IntStream.rangeClosed(min(begin, end), max(begin, end));
+        var range = IntStream.rangeClosed(min(begin, end), max(begin, end));
 
         if (begin > end) {
             range = range.map(i -> begin + end - i);
@@ -107,10 +107,10 @@ public final class Arrays {
             return null;
         }
 
-        int length = array.length;
-        Object[] reversed = new Object[length];
+        var length = array.length;
+        var reversed = new Object[length];
 
-        for (int i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             reversed[i] = array[length - 1 - i];
         }
 

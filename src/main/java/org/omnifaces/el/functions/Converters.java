@@ -40,17 +40,17 @@ import org.omnifaces.util.Utils;
 
 /**
  * <p>
- * Collection of EL functions for data conversion: <code>of:iterableToList()</code> (with alternative <code>of:iterableToModel</code>),
- * <code>of:setToList()</code>, <code>of:mapToList()</code>, <code>of:joinArray()</code>, <code>of:joinCollection()</code>,
- * <code>of:joinMap()</code>, <code>of:splitArray()</code>, <code>of:splitList()</code>, and <code>of:toJson()</code>.
+ * Collection of EL functions for data conversion: <code>o:iterableToList()</code> (with alternative <code>o:iterableToModel</code>),
+ * <code>o:setToList()</code>, <code>o:mapToList()</code>, <code>o:joinArray()</code>, <code>o:joinCollection()</code>,
+ * <code>o:joinMap()</code>, <code>o:splitArray()</code>, <code>o:splitList()</code>, and <code>o:toJson()</code>.
  * <p>
- * The <code>of:joinXxx()</code> functions basically joins the elements of the array, collection or map to a string using the given separator.
+ * The <code>o:joinXxx()</code> functions basically joins the elements of the array, collection or map to a string using the given separator.
  * This may be helpful if you want to display the contents of a collection as a commaseparated string without the need for an <code>&lt;ui:repeat&gt;</code>.
  * <p>
- * The <code>of:splitXxx()</code> functions basically splits an array or list into an array of subarrays or list of sublists of the given fragment size.
+ * The <code>o:splitXxx()</code> functions basically splits an array or list into an array of subarrays or list of sublists of the given fragment size.
  * This may be helpful if you want to create a two-dimensional matrix of a fixed width based on a single-dimensional array or list.
  * <p>
- * The <code>of:toJson()</code> function encodes any object to a string in JSON format according the rules of
+ * The <code>o:toJson()</code> function encodes any object to a string in JSON format according the rules of
  * {@link Json#encode(Object)}.
  *
  * @author Bauke Scholtz
@@ -164,9 +164,9 @@ public final class Converters {
             throw new IllegalArgumentException(format(ERROR_NOT_AN_ARRAY, array.getClass()));
         }
 
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
 
-        for (int i = 0; i < Array.getLength(array); i++) {
+        for (var i = 0; i < Array.getLength(array); i++) {
             if (i > 0 && separator != null) {
                 builder.append(separator);
             }
@@ -190,8 +190,8 @@ public final class Converters {
             return null;
         }
 
-        StringBuilder builder = new StringBuilder();
-        int i = 0;
+        var builder = new StringBuilder();
+        var i = 0;
 
         for (E element : collection) {
             if (i++ > 0 && separator != null) {
@@ -220,8 +220,8 @@ public final class Converters {
             return null;
         }
 
-        StringBuilder builder = new StringBuilder();
-        int i = 0;
+        var builder = new StringBuilder();
+        var i = 0;
 
         for (Entry<K, V> entry : map.entrySet()) {
             if (i++ > 0 && entrySeparator != null) {
@@ -263,8 +263,8 @@ public final class Converters {
             throw new IllegalArgumentException(format(ERROR_INVALID_FRAGMENT_SIZE, fragmentSize));
         }
 
-        int sourceSize = Array.getLength(array);
-        Object[][] arrays = new Object[(sourceSize + fragmentSize - 1) / fragmentSize][];
+        var sourceSize = Array.getLength(array);
+        var arrays = new Object[(sourceSize + fragmentSize - 1) / fragmentSize][];
 
         for (int i = 0, j = 0; i < sourceSize; i += fragmentSize, j++) {
             arrays[j] = new Object[Math.min(fragmentSize, sourceSize - i)];
@@ -294,10 +294,10 @@ public final class Converters {
             throw new IllegalArgumentException(format(ERROR_INVALID_FRAGMENT_SIZE, fragmentSize));
         }
 
-        int sourceSize = list.size();
+        var sourceSize = list.size();
         List<List<E>> lists = new ArrayList<>((sourceSize + fragmentSize - 1) / fragmentSize);
 
-        for (int i = 0; i < sourceSize; i += fragmentSize) {
+        for (var i = 0; i < sourceSize; i += fragmentSize) {
             lists.add(list.subList(i, Math.min(i + fragmentSize, sourceSize)));
         }
 
@@ -326,7 +326,7 @@ public final class Converters {
             return null;
         }
 
-        StringWriter stringWriter = new StringWriter();
+        var stringWriter = new StringWriter();
         exception.printStackTrace(new PrintWriter(stringWriter, true));
         return stringWriter.toString();
     }
@@ -343,7 +343,7 @@ public final class Converters {
      * @since 3.10
      */
     public static String convert(String converterId, Object object) {
-        FacesContext context = Faces.getContext();
+        var context = Faces.getContext();
         return createConverter(context, converterId).getAsString(context, getCurrentComponent(context), object);
     }
 

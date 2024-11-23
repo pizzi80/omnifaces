@@ -17,9 +17,7 @@ import static org.omnifaces.util.Faces.getELContext;
 
 import java.util.Date;
 
-import jakarta.el.ValueExpression;
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.context.FacesContext;
 
 import org.omnifaces.cdi.GraphicImageBean;
 import org.omnifaces.component.output.GraphicImage;
@@ -57,7 +55,7 @@ public final class Components {
             return null;
         }
 
-        ValueExpression valueExpression = component.getValueExpression(name);
+        var valueExpression = component.getValueExpression(name);
         if (valueExpression != null) {
             return valueExpression.getValue(getELContext());
         } else {
@@ -71,7 +69,7 @@ public final class Components {
      * <p>
      * Usage example:
      * <pre>
-     * &lt;a href="#{of:graphicImageURL('images.full(product.imageId)')}"&gt;
+     * &lt;a href="#{o:graphicImageURL('images.full(product.imageId)')}"&gt;
      *     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" /&gt;
      * &lt;/a&gt;
      * </pre>
@@ -92,7 +90,7 @@ public final class Components {
      * <p>
      * Usage example:
      * <pre>
-     * &lt;a href="#{of:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
+     * &lt;a href="#{o:graphicImageURLWithType('images.full(product.imageId)', 'png')}"&gt;
      *     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" /&gt;
      * &lt;/a&gt;
      * </pre>
@@ -115,7 +113,7 @@ public final class Components {
      * <p>
      * Usage example:
      * <pre>
-     * &lt;a href="#{of:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
+     * &lt;a href="#{o:graphicImageURLWithTypeAndLastModified('images.full(product.imageId)', 'png', product.lastModified)}"&gt;
      *     &lt;o:graphicImage value="#{images.thumb(product.imageId)}" type="png" lastModified="#{product.lastModified}" /&gt;
      * &lt;/a&gt;
      * </pre>
@@ -132,9 +130,9 @@ public final class Components {
      */
     @SuppressWarnings("all") // Eclipse el-syntax.
     public static String graphicImageURLWithTypeAndLastModified(String expression, String type, Object lastModified) {
-        FacesContext context = getContext();
-        ValueExpression value = org.omnifaces.util.Components.createValueExpression("#{" + expression + "}", Object.class);
-        GraphicResource resource = GraphicResource.create(context, value, type, lastModified);
+        var context = getContext();
+        var value = org.omnifaces.util.Components.createValueExpression("#{" + expression + "}", Object.class);
+        var resource = GraphicResource.create(context, value, type, lastModified);
         return context.getExternalContext().encodeResourceURL(resource.getRequestPath());
     }
 
