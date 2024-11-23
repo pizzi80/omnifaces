@@ -327,7 +327,7 @@ public class FullAjaxExceptionHandler extends ExceptionHandlerWrapper {
                 .noneMatch(FullAjaxExceptionHandlerFactory.class::equals) || servletContext.getFilterRegistrations().values().stream()
                 .map(FilterRegistration::getClassName)
                 .map(Reflection::toClassOrNull).filter(Objects::nonNull)
-                .anyMatch(FacesExceptionFilter.class::equals))
+                .anyMatch(FacesExceptionFilter.class::isAssignableFrom))
         {
             return; // FacesExceptionFilter is already explicitly registered.
         }
