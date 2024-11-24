@@ -64,6 +64,7 @@ import jakarta.faces.FactoryFinder;
 import jakarta.faces.application.ProjectStage;
 import jakarta.faces.application.Resource;
 import jakarta.faces.application.ViewHandler;
+import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIViewParameter;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.context.Flash;
@@ -470,6 +471,13 @@ public final class FacesLocal {
      */
     public static Resource createResource(FacesContext context, ResourceIdentifier resourceIdentifier) {
         return context.getApplication().getResourceHandler().createResource(resourceIdentifier.getName(), resourceIdentifier.getLibrary());
+    }
+
+    /**
+     * @see Faces#createResource(UIComponent)
+     */
+    public static Resource createResource(FacesContext context, UIComponent component) {
+        return createResource(context, new ResourceIdentifier(component));
     }
 
     /**

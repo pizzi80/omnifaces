@@ -46,6 +46,7 @@ import jakarta.faces.application.ProjectStage;
 import jakarta.faces.application.Resource;
 import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.application.ViewHandler;
+import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIViewParameter;
 import jakarta.faces.component.UIViewRoot;
 import jakarta.faces.context.ExternalContext;
@@ -705,6 +706,19 @@ public final class Faces {
      */
     public static Resource createResource(ResourceIdentifier resourceIdentifier) {
         return FacesLocal.createResource(getContext(), resourceIdentifier);
+    }
+
+    /**
+     * Creates and returns a Faces resource associated with given resource component.
+     * If no resource can be allocated, then return null.
+     * @param component The resource component.
+     * @return A Faces resource associated with given resource component.
+     * @throws NullPointerException When faces context is unavailable.
+     * @see ResourceHandler#createResource(String, String)
+     * @since 5.0
+     */
+    public static Resource createResource(UIComponent component) {
+        return FacesLocal.createResource(getContext(), component);
     }
 
     /**

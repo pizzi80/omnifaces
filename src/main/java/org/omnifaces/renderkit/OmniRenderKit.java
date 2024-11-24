@@ -1,0 +1,39 @@
+package org.omnifaces.renderkit;
+
+import static org.omnifaces.util.Renderers.RENDERER_TYPE_CSS;
+import static org.omnifaces.util.Renderers.RENDERER_TYPE_JS;
+import static org.omnifaces.util.Utils.isOneOf;
+
+import jakarta.faces.component.UIOutput;
+import jakarta.faces.render.RenderKit;
+import jakarta.faces.render.RenderKitWrapper;
+import jakarta.faces.render.Renderer;
+
+import org.omnifaces.component.stylesheet.StylesheetFamily;
+import org.omnifaces.renderer.CORSAwareResourceRenderer;
+import org.omnifaces.renderer.CriticalStylesheetRenderer;
+
+/**
+ * OmniFaces render kit. This render kit performs the following tasks:
+ * <ol>
+ * <li>Since 5.0: Wrap the default renderer of output scripts/stylesheets with {@link CORSAwareResourceRenderer}.
+ * </ol>
+ *
+ * @author Bauke Scholtz
+ * @since 5.0
+ * @see OmniRenderKitFactory
+ * @see CORSAwareResourceRenderer
+ */
+public class OmniRenderKit extends RenderKitWrapper {
+
+    public OmniRenderKit(RenderKit wrapped) {
+        super(wrapped);
+    }
+
+    @Override
+    public void addRenderer(String family, String rendererType, @SuppressWarnings("rawtypes") Renderer renderer) {
+        var resourceType = UIOutput.COMPONENT_FAMILY.equals(family) && isOneOf(rendererType, RENDERER_TYPE_JS, RENDERER_TYPE_CSS)
+                || StylesheetFamily.COMPONENT_FAMILY.equals(family) && CriticalStylesheetRenderer.RENDERER_TYPE.equals(rendererType);
+        super.addRenderer(family, rendererType, resourceType ? new CORSAwareResourceRenderer(renderer) : renderer);
+    }
+}

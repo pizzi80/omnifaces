@@ -14,6 +14,8 @@ package org.omnifaces.resourcehandler;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
+import static org.omnifaces.renderer.CORSAwareResourceRenderer.getCrossorigin;
+import static org.omnifaces.renderer.CORSAwareResourceRenderer.getIntegrityIfNecessary;
 import static org.omnifaces.util.Components.isRendered;
 import static org.omnifaces.util.Events.subscribeToApplicationEvent;
 import static org.omnifaces.util.Faces.evaluateExpressionGet;
@@ -48,6 +50,7 @@ import jakarta.faces.event.SystemEventListener;
 
 import org.omnifaces.component.script.DeferredScript;
 import org.omnifaces.component.stylesheet.CriticalStylesheet;
+import org.omnifaces.renderer.CORSAwareResourceRenderer;
 import org.omnifaces.renderer.CriticalStylesheetRenderer;
 import org.omnifaces.renderer.DeferredScriptRenderer;
 import org.omnifaces.renderer.InlineResourceRenderer;
@@ -171,16 +174,6 @@ import org.omnifaces.util.cache.Cache;
  * are removed from the cache if they are older than this parameter indicates (and regenerated if newly requested).
  * The default value is 0 (i.e. not cached). For global cache settings refer {@link Cache} javadoc.
  * </td></tr>
- * <tr><td class="colFirst">
- * <code>{@value org.omnifaces.resourcehandler.CombinedResourceHandler#PARAM_NAME_CROSSORIGIN}</code>
- * </td><td>
- * Set the desired value of <code>crossorigin</code> attribute of combined script resources. Supported values are
- * specified in <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin">MDN</a>.
- * Since 2.4, the default value is <code>anonymous</code> (i.e. no cookies are transferred at all). Since 3.13, when the
- * value is <code>anonymous</code>, then the combined resource handler will also set the <code>integrity</code>
- * attribute with a base64 encoded sha384 hash as SRI, see also
- * <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity">MDN</a>.
- * </td></tr>
  * </table>
  * <p>
  * Here, the "resource identifier" is the unique combination of library name and resource name, separated by a colon,
@@ -222,12 +215,17 @@ import org.omnifaces.util.cache.Cache;
  *
  * <h2>CDNResource</h2>
  * <p>
- * Since 2.7, if you have configured a custom {@link ResourceHandler} which automatically uploads the resources to a
- * CDN host, including the combined resources, and you want to be able to have a fallback to local host URL when the
- * CDN host is unreachable, then you can let your custom {@link ResourceHandler} return a {@link CDNResource} which
- * wraps the original resource and the CDN URL. The combined resource handler will make sure that the appropriate
- * <code>onerror</code> attributes are added to the component resources which initiates the fallback resource in case
- * the CDN request errors out.
+ * Since 2.7, if you have configured a custom {@link ResourceHandler} (not {@link CDNResourceHandler}) which
+ * automatically uploads the resources to a CDN host, including the combined resources, and you want to be able to have
+ * a fallback to local host URL when the CDN host is unreachable, then you can let your custom {@link ResourceHandler}
+ * return a {@link CDNResource} which wraps the original resource and the CDN URL. The combined resource handler will
+ * make sure that the appropriate <code>onerror</code> attributes are added to the component resources which initiates
+ * the fallback resource in case the CDN request errors out.
+ * <p>
+ * Historical note: before 5.0, the {@link CombinedResourceHandler} also added <code>crossorigin</code> and
+ * <code>integrity</code> attributes to every combined resource, but it also unnecessarily did that when the resource is
+ * not a CDN resource, and all non-combined resources were ignored. Hence this task has since 5.0 been split into
+ * {@link CORSAwareResourceRenderer} on which the job was improved.
  *
  *
  * @author Bauke Scholtz
@@ -274,10 +272,6 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
     public static final String PARAM_NAME_CACHE_TTL =
         "org.omnifaces.COMBINED_RESOURCE_HANDLER_CACHE_TTL";
 
-    /** The context parameter name to specify 'crossorigin' attribute of combined resources. @since 3.5 */
-    public static final String PARAM_NAME_CROSSORIGIN =
-        "org.omnifaces.COMBINED_RESOURCE_HANDLER_CROSSORIGIN";
-
     private static final String ERROR_INVALID_CACHE_TTL_PARAM =
         "Context parameter '" + PARAM_NAME_CACHE_TTL + "' is in invalid syntax."
             + " It must represent a valid time in seconds between 0 and " + Integer.MAX_VALUE + "."
@@ -286,7 +280,6 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
     private static final String TARGET_HEAD = "head";
     private static final String TARGET_BODY = "body";
     private static final String COMPONENT_ADDED = "jakarta.faces.component.UIComponentBase.ADDED";
-    private static final String DEFAULT_CROSSORIGIN = "anonymous";
 
     // Properties -----------------------------------------------------------------------------------------------------
 
@@ -296,8 +289,6 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
     private final boolean inlineCSS;
     private final boolean inlineJS;
     private final Integer cacheTTL;
-    private final String crossorigin;
-    private final boolean needsIntegrity;
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
@@ -317,8 +308,6 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
         inlineCSS = parseBoolean(getInitParameter(PARAM_NAME_INLINE_CSS));
         inlineJS = parseBoolean(getInitParameter(PARAM_NAME_INLINE_JS));
         cacheTTL = initCacheTTL(getInitParameter(PARAM_NAME_CACHE_TTL));
-        crossorigin = coalesce(getInitParameter(PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
-        needsIntegrity = DEFAULT_CROSSORIGIN.equals(crossorigin);
         subscribeToApplicationEvent(PreRenderViewEvent.class, this);
     }
 
@@ -652,10 +641,6 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
                 if (resource instanceof CDNResource cdnResource) {
                     setFallbackURL(context, cdnResource);
                 }
-                else if (isOneOf(rendererType, RENDERER_TYPE_JS, RENDERER_TYPE_CSS, CriticalStylesheetRenderer.RENDERER_TYPE)) {
-                    componentResource.getPassThroughAttributes().put("crossorigin", crossorigin);
-                    componentResource.getPassThroughAttributes().put("integrity", getIntegrityIfNecessary(context, resource));
-                }
             }
 
             removeComponentResources(context, componentResourcesToRemove, target);
@@ -666,7 +651,7 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
 
             if (RENDERER_TYPE_JS.equals(rendererType)) {
                 componentResource.getPassThroughAttributes().put("onerror", "document.write('<script src=\"" + fallbackURL
-                    + "\" crossorigin=\"" + crossorigin + "\" integrity=\"" + getIntegrityIfNecessary(context, cdnResource) + "\"></script>')");
+                    + "\" crossorigin=\"" + getCrossorigin(context) + "\" integrity=\"" + getIntegrityIfNecessary(context, cdnResource) + "\"></script>')");
             }
             else if (isOneOf(rendererType, RENDERER_TYPE_CSS, CriticalStylesheetRenderer.RENDERER_TYPE)) {
                 componentResource.getPassThroughAttributes().put("onerror", "this.onerror=null;this.href='" + fallbackURL + "'");
@@ -680,12 +665,8 @@ public class CombinedResourceHandler extends DefaultResourceHandler implements S
                 }
 
                 componentResource.getAttributes().put("onerror", "OmniFaces.Util.loadScript('" + fallbackURL
-                    + "','" + crossorigin + "','" + getIntegrityIfNecessary(context, cdnResource) + "'" + callbacks + ")");
+                    + "','" + getCrossorigin(context) + "','" + getIntegrityIfNecessary(context, cdnResource) + "'" + callbacks + ")");
             }
-        }
-
-        private String getIntegrityIfNecessary(FacesContext context, Resource resource) {
-            return needsIntegrity ? new ResourceIdentifier(resource).getIntegrity(context) : "";
         }
     }
 

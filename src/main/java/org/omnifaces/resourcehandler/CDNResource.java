@@ -17,10 +17,14 @@ import java.io.Externalizable;
 import jakarta.faces.application.Resource;
 import jakarta.faces.application.ResourceHandler;
 
+import org.omnifaces.renderer.CORSAwareResourceRenderer;
+
 /**
  * This {@link Resource} implementation can be used as a marker class to signal the custom {@link ResourceHandler}
  * such as {@link CombinedResourceHandler} that the given resource actually returns a CDN URL, and offers a method to
- * return the local URL which can be used as fallback in case the CDN request errors out.
+ * return the local URL which can be used as fallback in case the CDN request errors out. Since 5.0, also the
+ * {@link CORSAwareResourceRenderer} will check for it in order to decide whether to automatically generate the
+ * <code>integrity</code> attribute.
  *
  * @author Bauke Scholtz
  * @since 2.7
@@ -59,7 +63,7 @@ public class CDNResource extends RemappedResource {
      * @return The local URL.
      */
     public String getLocalRequestPath() {
-        Resource wrapped = getWrapped();
+        var wrapped = getWrapped();
         return wrapped != null ? wrapped.getRequestPath() : null;
     }
 

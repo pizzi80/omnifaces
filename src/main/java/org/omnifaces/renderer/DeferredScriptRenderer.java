@@ -12,6 +12,8 @@
  */
 package org.omnifaces.renderer;
 
+import static org.omnifaces.renderer.CORSAwareResourceRenderer.getCrossorigin;
+import static org.omnifaces.renderer.CORSAwareResourceRenderer.getIntegrityIfNecessary;
 import static org.omnifaces.resourcehandler.DefaultResourceHandler.RES_NOT_FOUND;
 import static org.omnifaces.util.FacesLocal.createResource;
 import static org.omnifaces.util.FacesLocal.isOutputHtml5Doctype;
@@ -27,7 +29,6 @@ import jakarta.faces.render.Renderer;
 import org.omnifaces.component.script.DeferredScript;
 import org.omnifaces.component.script.ScriptFamily;
 import org.omnifaces.resourcehandler.CombinedResourceHandler;
-import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
  * This renderer is the default renderer of {@link DeferredScript}. The rendering is extracted from the component so
@@ -53,8 +54,7 @@ public class DeferredScriptRenderer extends Renderer<DeferredScript> {
      */
     @Override
     public void encodeBegin(FacesContext context, DeferredScript component) throws IOException {
-        var id = new ResourceIdentifier(component);
-        var resource = createResource(context, id);
+        var resource = createResource(context, component);
 
         var writer = context.getResponseWriter();
         writer.startElement("script", component);
@@ -66,8 +66,10 @@ public class DeferredScriptRenderer extends Renderer<DeferredScript> {
         if (resource != null) {
             writer.write("OmniFaces.DeferredScript.add('");
             writer.write(resource.getRequestPath());
-            writer.write("','anonymous','");
-            writer.write(id.getIntegrity(context));
+            writer.write("','");
+            writer.write(getCrossorigin(context));
+            writer.write("','");
+            writer.write(getIntegrityIfNecessary(context, resource));
             writer.write("'");
 
             var attributes = component.getAttributes();

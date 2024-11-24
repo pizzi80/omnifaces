@@ -55,5 +55,6 @@
         <application-factory>org.omnifaces.application.OmniApplicationFactory</application-factory>
         <external-context-factory>org.omnifaces.context.OmniExternalContextFactory</external-context-factory>
         <partial-view-context-factory>org.omnifaces.context.OmniPartialViewContextFactory</partial-view-context-factory>
+        <render-kit-factory>org.omnifaces.renderkit.OmniRenderKitFactory</render-kit-factory>
     </factory>
 </faces-config>
