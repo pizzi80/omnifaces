@@ -38,7 +38,6 @@ import org.omnifaces.renderkit.OmniRenderKit;
 import org.omnifaces.renderkit.OmniRenderKitFactory;
 import org.omnifaces.resourcehandler.CDNResource;
 import org.omnifaces.resourcehandler.CombinedResourceHandler;
-import org.omnifaces.resourcehandler.DefaultResourceHandler;
 import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
@@ -62,7 +61,7 @@ import org.omnifaces.resourcehandler.ResourceIdentifier;
  * <h2>Configuration</h2>
  * <p>
  * Currently only the following context parameter is available:
- * <code>{@value org.omnifaces.resourcehandler.CorsResourceHandler#PARAM_NAME_CROSSORIGIN}</code>.
+ * <code>{@value org.omnifaces.renderer.CORSAwareResourceRenderer#PARAM_NAME_CROSSORIGIN}</code>.
  * This sets the desired value of <code>crossorigin</code> attribute of combined script resources. Supported values are
  * specified in <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin">MDN</a>. An empty
  * string is also allowed, it will then completely skip the task of the current renderer. The default value when the
@@ -92,7 +91,7 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
 
     /**
      * The context parameter name to specify the value of the 'crossorigin' attribute for all resources.
-     * The value defaults to {@value DefaultResourceHandler#DEFAULT_CROSSORIGIN}.
+     * The value defaults to {@value CORSAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
      */
     public static final String PARAM_NAME_CROSSORIGIN = "org.omnifaces.DEFAULT_CROSSORIGIN";
 
