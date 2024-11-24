@@ -99,6 +99,14 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
     private static boolean needsIntegrity = true;
 
     /**
+     * Do not use this constructor. It's merely there for {@link ComponentSystemEventListener}.
+     */
+    @SuppressWarnings("deprecation")
+    public CORSAwareResourceRenderer() {
+        // Keep default c'tor alive for ComponentSystemEventListener.
+    }
+
+    /**
      * Creates a new instance of this CORS resource renderer which wraps the given resource renderer.
      * @param wrapped The resource renderer to be wrapped.
      */
