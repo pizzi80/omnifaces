@@ -14,6 +14,7 @@ package org.omnifaces.test;
 
 import static java.time.Duration.ofSeconds;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
+import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCustomCDNResourceHandler;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
 
 import java.io.File;
@@ -266,6 +267,9 @@ public abstract class OmniFacesIT {
             if (facesConfig == withMessageBundle) {
                 archive.addAsResource("messages.properties");
             }
+            else if (facesConfig == withCustomCDNResourceHandler) {
+                archive.addClass(CustomCDNResourceHandler.class);
+            }
 
             facesConfigSet = true;
             return this;
@@ -326,6 +330,7 @@ public abstract class OmniFacesIT {
         withCombinedResourceHandler,
         withMessageBundle,
         withCDNResourceHandler,
+        withCustomCDNResourceHandler,
         withVersionedResourceHandler,
         withViewExpiredExceptionHandler,
         withViewResourceHandler;

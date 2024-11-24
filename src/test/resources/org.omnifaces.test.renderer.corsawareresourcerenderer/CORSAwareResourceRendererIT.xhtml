@@ -1,0 +1,61 @@
+<!--
+
+    Copyright OmniFaces
+
+    Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+    the License. You may obtain a copy of the License at
+
+        https://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+    an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations under the License.
+
+-->
+<!DOCTYPE html>
+<html lang="en"
+    xmlns:f="jakarta.faces.core"
+    xmlns:h="jakarta.faces.html"
+    xmlns:ui="jakarta.faces.facelets"
+    xmlns:o="omnifaces"
+>
+    <h:head>
+        <h:outputScript>var i = 0;</h:outputScript>
+        <h:outputScript library="jakarta.faces" name="faces.js" target="head" />
+        <h:outputScript library="omnifaces" name="omnifaces.js" target="head" />
+        <h:outputScript name="headWithTarget.js" target="head" />
+        <h:outputScript name="headWithoutTarget.js" />
+        <o:deferredScript name="deferredInHead.js" />
+        <h:outputStylesheet name="main.css" />
+        <h:outputStylesheet name="screen.css" />
+        <h:outputStylesheet name="print.css" media="print" />
+        <o:criticalStylesheet name="critical.css" />
+    </h:head>
+    <h:body>
+        <h:outputScript name="bodyWithTargetHead.js" target="head" />
+        <h:outputScript name="bodyWithTargetBody.js" target="body" />
+        <o:deferredScript name="deferredInBody.js" />
+
+        <div id="bodyWithTargetBody" />
+        <div id="headWithoutTarget" />
+        <div id="headWithTarget" />
+        <div id="bodyWithTargetHead" />
+        <div id="bodyWithoutTarget" />
+        <div id="deferredInHead" />
+        <div id="deferredInBody" />
+        
+        <o:form id="nonAjax">
+            <h:commandButton id="submit" value="submit" />
+            <h:commandButton id="rebuild" value="rebuild" action="#{CORSAwareResourceRendererITBean.rebuild}" />
+        </o:form>
+
+        <o:form id="ajax">
+            <f:ajax>
+                <h:commandButton id="submit" value="submit" />
+                <h:commandButton id="rebuild" value="rebuild" action="#{CORSAwareResourceRendererITBean.rebuild}" />
+            </f:ajax>
+        </o:form>
+
+        <h:outputScript name="bodyWithoutTarget.js" />
+    </h:body>
+</html>
