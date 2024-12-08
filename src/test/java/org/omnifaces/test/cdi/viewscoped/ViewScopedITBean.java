@@ -61,6 +61,10 @@ public class ViewScopedITBean implements Serializable {
         }
     }
 
+    public void onload() {
+        // NOOP
+    }
+
     public void submit() {
         checkUnloadedOrDestroyed();
         addGlobalInfo("submit ");
@@ -70,7 +74,7 @@ public class ViewScopedITBean implements Serializable {
         addGlobalInfo("navigate ");
 
         if (Hacks.isMyFacesUsed()) { // MyFaces refused to fix this. See #4120
-            Object renderedResources = Faces.getViewRoot().getTransientStateHelper().getTransient("org.apache.myfaces.RENDERED_RESOURCES_SET");
+            var renderedResources = Faces.getViewRoot().getTransientStateHelper().getTransient("org.apache.myfaces.RENDERED_RESOURCES_SET");
             Faces.setViewRoot(Faces.getViewId());
             Faces.getViewRoot().getTransientStateHelper().putTransient("org.apache.myfaces.RENDERED_RESOURCES_SET", renderedResources);
             return null;
