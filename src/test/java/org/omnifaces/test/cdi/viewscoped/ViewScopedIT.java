@@ -215,4 +215,9 @@ public class ViewScopedIT extends OmniFacesIT {
 		destroyViewState();
 	}
 
+    @Test @Order(5)
+    public void destroyViewStateWithViewAction() {
+        open("ViewScopedITWithViewAction.xhtml");
+        destroyViewState();
+    }
 }

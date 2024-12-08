@@ -54,6 +54,10 @@ public class ViewScopedITBean implements Serializable {
 		}
 	}
 
+    public void onload() {
+        // NOOP
+    }
+
 	public void submit() {
 		checkUnloadedOrDestroyed();
 		addGlobalInfo("submit ");
