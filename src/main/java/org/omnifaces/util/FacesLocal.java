@@ -16,7 +16,6 @@ import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
-import static java.util.logging.Level.FINEST;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static org.omnifaces.exceptionhandler.ViewExpiredExceptionHandler.FLASH_ATTRIBUTE_VIEW_EXPIRED;
 import static org.omnifaces.util.Beans.getReference;
@@ -43,6 +42,7 @@ import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,12 +51,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.logging.Logger;
 
 import jakarta.faces.FacesException;
 import jakarta.faces.FacesWrapper;
@@ -144,8 +142,6 @@ import org.omnifaces.util.FunctionalInterfaces.ThrowingConsumer;
 public final class FacesLocal {
 
     // Constants ------------------------------------------------------------------------------------------------------
-
-    private static final Logger logger = Logger.getLogger(FacesLocal.class.getName());
 
     private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
     private static final int DEFAULT_SENDFILE_BUFFER_SIZE = 10240;
@@ -812,13 +808,11 @@ public final class FacesLocal {
     /**
      * @see Faces#getBundleString(String)
      */
-    public static String getBundleString(FacesContext context, String key) {
+    public static String getBundleString(FacesContext context, String key, Object... params) {
         for (var bundle : getResourceBundles(context).values()) {
-            try {
-                return bundle.getString(key);
-            }
-            catch (MissingResourceException ignore) {
-                logger.log(FINEST, "Ignoring thrown exception; there is a fallback anyway.", ignore);
+            if (bundle.containsKey(key)) {
+                var message = bundle.getString(key);
+                return params.length > 0 ? MessageFormat.format(message, params) : message;
             }
         }
 

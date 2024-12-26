@@ -192,6 +192,11 @@ public class ViewScopedIT extends OmniFacesIT {
         destroyViewState("ViewScopedIT.jsf");
     }
 
+    @Test
+    void destroyViewStateWithViewAction() {
+        destroyViewState("ViewScopedITWithViewAction.xhtml");
+    }
+
     private void destroyViewState(String pageName) {
         open(pageName);
         assertEquals("init", getMessagesText());
