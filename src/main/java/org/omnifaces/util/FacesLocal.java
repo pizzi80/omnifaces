@@ -322,7 +322,7 @@ public final class FacesLocal {
      * @see Faces#getContextAttribute(String, Supplier)
      */
     public static <T> T getContextAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getContextAttribute(context, name);
+        T value = getContextAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
@@ -882,7 +882,7 @@ public final class FacesLocal {
      * @see Faces#getFaceletContext()
      */
     public static FaceletContext getFaceletContext(FacesContext context) {
-        var faceletContext = getContextAttribute(context, FACELET_CONTEXT_KEY);
+        FaceletContext faceletContext = getContextAttribute(context, FACELET_CONTEXT_KEY);
 
         if (faceletContext != null) {
             return faceletContext;
@@ -1629,7 +1629,7 @@ public final class FacesLocal {
      * @see Faces#getRequestAttribute(String, Supplier)
      */
     public static <T> T getRequestAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getRequestAttribute(context, name);
+        T value = getRequestAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
@@ -1675,7 +1675,7 @@ public final class FacesLocal {
      * @see Faces#getFlashAttribute(String, Supplier)
      */
     public static <T> T getFlashAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getFlashAttribute(context, name);
+        T value = getFlashAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
@@ -1721,7 +1721,7 @@ public final class FacesLocal {
      * @see Faces#getViewAttribute(String, Supplier)
      */
     public static <T> T getViewAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getViewAttribute(context, name);
+        T value = getViewAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
@@ -1767,7 +1767,7 @@ public final class FacesLocal {
      * @see Faces#getSessionAttribute(String, Supplier)
      */
     public static <T> T getSessionAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getSessionAttribute(context, name);
+        T value = getSessionAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
@@ -1813,7 +1813,7 @@ public final class FacesLocal {
      * @see Faces#getApplicationAttribute(String, Supplier)
      */
     public static <T> T getApplicationAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
-        var value = getApplicationAttribute(context, name);
+        T value = getApplicationAttribute(context, name);
 
         if (value == null) {
             value = computeIfAbsent.get();
