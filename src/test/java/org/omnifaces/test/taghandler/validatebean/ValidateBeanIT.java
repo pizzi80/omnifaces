@@ -14,6 +14,7 @@ package org.omnifaces.test.taghandler.validatebean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
+import static org.openqa.selenium.Keys.TAB;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -430,7 +431,7 @@ public class ValidateBeanIT extends OmniFacesIT {
         guardAjax(validateGroupByCommand::click);
         assertEquals("actionSuccess", getMessagesText());
 
-// For some reason this stopped working in Selenium but works fine when tested manually?!
+// Bugs in Mojarra 4.1.x. Will be fixed in Mojarra 4.1.3
 //        input.clear();
 //        input.sendKeys("x");
 //        guardAjax(validateDefaultAndGroupByCommand::click);
@@ -456,41 +457,42 @@ public class ValidateBeanIT extends OmniFacesIT {
     @Test
     void validateByInput() {
         validateDefaultByInput.sendKeys("x");
-        triggerOnchange(validateDefaultByInput, "messages");
+        guardAjax(() -> validateDefaultByInput.sendKeys(TAB));
         assertEquals("validateDefaultByInputLabel: default", getMessagesText());
 
         validateDefaultByInput.clear();
         validateDefaultByInput.sendKeys("xx");
-        triggerOnchange(validateDefaultByInput, "messages");
+        guardAjax(() -> validateDefaultByInput.sendKeys(TAB));
         assertEquals("actionSuccess", getMessagesText());
 
         validateGroupByInput.sendKeys("x");
-        triggerOnchange(validateGroupByInput, "messages");
+        guardAjax(() -> validateDefaultByInput.sendKeys(TAB));
         assertEquals("validateGroupByInputLabel: group", getMessagesText());
 
         validateGroupByInput.clear();
         validateGroupByInput.sendKeys("xx");
-        triggerOnchange(validateGroupByInput, "messages");
+        guardAjax(() -> validateDefaultByInput.sendKeys(TAB));
         assertEquals("actionSuccess", getMessagesText());
 
-// For some reason this stopped working in Selenium but works fine when tested manually?!
+// Bugs in Mojarra 4.1.x. Will be fixed in Mojarra 4.1.3
+//        validateDefaultAndGroupByInput.clear();
 //        validateDefaultAndGroupByInput.sendKeys("x");
-//        triggerOnchange(validateDefaultAndGroupByInput, "messages");
+//        guardAjax(() -> validateDefaultByInput.sendKeys(TAB));
 //        var message = getMessagesText();
 //        assertTrue(message.contains("validateDefaultAndGroupByInputLabel: default") && message.contains("validateDefaultAndGroupByInputLabel: group"), message + " contains default and group"); // It's unordered.
 
         validateDefaultAndGroupByInput.clear();
         validateDefaultAndGroupByInput.sendKeys("xx");
-        triggerOnchange(validateDefaultAndGroupByInput, "messages");
+        guardAjax(() -> validateDefaultAndGroupByInput.sendKeys(TAB));
         assertEquals("actionSuccess", getMessagesText());
 
         validateDisabledByInput.sendKeys("x");
-        triggerOnchange(validateDisabledByInput, "messages");
+        guardAjax(() -> validateDisabledByInput.sendKeys(TAB));
         assertEquals("actionSuccess", getMessagesText());
 
         validateDisabledByInput.clear();
         validateDisabledByInput.sendKeys("xx");
-        triggerOnchange(validateDisabledByInput, "messages");
+        guardAjax(() -> validateDisabledByInput.sendKeys(TAB));
         assertEquals("actionSuccess", getMessagesText());
     }
 
