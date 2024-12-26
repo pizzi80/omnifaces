@@ -806,7 +806,7 @@ public final class FacesLocal {
     }
 
     /**
-     * @see Faces#getBundleString(String)
+     * @see Faces#getBundleString(String, Object...)
      */
     public static String getBundleString(FacesContext context, String key, Object... params) {
         for (var bundle : getResourceBundles(context).values()) {
