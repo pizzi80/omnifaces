@@ -118,19 +118,20 @@ final class DeferredTagHandlerHelper {
     static <T> DeferredAttributes collectDeferredAttributes
         (FaceletContext context, DeferredTagHandler tag, T instance)
     {
-        DeferredAttributes attributes = new DeferredAttributes();
+        var attributes = new DeferredAttributes();
 
         try {
             for (PropertyDescriptor property : Introspector.getBeanInfo(instance.getClass()).getPropertyDescriptors()) {
-                Method setter = property.getWriteMethod();
-                ValueExpression valueExpression = getValueExpression(context, tag, property.getName(), property.getPropertyType());
+                var setter = property.getWriteMethod();
+                var valueExpression = getValueExpression(context, tag, property.getName(), property.getPropertyType());
 
                 if (setter == null || valueExpression == null) {
                     continue;
                 }
 
                 if (valueExpression.isLiteralText()) {
-                    setter.invoke(instance, valueExpression.getValue(context));
+                    var value = valueExpression.getValue(context);
+                    setter.invoke(instance, value);
                 }
                 else {
                     attributes.add(setter, valueExpression);
@@ -155,8 +156,8 @@ final class DeferredTagHandlerHelper {
     static <T> ValueExpression getValueExpression
         (FaceletContext context, DeferredTagHandler tag, String name, Class<T> type)
     {
-        TagAttribute attribute = tag.getTagAttribute(name);
-        return (attribute != null) ? attribute.getValueExpression(context, type) : null;
+        var attribute = tag.getTagAttribute(name);
+        return attribute != null ? attribute.getValueExpression(context, type) : null;
     }
 
     // Nested classes -------------------------------------------------------------------------------------------------
@@ -200,7 +201,8 @@ final class DeferredTagHandlerHelper {
         public void invokeSetters(ELContext elContext, Object object) {
             for (Entry<String, ValueExpression> entry : attributes.entrySet()) {
                 try {
-                    invokeMethod(object, entry.getKey(), entry.getValue().getValue(elContext));
+                    var value = entry.getValue().getValue(elContext);
+                    invokeMethod(object, entry.getKey(), value);
                 }
                 catch (Exception e) {
                     throw new FacesException(e);
