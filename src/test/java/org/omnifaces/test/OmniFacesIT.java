@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.arquillian.junit5.ArquillianExtension;
@@ -44,6 +45,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -60,16 +62,16 @@ public abstract class OmniFacesIT {
 
     @BeforeAll
     public void setup() {
+        Logger.getLogger(RemoteWebDriver.class.getPackageName()).setLevel(Level.WARNING);
         var arquillianBrowser = System.getProperty("arquillian.browser");
 
         browser = switch (arquillianBrowser) {
-        case "chrome" -> {
-            WebDriverManager.chromedriver().setup();
-            var chrome = new ChromeDriver(new ChromeOptions().addArguments("--no-sandbox", "--headless"));
-            chrome.setLogLevel(Level.INFO);
-            yield chrome;
-        }
-        default -> throw new UnsupportedOperationException("arquillian.browser='" + arquillianBrowser + "' is not yet supported");
+            case "chrome" -> {
+                WebDriverManager.chromedriver().setup();
+                var chrome = new ChromeDriver(new ChromeOptions().addArguments("--no-sandbox", "--headless"));
+                yield chrome;
+            }
+            default -> throw new UnsupportedOperationException("arquillian.browser='" + arquillianBrowser + "' is not yet supported");
         };
 
         PageFactory.initElements(browser, this);
