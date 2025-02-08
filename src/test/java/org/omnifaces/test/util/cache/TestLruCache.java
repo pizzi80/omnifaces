@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.omnifaces.test.Concurrency.testThreadSafety;
 
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Collection;
@@ -16,11 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -48,7 +45,7 @@ class TestLruCache {
 
     @Test
     void testPutThreadSafety() {
-        testThreadSafety(i -> lruCache.put("k" + i, "v" + i));
+        testThreadSafety(i -> lruCache.put("k" + i, "v" + i), ITERATIONS);
 
         if (evicted.size() == ITERATIONS - SIZE + 1) {
             // Very sometimes the last existing key is evicted while put by another thread, just inevitable nature of the test using overlapping keys, we'll want to remove the known key from the eviction set.
@@ -70,7 +67,7 @@ class TestLruCache {
 
     @Test
     void testGetThreadSafety() {
-        testThreadSafety(i -> lruCache.get("k" + i));
+        testThreadSafety(i -> lruCache.get("k" + i), ITERATIONS);
 
         assertAll(
             () -> assertEquals(SIZE, lruCache.size(), "size must be still " + SIZE),
@@ -80,7 +77,7 @@ class TestLruCache {
 
     @Test
     void testRemoveThreadSafety() {
-        testThreadSafety(i -> lruCache.remove("k" + i));
+        testThreadSafety(i -> lruCache.remove("k" + i), ITERATIONS);
 
         assertAll(
             () -> assertEquals(0, lruCache.size(), "size must be 0"),
@@ -95,7 +92,7 @@ class TestLruCache {
             tasks.add(runAsync(() -> lruCache.put(k, "v" + i)));
             tasks.add(runAsync(() -> lruCache.get(k)));
             tasks.add(runAsync(() -> lruCache.remove(k)));
-        });
+        }, ITERATIONS);
 
         assertAll(
             () -> assertTrue(lruCache.size() <= SIZE, lruCache.size() + "may not be greater than " + SIZE), // On i9-10900X this seems to have lower limit of SIZE - 10.
@@ -119,32 +116,6 @@ class TestLruCache {
                 }));
             });
         }, ROUNDS);
-    }
-
-    private static void testThreadSafety(Consumer<Integer> task) {
-        testThreadSafety((i, tasks) -> tasks.add(runAsync(() -> task.accept(i))));
-    }
-
-    private static void testThreadSafety(BiConsumer<Integer, Set<CompletableFuture<Void>>> task) {
-        testThreadSafety(task, ITERATIONS);
-    }
-
-    private static void testThreadSafety(BiConsumer<Integer, Set<CompletableFuture<Void>>> task, int iterations) {
-        Set<CompletableFuture<Void>> tasks = ConcurrentHashMap.newKeySet();
-        range(0, iterations).forEach(i -> task.accept(i, tasks));
-        awaitCompletion(tasks);
-    }
-
-    private static void awaitCompletion(Set<CompletableFuture<Void>> tasks) {
-        tasks.forEach(t -> {
-            try {
-                t.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException e) {
-                throw new IllegalStateException(e);
-            }
-        });
     }
 
     @Test
