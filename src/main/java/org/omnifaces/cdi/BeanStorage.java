@@ -12,6 +12,10 @@
  */
 package org.omnifaces.cdi;
 
+import static java.util.Optional.ofNullable;
+import static org.omnifaces.util.Utils.coalesce;
+import static org.omnifaces.util.Utils.executeAtomically;
+
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,6 +45,7 @@ public class BeanStorage implements Serializable {
     // Properties -----------------------------------------------------------------------------------------------------
 
     private final ConcurrentHashMap<String, Serializable> beans;
+    private final ConcurrentHashMap<String, ReentrantLock> locks;
     private final ReentrantLock lock = new ReentrantLock();
 
     // Constructors ---------------------------------------------------------------------------------------------------
@@ -51,6 +56,7 @@ public class BeanStorage implements Serializable {
      */
     public BeanStorage(int initialCapacity) {
         beans = new ConcurrentHashMap<>(initialCapacity);
+        locks = new ConcurrentHashMap<>(initialCapacity);
     }
 
     // Actions --------------------------------------------------------------------------------------------------------
@@ -80,7 +86,22 @@ public class BeanStorage implements Serializable {
      */
     @SuppressWarnings("unchecked")
     public <T> T getBean(Contextual<T> type, CreationalContext<T> context) {
-        return (T) beans.computeIfAbsent(getBeanId(type), $ -> (Serializable) type.create(context));
+        // NOTE: beans.computeIfAbsent() won't work for nested beans, see also #887
+        var id = getBeanId(type);
+        return ofNullable((T) beans.get(id)).orElseGet(() -> {
+            var lock = locks.computeIfAbsent(id, $ -> new ReentrantLock());
+            try {
+                return executeAtomically(lock, () -> {
+                    return ofNullable((T) beans.get(id)).orElseGet(() -> {
+                        var bean = (Serializable) type.create(context);
+                        return (T) coalesce(beans.putIfAbsent(id, bean), bean);
+                    });
+                });
+            }
+            finally {
+                locks.remove(id);
+            }
+        });
     }
 
     /**
