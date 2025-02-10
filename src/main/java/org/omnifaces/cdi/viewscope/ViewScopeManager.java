@@ -186,9 +186,10 @@ public class ViewScopeManager {
         ViewScopeStorage storage = storageInSession;
         var beanClass = ((Bean<T>) type).getBeanClass();
         var annotation = beanClass.getAnnotation(ViewScoped.class);
+        var context = getContext();
 
         if (annotation != null && annotation.saveInViewState()) { // Can be null when declared on producer method.
-            checkStateSavingMethod(beanClass);
+            checkStateSavingMethod(context,beanClass);
             storage = storageInViewState;
         }
 
@@ -198,7 +199,6 @@ public class ViewScopeManager {
             beanStorageId = UUID.randomUUID();
 
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
                 if (context.getViewRoot().isTransient()) {
                     logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId()));
                 }
@@ -212,8 +212,6 @@ public class ViewScopeManager {
 
         if (beanStorage == null) {
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
-
                 if (isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
                     var viewId = context.getViewRoot().getViewId();
                     throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
@@ -227,9 +225,7 @@ public class ViewScopeManager {
         return beanStorage;
     }
 
-    private static void checkStateSavingMethod(Class<?> beanClass) {
-        var context = getContext();
-
+    private static void checkStateSavingMethod(FacesContext context, Class<?> beanClass) {
         if (!context.getApplication().getStateManager().isSavingStateInClient(context)) {
             throw new IllegalStateException(format(ERROR_INVALID_STATE_SAVING, beanClass.getName()));
         }
