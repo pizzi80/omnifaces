@@ -101,11 +101,10 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
      * @param beanStorageId The bean storage identifier.
      */
     public void destroyBeans(FacesContext context, UUID beanStorageId) {
-        var storage = activeViewScopes.get(beanStorageId);
+        var storage = activeViewScopes.remove(beanStorageId);
 
         if (storage != null) {
             storage.destroyBeans();
-            activeViewScopes.remove(beanStorageId);
         }
 
         if (isUnloadRequest(context)) {
