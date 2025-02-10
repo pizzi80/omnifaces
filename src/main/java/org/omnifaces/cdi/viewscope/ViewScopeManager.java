@@ -217,7 +217,6 @@ public class ViewScopeManager {
                     throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
                 }
             }
-
             beanStorage = new BeanStorage(DEFAULT_BEANS_PER_VIEW_SCOPE);
             storage.setBeanStorage(beanStorageId, beanStorage);
         }
