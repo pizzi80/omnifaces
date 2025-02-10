@@ -23,6 +23,7 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -1058,13 +1059,14 @@ public final class Faces {
      * <code>faces-config.xml</code>.
      * If the string is missing, then this method returns <code>???key???</code>.
      * @param key The bundle key.
+     * @param params Since 4.7: The {@link MessageFormat} parameters, if any.
      * @return a string for the given key searching declared resource bundles, order by declaration in
      * <code>faces-config.xml</code>.
      * @throws NullPointerException When faces context is unavailable.
      * @since 2.1
      */
-    public static String getBundleString(String key) {
-        return FacesLocal.getBundleString(getContext(), key);
+    public static String getBundleString(String key, Object... params) {
+        return FacesLocal.getBundleString(getContext(), key, params);
     }
 
     /**

@@ -69,6 +69,10 @@ import org.omnifaces.exceptionhandler.FullAjaxExceptionHandler;
  *     &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
  * &lt;/filter-mapping&gt;
  * </pre>
+ * <p>
+ * Note that since OmniFaces 4.5, the {@link FullAjaxExceptionHandler} will automatically register the
+ * {@link FacesExceptionFilter} on its default URL pattern of {@code /*} when it is absent in {@code web.xml}, so you
+ * do not need to explicitly register it then.
  *
  * <h2>Error pages</h2>
  * <p>
@@ -123,8 +127,8 @@ public class FacesExceptionFilter extends HttpFilter {
         }
         catch (Throwable exception) {
             request.setAttribute(EXCEPTION_UUID, UUID.randomUUID().toString());
-            Throwable cause = unwrap(exception instanceof ServletException ? exception.getCause() : exception, exceptionTypesToUnwrap);
-            String location = WebXml.instance().findErrorPageLocation(cause);
+            var cause = unwrap(exception instanceof ServletException ? exception.getCause() : exception, exceptionTypesToUnwrap);
+            var location = WebXml.instance().findErrorPageLocation(cause);
             logException(request, cause, location, LOG_EXCEPTION_HANDLED, location);
 
             if (Objects.equals(exception, cause)) {
