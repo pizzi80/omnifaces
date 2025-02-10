@@ -26,6 +26,7 @@ import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.Faces.getViewId;
 import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
+import static org.omnifaces.util.FacesLocal.getViewId;
 import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
 import static org.omnifaces.util.FacesLocal.isPostback;
 
@@ -45,6 +46,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
+import org.omnifaces.util.FacesLocal;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
@@ -169,7 +171,7 @@ public class ViewScopeManager {
 
         if (getInstance(manager, ViewScopeStorageInSession.class, false) != null) { // Avoid unnecessary session creation when accessing storageInSession for nothing.
             if (beanStorageId == null) {
-                beanStorageId = storageInSession.getBeanStorageId();
+                beanStorageId = storageInSession.getBeanStorageId(context);
             }
 
             if (beanStorageId != null) {
@@ -186,21 +188,21 @@ public class ViewScopeManager {
         ViewScopeStorage storage = storageInSession;
         var beanClass = ((Bean<T>) type).getBeanClass();
         var annotation = beanClass.getAnnotation(ViewScoped.class);
+        var context = getContext();
 
         if (annotation != null && annotation.saveInViewState()) { // Can be null when declared on producer method.
-            checkStateSavingMethod(beanClass);
+            checkStateSavingMethod(context,beanClass);
             storage = storageInViewState;
         }
 
-        var beanStorageId = storage.getBeanStorageId();
+        var beanStorageId = storage.getBeanStorageId(context);
 
         if (beanStorageId == null) {
             beanStorageId = UUID.randomUUID();
 
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
                 if (context.getViewRoot().isTransient()) {
-                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId()));
+                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId(context)));
                 }
                 else {
                     registerUnloadScript(context, beanStorageId);
@@ -212,8 +214,6 @@ public class ViewScopeManager {
 
         if (beanStorage == null) {
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
-
                 if (isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
                     var viewId = context.getViewRoot().getViewId();
                     throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
@@ -221,15 +221,13 @@ public class ViewScopeManager {
             }
 
             beanStorage = new BeanStorage(DEFAULT_BEANS_PER_VIEW_SCOPE);
-            storage.setBeanStorage(beanStorageId, beanStorage);
+            storage.setBeanStorage(context, beanStorageId, beanStorage);
         }
 
         return beanStorage;
     }
 
-    private static void checkStateSavingMethod(Class<?> beanClass) {
-        var context = getContext();
-
+    private static void checkStateSavingMethod(FacesContext context, Class<?> beanClass) {
         if (!context.getApplication().getStateManager().isSavingStateInClient(context)) {
             throw new IllegalStateException(format(ERROR_INVALID_STATE_SAVING, beanClass.getName()));
         }

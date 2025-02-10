@@ -19,10 +19,11 @@ import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MAX_ACTIVE
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MOJARRA_NUMBER_OF_VIEWS;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.PARAM_NAME_MYFACES_NUMBER_OF_VIEWS;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.isUnloadRequest;
-import static org.omnifaces.util.Faces.getInitParameter;
-import static org.omnifaces.util.Faces.getViewAttribute;
-import static org.omnifaces.util.Faces.setViewAttribute;
+import static org.omnifaces.util.Faces.getContext;
+import static org.omnifaces.util.FacesLocal.getInitParameter;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
+import static org.omnifaces.util.FacesLocal.getViewAttribute;
+import static org.omnifaces.util.FacesLocal.setViewAttribute;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -74,25 +75,26 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
      */
     @PostConstruct
     public void postConstructSession() {
-        activeViewScopes = new LruCache<>(getMaxActiveViewScopes(), (uuid, storage) -> storage.destroyBeans());
-        recentlyUnloadedViewStates = new LruCache<>(getMaxActiveViewScopes());
+        int maxActiveViewScopes = getMaxActiveViewScopes(getContext());
+        activeViewScopes = new LruCache<>(maxActiveViewScopes, (uuid, storage) -> storage.destroyBeans());
+        recentlyUnloadedViewStates = new LruCache<>(maxActiveViewScopes);
     }
 
     @Override
-    public UUID getBeanStorageId() {
-        UUID beanStorageId = getViewAttribute(getClass().getName());
+    public UUID getBeanStorageId(FacesContext context) {
+        UUID beanStorageId = getViewAttribute(context, getClass().getName());
         return beanStorageId != null && activeViewScopes.containsKey(beanStorageId) ? beanStorageId : null;
     }
 
     @Override
-    public BeanStorage getBeanStorage(UUID beanStorageId) {
+    public BeanStorage getBeanStorage(FacesContext context, UUID beanStorageId) {
         return activeViewScopes.get(beanStorageId);
     }
 
     @Override
-    public void setBeanStorage(UUID beanStorageId, BeanStorage beanStorage) {
+    public void setBeanStorage(FacesContext context, UUID beanStorageId, BeanStorage beanStorage) {
         activeViewScopes.put(beanStorageId, beanStorage);
-        setViewAttribute(getClass().getName(), beanStorageId);
+        setViewAttribute(context, getClass().getName(), beanStorageId);
     }
 
     /**
@@ -101,11 +103,10 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
      * @param beanStorageId The bean storage identifier.
      */
     public void destroyBeans(FacesContext context, UUID beanStorageId) {
-        var storage = activeViewScopes.get(beanStorageId);
+        var storage = activeViewScopes.remove(beanStorageId);
 
         if (storage != null) {
             storage.destroyBeans();
-            activeViewScopes.remove(beanStorageId);
         }
 
         if (isUnloadRequest(context)) {
@@ -140,13 +141,13 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
      * and re-returned everytime; the faces context is namely not available during class' initialization/construction,
      * but only during a post construct.
      */
-    private static int getMaxActiveViewScopes() {
+    private static int getMaxActiveViewScopes(FacesContext context) {
         if (maxActiveViewScopes != null) {
             return maxActiveViewScopes;
         }
 
         for (var name : PARAM_NAMES_MAX_ACTIVE_VIEW_SCOPES) {
-            var value = getInitParameter(name);
+            var value = getInitParameter(context, name);
 
             if (value != null) {
                 try {
