@@ -26,6 +26,7 @@ import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.Faces.getViewId;
 import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
+import static org.omnifaces.util.FacesLocal.getViewId;
 import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
 import static org.omnifaces.util.FacesLocal.isPostback;
 
@@ -45,6 +46,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
+import org.omnifaces.util.FacesLocal;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
@@ -200,7 +202,7 @@ public class ViewScopeManager {
 
             if (storage instanceof ViewScopeStorageInSession) {
                 if (context.getViewRoot().isTransient()) {
-                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId()));
+                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId(context)));
                 }
                 else {
                     registerUnloadScript(context, beanStorageId);
