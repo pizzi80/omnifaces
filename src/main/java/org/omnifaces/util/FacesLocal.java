@@ -154,11 +154,25 @@ public final class FacesLocal {
 	private static final int DEFAULT_SENDFILE_BUFFER_SIZE = 10240;
 	private static final String ERROR_NO_VIEW = "There is no view.";
 
+    // Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
+    
+    private static String faceletsSuffix;
+    
 	// Constructors ---------------------------------------------------------------------------------------------------
 
 	private FacesLocal() {
 		// Hide constructor.
 	}
+    
+    // Lazy init ------------------------------------------------------------------------------------------------------
+    
+    private static String getFaceletsSuffix(FacesContext context) {
+        if (faceletsSuffix == null) {
+            faceletsSuffix = coalesce(getInitParameter(context, ViewHandler.FACELETS_SUFFIX_PARAM_NAME), ViewHandler.DEFAULT_FACELETS_SUFFIX);
+        }
+
+        return faceletsSuffix;
+    }
 
 	// JSF general ----------------------------------------------------------------------------------------------------
 
@@ -230,7 +244,12 @@ public final class FacesLocal {
 
 		if (externalContext.getRequestPathInfo() == null) {
 			String path = externalContext.getRequestServletPath();
-			return path.substring(path.lastIndexOf('.'));
+            int suffixPos = path.lastIndexOf('.');
+            if (suffixPos > -1) {
+                return path.substring(suffixPos);
+            } else {
+                return getFaceletsSuffix(context);
+            }
 		}
 		else {
 			return externalContext.getRequestServletPath();
