@@ -154,25 +154,25 @@ public final class FacesLocal {
 	private static final int DEFAULT_SENDFILE_BUFFER_SIZE = 10240;
 	private static final String ERROR_NO_VIEW = "There is no view.";
 
-    // Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
-    
-    private static String faceletsSuffix;
-    
+	// Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
+
+	private static String faceletsSuffix;
+
 	// Constructors ---------------------------------------------------------------------------------------------------
 
 	private FacesLocal() {
 		// Hide constructor.
 	}
-    
-    // Lazy init ------------------------------------------------------------------------------------------------------
-    
-    private static String getFaceletsSuffix(FacesContext context) {
-        if (faceletsSuffix == null) {
-            faceletsSuffix = coalesce(getInitParameter(context, ViewHandler.FACELETS_SUFFIX_PARAM_NAME), ViewHandler.DEFAULT_FACELETS_SUFFIX);
-        }
 
-        return faceletsSuffix;
-    }
+	// Lazy init ------------------------------------------------------------------------------------------------------
+
+	private static String getFaceletsSuffix(FacesContext context) {
+		if (faceletsSuffix == null) {
+			faceletsSuffix = coalesce(getInitParameter(context, ViewHandler.FACELETS_SUFFIX_PARAM_NAME), ViewHandler.DEFAULT_FACELETS_SUFFIX);
+		}
+
+		return faceletsSuffix;
+	}
 
 	// JSF general ----------------------------------------------------------------------------------------------------
 
@@ -244,12 +244,8 @@ public final class FacesLocal {
 
 		if (externalContext.getRequestPathInfo() == null) {
 			String path = externalContext.getRequestServletPath();
-            int suffixPos = path.lastIndexOf('.');
-            if (suffixPos > -1) {
-                return path.substring(suffixPos);
-            } else {
-                return getFaceletsSuffix(context);
-            }
+			int suffixPos = path.lastIndexOf('.');
+			return suffixPos > -1 ? path.substring(suffixPos) : getFaceletsSuffix(context);
 		}
 		else {
 			return externalContext.getRequestServletPath();
@@ -480,7 +476,7 @@ public final class FacesLocal {
 	 */
 	public static String getViewId(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? viewRoot.getViewId() : null;
+		return viewRoot != null ? viewRoot.getViewId() : null;
 	}
 
 	/**
@@ -490,7 +486,7 @@ public final class FacesLocal {
 		String viewId = coalesce(getViewId(context), "");
 		String viewParameters = toQueryString(getViewParameterMap(context));
 		String hashParameters = getHashQueryString(context);
-		return ((viewParameters == null) ? viewId : (viewId + "?" + viewParameters)) + ((hashParameters == null) ? "" : ("#" + hashParameters));
+		return (viewParameters == null ? viewId : viewId + "?" + viewParameters) + (hashParameters == null ? "" : "#" + hashParameters);
 	}
 
 	/**
@@ -498,7 +494,7 @@ public final class FacesLocal {
 	 */
 	public static String getViewName(FacesContext context) {
 		String viewId = getViewId(context);
-		return (viewId != null) ? viewId.substring(viewId.lastIndexOf('/') + 1).split("\\.")[0] : null;
+		return viewId != null ? viewId.substring(viewId.lastIndexOf('/') + 1).split("\\.")[0] : null;
 	}
 
 	/**
@@ -563,7 +559,7 @@ public final class FacesLocal {
 	 */
 	public static Collection<UIViewParameter> getViewParameters(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? ViewMetadata.getViewParameters(viewRoot) : Collections.<UIViewParameter>emptyList();
+		return viewRoot != null ? ViewMetadata.getViewParameters(viewRoot) : Collections.<UIViewParameter>emptyList();
 	}
 
 	/**
@@ -596,7 +592,7 @@ public final class FacesLocal {
 	 */
 	public static Collection<HashParam> getHashParameters(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), HashParam.class) : Collections.<HashParam>emptyList();
+		return viewRoot != null ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), HashParam.class) : Collections.<HashParam>emptyList();
 	}
 
 	/**
@@ -640,7 +636,7 @@ public final class FacesLocal {
 	 */
 	public static Collection<ScriptParam> getScriptParameters(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), ScriptParam.class) : Collections.<ScriptParam>emptyList();
+		return viewRoot != null ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), ScriptParam.class) : Collections.<ScriptParam>emptyList();
 	}
 
 	/**
@@ -651,7 +647,7 @@ public final class FacesLocal {
 		ViewDeclarationLanguage vdl = viewHandler.getViewDeclarationLanguage(context, viewId);
 		ViewMetadata metadata = vdl.getViewMetadata(context, viewId);
 
-		return (metadata != null)
+		return metadata != null
 			? metadata.createMetadataView(context).getAttributes()
 			: Collections.<String, Object>emptyMap();
 	}
@@ -1388,7 +1384,7 @@ public final class FacesLocal {
 	 */
 	public static String getRequestCookie(FacesContext context, String name) {
 		Cookie cookie = (Cookie) context.getExternalContext().getRequestCookieMap().get(name);
-		return (cookie != null) ? Utils.decodeURL(cookie.getValue()) : null;
+		return cookie != null ? Utils.decodeURL(cookie.getValue()) : null;
 	}
 
 	/**
@@ -1420,7 +1416,7 @@ public final class FacesLocal {
 		Map<String, Object> properties = new HashMap<>();
 
 		if (!"localhost".equals(domain)) { // Chrome doesn't like domain:"localhost" on cookies.
-			properties.put("domain", (domain == null) ? getRequestHostname(context) : domain);
+			properties.put("domain", domain == null ? getRequestHostname(context) : domain);
 		}
 
 		if (path != null) {
@@ -1461,7 +1457,7 @@ public final class FacesLocal {
 	 */
 	public static String getSessionId(FacesContext context) {
 		HttpSession session = getSession(context, false);
-		return (session != null) ? session.getId() : null;
+		return session != null ? session.getId() : null;
 	}
 
 	/**
@@ -1483,7 +1479,7 @@ public final class FacesLocal {
 	 */
 	public static boolean isSessionNew(FacesContext context) {
 		HttpSession session = getSession(context, false);
-		return (session != null && session.isNew());
+		return session != null && session.isNew();
 	}
 
 	/**
