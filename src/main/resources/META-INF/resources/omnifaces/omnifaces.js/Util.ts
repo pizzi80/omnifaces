@@ -115,36 +115,23 @@ export module Util {
     }
 
     /**
-     * Update a parameter in given query string in application/x-www-url-encoded format.
+     * Update a parameter in given query string in application/x-www-url-encoded format and returns the updated query string.
      * @param query The query string.
      * @param name The name of the parameter to update. If it doesn't exist, then it will be added.
      * @param value The value of the parameter to update. If it is falsey, then it will be removed.
+     * @return The updated query string.
      */
     export function updateParameter(query: string, name: string, value: string) {
-        const re = new RegExp("(^|[?&#])" + name + "=.*?([&#]|$)", "i");
+        const params = new URLSearchParams(query);
 
         if (value) {
-            const parameter = name + "=" + encodeURIComponent(value);
-
-            if (!query) {
-                query = parameter;
-            }
-            else if (query.match(re)) {
-                query = query.replace(re, "$1" + parameter + "$2");
-            }
-            else {
-                query += "&" + parameter;
-            }
+            params.set(name, value);
         }
         else {
-            query = query.replace(re, "$2");
+            params.delete(name);
         }
 
-        if (query.charAt(0) == "&") {
-            query = query.substring(1);
-        }
-
-        return query;
+        return params.toString();
     }
 
     /**

@@ -244,14 +244,17 @@ public class ParamProducer {
     }
 
     private static Converter getConverter(ParamValue paramValue) {
-        var classIdentifier = paramValue.param.converterClass() == Converter.class ? paramValue.targetType : paramValue.param.converterClass();
-        Converter converter = createConverter(coalesce(evaluateExpressionGet(paramValue.param.converter()), classIdentifier));
+        var converter = createConverter(coalesce(evaluateExpressionGet(paramValue.param.converter()), getConverterClassIdentifier(paramValue)));
 
         if (converter != null) {
             setPropertiesWithCoercion(converter, getConverterAttributes(paramValue.param));
         }
 
         return converter;
+    }
+
+    private static Object getConverterClassIdentifier(ParamValue paramValue) {
+        return paramValue.param.converterClass() == Converter.class ? paramValue.targetType : paramValue.param.converterClass();
     }
 
     private static boolean runWithSimulatedLabelAndValueOnViewRoot(FacesContext context, ParamValue paramValue, BooleanSupplier callback) {

@@ -57,6 +57,9 @@ public class ParamIT extends OmniFacesIT {
     @FindBy(id="entityViewParam")
     private WebElement entityViewParam;
 
+    @FindBy(id="paramWithConverterId")
+    private WebElement paramWithConverterId;
+
     @FindBy(id="initResult")
     private WebElement initResult;
 
@@ -298,6 +301,20 @@ public class ParamIT extends OmniFacesIT {
         openWithQueryString("entityViewParam=24");
         assertEquals("", entityViewParam.getText());
         assertEquals("That's not the right answer", messages.getText());
+    }
+
+    @Test
+    void testParamWithConverterId() {
+        openWithQueryString("paramWithConverterId=42");
+        assertEquals("42", paramWithConverterId.getText());
+        assertEquals("", messages.getText());
+    }
+
+    @Test
+    void testInvalidParamWithConverterId() {
+        openWithQueryString("paramWithConverterId=xyz");
+        assertEquals("", paramWithConverterId.getText());
+        assertEquals("Nope.", messages.getText());
     }
 
     void assertMessageEquals(String expectedMessage) {

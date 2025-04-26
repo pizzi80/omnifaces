@@ -392,6 +392,7 @@ public final class Faces {
      * Determines and returns the faces servlet mapping used in the current request. If Faces is prefix mapped (e.g.
      * <code>/faces/*</code>), then this returns the whole path, with a leading slash (e.g. <code>/faces</code>). If Faces
      * is suffix mapped (e.g. <code>*.xhtml</code>), then this returns the whole extension (e.g. <code>.xhtml</code>).
+     * If there is no extension, then this falls back to {@link ViewHandler#DEFAULT_SUFFIX_PARAM_NAME}.
      * <p>
      * This is also available in EL as <code>#{faces.mapping}</code>.
      * @return The faces servlet mapping (without the wildcard).
