@@ -1075,7 +1075,7 @@ public final class Faces {
      * <code>faces-config.xml</code>.
      * If the string is missing, then this method returns <code>???key???</code>.
      * @param key The bundle key.
-     * @param params Since 4.7: The {@link MessageFormat} parameters, if any.
+     * @param params Since 4.6.2 The {@link MessageFormat} parameters, if any.
      * @return a string for the given key searching declared resource bundles, order by declaration in
      * <code>faces-config.xml</code>.
      * @throws NullPointerException When faces context is unavailable.

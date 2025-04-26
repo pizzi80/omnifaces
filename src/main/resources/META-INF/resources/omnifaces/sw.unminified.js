@@ -22,7 +22,7 @@
  * @see PWAResourceHandler
  * @see <a href="https://css-tricks.com/serviceworker-for-offline/">https://css-tricks.com/serviceworker-for-offline/</a>
  */
-var cacheName = "omnifaces.4.7"; // Should be bumped every time this sw.unminified.js logic is changed.
+var cacheName = "omnifaces.4.6.2"; // Should be bumped every time this sw.unminified.js logic is changed.
 var cacheableResources = $cacheableResources;
 var offlineResource = $offlineResource;
 
