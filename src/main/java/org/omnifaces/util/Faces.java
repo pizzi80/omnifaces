@@ -390,6 +390,7 @@ public final class Faces {
      * Determines and returns the faces servlet mapping used in the current request. If Faces is prefix mapped (e.g.
      * <code>/faces/*</code>), then this returns the whole path, with a leading slash (e.g. <code>/faces</code>). If Faces
      * is suffix mapped (e.g. <code>*.xhtml</code>), then this returns the whole extension (e.g. <code>.xhtml</code>).
+     * If there is no extension, then this falls back to {@link ViewHandler#DEFAULT_SUFFIX_PARAM_NAME}.
      * <p>
      * This is also available in EL as <code>#{faces.mapping}</code>.
      * @return The faces servlet mapping (without the wildcard).
@@ -1059,7 +1060,7 @@ public final class Faces {
      * <code>faces-config.xml</code>.
      * If the string is missing, then this method returns <code>???key???</code>.
      * @param key The bundle key.
-     * @param params Since 4.7: The {@link MessageFormat} parameters, if any.
+     * @param params Since 4.6.2 The {@link MessageFormat} parameters, if any.
      * @return a string for the given key searching declared resource bundles, order by declaration in
      * <code>faces-config.xml</code>.
      * @throws NullPointerException When faces context is unavailable.
