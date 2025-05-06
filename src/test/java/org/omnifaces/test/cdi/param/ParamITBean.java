@@ -76,6 +76,11 @@ public class ParamITBean {
 
     private ParamITEntity entityViewParam;
 
+    @Param(
+        converter = "jakarta.faces.Long",
+        converterMessage = "Nope.")
+    private Object paramWithConverterId;
+
     private String initResult;
 
     @PostConstruct
@@ -132,4 +137,11 @@ public class ParamITBean {
         this.entityViewParam = entityViewParam;
     }
 
+    public Object getParamWithConverterId() {
+        return paramWithConverterId;
+    }
+
+    public void setParamWithConverterId(Object paramWithConverterId) {
+        this.paramWithConverterId = paramWithConverterId;
+    }
 }
