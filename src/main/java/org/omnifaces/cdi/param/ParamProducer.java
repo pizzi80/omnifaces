@@ -245,14 +245,17 @@ public class ParamProducer {
     }
 
     private static Converter getConverter(ParamValue paramValue) {
-        var classIdentifier = paramValue.param.converterClass() == Converter.class ? paramValue.targetType : paramValue.param.converterClass();
-        Converter converter = createConverter(coalesce(evaluateExpressionGet(paramValue.param.converter()), classIdentifier));
+        var converter = createConverter(coalesce(evaluateExpressionGet(paramValue.param.converter()), getConverterClassIdentifier(paramValue)));
 
         if (converter != null) {
             setPropertiesWithCoercion(converter, getConverterAttributes(paramValue.param));
         }
 
         return converter;
+    }
+
+    private static Object getConverterClassIdentifier(ParamValue paramValue) {
+        return paramValue.param.converterClass() == Converter.class ? paramValue.targetType : paramValue.param.converterClass();
     }
 
     private static boolean runWithSimulatedLabelAndValueOnViewRoot(FacesContext context, ParamValue paramValue, BooleanSupplier callback) {
@@ -429,7 +432,7 @@ public class ParamProducer {
     private static boolean shouldDoBeanValidation(Param requestParameter, InjectionPoint injectionPoint) {
 
         // If bean validation is explicitly disabled for this instance, immediately return false
-        
+
 
         // Next check if bean validation has been disabled globally, but only if this hasn't been overridden locally
         // Next check if this is a field injection; other cases are not supported by Validator#validateValue().

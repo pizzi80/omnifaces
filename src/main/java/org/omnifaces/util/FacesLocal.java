@@ -13,7 +13,6 @@
 package org.omnifaces.util;
 
 import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
-import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toUnmodifiableList;
@@ -147,7 +146,6 @@ public final class FacesLocal {
 
     // Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
 
-    private static Boolean extensionlessMappingEnabled;
     private static String faceletsSuffix;
 
     // Constructors ---------------------------------------------------------------------------------------------------
@@ -157,14 +155,6 @@ public final class FacesLocal {
     }
 
     // Lazy init ------------------------------------------------------------------------------------------------------
-
-    private static boolean isExtensionlessMappingEnabled(FacesContext context) {
-        if (extensionlessMappingEnabled == null) {
-            extensionlessMappingEnabled = parseBoolean(getInitParameter(context, "jakarta.faces.AUTOMATIC_EXTENSIONLESS_MAPPING"));
-        }
-
-        return extensionlessMappingEnabled;
-    }
 
     private static String getFaceletsSuffix(FacesContext context) {
         if (faceletsSuffix == null) {
@@ -247,16 +237,7 @@ public final class FacesLocal {
         if (externalContext.getRequestPathInfo() == null) {
             var path = externalContext.getRequestServletPath();
             var suffixPos = path.lastIndexOf('.');
-
-            if (suffixPos > -1) {
-                return path.substring(suffixPos);
-            }
-            else if (isExtensionlessMappingEnabled(context)) {
-                return getFaceletsSuffix(context);
-            }
-            else {
-                throw new IllegalStateException();
-            }
+            return suffixPos > -1 ? path.substring(suffixPos) : getFaceletsSuffix(context);
         }
         else {
             return externalContext.getRequestServletPath();
