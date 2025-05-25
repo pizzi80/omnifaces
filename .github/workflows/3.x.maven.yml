@@ -42,8 +42,8 @@ jobs:
         java-version: '8'
         distribution: 'adopt'
         cache: maven
-#    - name: Test with Maven
-#      run: mvn -B verify -P ${{matrix.server}}
+    - name: Test with Maven
+      run: mvn -B verify -P ${{matrix.server}}
 
   deploy:
     name: Deploy 3.x SNAPSHOT
@@ -61,6 +61,6 @@ jobs:
       run: echo version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_OUTPUT
     - name: Deploy with Maven
       if: ${{endsWith(steps.project.outputs.version, '-SNAPSHOT')}}
-      run: mvn -B deploy -Dmaven.test.skip=true -X
+      run: mvn -B deploy -Dmaven.test.skip=true
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
