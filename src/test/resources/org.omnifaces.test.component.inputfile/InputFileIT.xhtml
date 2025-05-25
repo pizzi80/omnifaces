@@ -51,6 +51,12 @@
 			<h:commandButton id="submit" action="#{inputFileITBean.uploadSingle}" />
 		</o:form>
 
+        <o:form id="uploadSingleAcceptAnyImageAndPdf" enctype="multipart/form-data">
+            <o:inputFile id="file" value="#{inputFileITBean.file}" label="label" 
+                accept="image/*,.pdf" acceptMessage="{0}: {1} is not {2}" />
+            <h:commandButton id="submit" action="#{inputFileITBean.uploadSingle}" />
+        </o:form>
+
 		<o:form id="uploadSingleMaxsizeClient" enctype="multipart/form-data">
 			<o:inputFile id="file" value="#{inputFileITBean.file}" label="label" 
 				maxsize="10" maxsizeMessage="{0}: {1} larger than {2}" />
