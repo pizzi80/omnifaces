@@ -43,7 +43,7 @@ jobs:
         distribution: 'adopt'
         cache: maven
 #    - name: Test with Maven
-#     run: mvn -B verify -P ${{matrix.server}}
+#      run: mvn -B verify -P ${{matrix.server}}
 
   deploy:
     name: Deploy 3.x SNAPSHOT
@@ -56,16 +56,11 @@ jobs:
       with:
         java-version: '8'
         distribution: 'adopt'
-        server-id: github
-        server-username: GITHUB_ACTOR
-        server-password: GITHUB_TOKEN
-    - name: Debug settings.xml
-      run: |
-        echo "Contents of ~/.m2/settings.xml:"
-        cat ~/.m2/settings.xml || echo "settings.xml not found"
     - name: Extract project version
       id: project
       run: echo version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_OUTPUT
     - name: Deploy with Maven
       if: ${{endsWith(steps.project.outputs.version, '-SNAPSHOT')}}
-      run: mvn -B deploy -Dmaven.test.skip=true
+      run: mvn -B deploy -Dmaven.test.skip=true -X
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
