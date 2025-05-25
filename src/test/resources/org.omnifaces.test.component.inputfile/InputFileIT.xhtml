@@ -63,6 +63,12 @@
             <h:commandButton id="submit" value="submit" action="#{inputFileITBean.uploadSingle}" />
         </o:form>
 
+        <o:form id="uploadSingleAcceptAnyImageAndPdf" enctype="multipart/form-data">
+            <o:inputFile id="file" value="#{inputFileITBean.file}" label="label" 
+                accept="image/*,.pdf" acceptMessage="{0}: {1} is not {2}" />
+            <h:commandButton id="submit" action="#{inputFileITBean.uploadSingle}" />
+        </o:form>
+
         <o:form id="uploadMultiple" enctype="multipart/form-data">
             <o:inputFile id="file1" value="#{inputFileITBean.files}" multiple="true" />
             <o:inputFile id="file2" a:name="uploadMultiple:file1" rendered="#{facesContext.currentPhaseId.ordinal eq 6}" />

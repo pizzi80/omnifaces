@@ -96,6 +96,12 @@ public class InputFileIT extends OmniFacesIT {
     @FindBy(id="uploadMultipleMaxsizeClient:file2")
     private WebElement uploadMultipleMaxsizeClientFile2;
 
+    @FindBy(id="uploadSingleAcceptAnyImageAndPdf:file")
+    private WebElement uploadSingleAcceptAnyImageAndPdfFile;
+
+    @FindBy(id="uploadSingleAcceptAnyImageAndPdf:submit")
+    private WebElement uploadSingleAcceptAnyImageAndPdfSubmit;
+
     @FindBy(id="uploadMultipleMaxsizeClient:message")
     private WebElement uploadMultipleMaxsizeClientMessage;
 
@@ -151,10 +157,18 @@ public class InputFileIT extends OmniFacesIT {
         assertEquals("label: " + txtFile.getName() + " is not image/*", getMessagesText());
 
         var gifFile = createTempFile("file", "gif", "GIF89a");
+        uploadSingleAcceptAnyImageFile.clear();
         uploadSingleAcceptAnyImageFile.sendKeys(gifFile.getAbsolutePath());
         guardHttp(uploadSingleAcceptAnyImageSubmit::click);
         assertTrue(uploadSingleAcceptAnyImageFile.getText().isEmpty());
-        assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), getMessagesText());
+        assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), messages.getText());
+
+        var pdfFile = createTempFile("file", "pdf", "%PDF-1.7");
+        uploadSingleAcceptAnyImageFile.clear();
+        uploadSingleAcceptAnyImageFile.sendKeys(pdfFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageSubmit::click);
+        assertTrue(uploadSingleAcceptAnyImageFile.getText().isEmpty());
+        assertEquals("label: " + pdfFile.getName() + " is not image/*", messages.getText());
     }
 
     @Test
@@ -170,6 +184,36 @@ public class InputFileIT extends OmniFacesIT {
         guardHttp(uploadSingleAcceptSvgImageSubmit::click);
         assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
         assertEquals("uploadSingle: " + svgFile.length() + ", " + svgFile.getName(), getMessagesText());
+
+        var gifFile = createTempFile("file", "gif", "GIF89a");
+        uploadSingleAcceptSvgImageFile.clear();
+        uploadSingleAcceptSvgImageFile.sendKeys(gifFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptSvgImageSubmit::click);
+        assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
+        assertEquals("label: " + gifFile.getName() + " is not image/svg+xml", messages.getText());
+    }
+
+    @Test
+    public void uploadSingleAcceptAnyImageAndPdf() throws IOException {
+        var txtFile = createTempFile("file", "txt", "hello world");
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(txtFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit::click);
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("label: " + txtFile.getName() + " is not image/*,.pdf", messages.getText());
+
+        var gifFile = createTempFile("file", "gif", "GIF89a");
+        uploadSingleAcceptAnyImageAndPdfFile.clear();
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(gifFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit::click);
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), messages.getText());
+
+        var pdfFile = createTempFile("file", "pdf", "%PDF-1.7");
+        uploadSingleAcceptAnyImageAndPdfFile.clear();
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(pdfFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit::click);
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("uploadSingle: " + pdfFile.length() + ", " + pdfFile.getName(), messages.getText());
     }
 
     @Test

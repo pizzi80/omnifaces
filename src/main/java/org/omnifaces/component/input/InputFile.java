@@ -538,7 +538,7 @@ public class InputFile extends HtmlInputFile {
         if (accept != null) {
             var contentType = isEmpty(fileName) ? part.getContentType() : getMimeType(context, fileName.toLowerCase(getLocale()));
 
-            if (contentType == null || !contentType.matches(convertAcceptToRegex(accept))) {
+            if (contentType == null || !contentType.matches(convertAcceptToRegex(context, accept))) {
                 message = getAcceptMessage();
                 param = accept;
             }
@@ -555,7 +555,7 @@ public class InputFile extends HtmlInputFile {
         }
     }
 
-    private static String convertAcceptToRegex(String accept) {
+    private static String convertAcceptToRegex(FacesContext context, String accept) {
         var acceptTokens = accept.replaceAll("\\s*", "").split("(?<=[*,])|(?=[*,])");
         var regex = new StringBuilder();
 
@@ -563,7 +563,7 @@ public class InputFile extends HtmlInputFile {
             switch (acceptToken) {
                 case "*" -> regex.append(".*");
                 case "," -> regex.append("|");
-                default -> regex.append(Pattern.quote(acceptToken));
+                default -> regex.append(Pattern.quote(acceptToken.startsWith(".") ? getMimeType(context, "filename".concat(acceptToken)) : acceptToken));
             }
         }
 
