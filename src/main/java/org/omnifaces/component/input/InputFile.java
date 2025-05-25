@@ -573,7 +573,7 @@ public class InputFile extends HtmlInputFile {
 		if (accept != null) {
 			String contentType = isEmpty(fileName) ? part.getContentType() : getMimeType(context, fileName.toLowerCase(getLocale()));
 
-			if (contentType == null || !contentType.matches(convertAcceptToRegex(accept))) {
+			if (contentType == null || !contentType.matches(convertAcceptToRegex(context, accept))) {
 				message = getAcceptMessage();
 				param = accept;
 			}
@@ -590,15 +590,15 @@ public class InputFile extends HtmlInputFile {
 		}
 	}
 
-	private String convertAcceptToRegex(String accept) {
+	private String convertAcceptToRegex(FacesContext context, String accept) {
 		String[] parts = accept.replaceAll("\\s*", "").split("(?<=[*,])|(?=[*,])");
 		StringBuilder regex = new StringBuilder();
 
 		for (String part : parts) {
 			switch (part) {
 				case "*": regex.append(".*"); break;
-				case ",": regex.append("|"); break;
-				default: regex.append(Pattern.quote(part)); break;
+                case ",": regex.append("|"); break;
+				default: regex.append(Pattern.quote(part.startsWith(".") ? getMimeType(context, "filename".concat(part)) : part)); break;
 			}
 		}
 
@@ -616,7 +616,7 @@ public class InputFile extends HtmlInputFile {
 			component = getMessagesComponent();
 		}
 
-		messageComponentClientId = (component != null && component.getId() != null) ? component.getClientId() : null;
+		messageComponentClientId = component != null && component.getId() != null ? component.getClientId() : null;
 		return messageComponentClientId;
 	}
 
