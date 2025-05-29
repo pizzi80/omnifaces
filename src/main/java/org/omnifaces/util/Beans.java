@@ -14,12 +14,16 @@ package org.omnifaces.util;
 
 import static java.util.logging.Level.FINE;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.stream.Collectors.toList;
 import static org.omnifaces.util.Reflection.toClassOrNull;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.ContextNotActiveException;
 import javax.enterprise.context.spi.AlterableContext;
@@ -77,12 +81,12 @@ public final class Beans {
 
 	private static final Logger logger = Logger.getLogger(Beans.class.getName());
 
-	private static final String[] PROXY_INTERFACE_NAMES = {
-		"org.jboss.weld.proxy.WeldConstruct",
-		"org.apache.webbeans.proxy.OwbNormalScopeProxy",
-		"io.quarkus.arc.ClientProxy",
-		"io.quarkus.arc.Subclass"
-	};
+	private static final List<Class<?>> PROXY_INTERFACES = Stream.of(
+		toClassOrNull("org.jboss.weld.proxy.WeldConstruct"),
+		toClassOrNull("org.apache.webbeans.proxy.OwbNormalScopeProxy"),
+        toClassOrNull("io.quarkus.arc.ClientProxy"),
+        toClassOrNull("io.quarkus.arc.Subclass")
+	).filter(Objects::nonNull).collect(toList());
 
 	// Both Weld and OWB generate proxy class names as "BeanClassName[...]$$[...]Proxy[...]" with a "$$" and "Proxy" in it.
 	// Hopefully unknown CDI proxy implementations follow the same de-facto standard.
@@ -275,14 +279,10 @@ public final class Beans {
 			return false;
 		}
 
-		Class<?> beanClass = (object instanceof Class) ? (Class<?>) object : object.getClass();
+		Class<?> beanClass = object instanceof Class ? (Class<?>) object : object.getClass();
 
-		for (String proxyInterfaceName : PROXY_INTERFACE_NAMES) {
-			Class<?> proxyInterface = toClassOrNull(proxyInterfaceName);
-
-			if (proxyInterface != null && proxyInterface.isAssignableFrom(beanClass)) {
-				return true;
-			}
+		if (PROXY_INTERFACES.stream().anyMatch(proxyInterface -> proxyInterface.isAssignableFrom(beanClass))) {
+		    return true;
 		}
 
 		// Fall back for unknown CDI proxy implementations.
