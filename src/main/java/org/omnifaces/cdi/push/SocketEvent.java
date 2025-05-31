@@ -140,7 +140,7 @@ public final class SocketEvent implements Serializable {
          * The literal of {@link Opened}.
          * @since 3.2
          */
-        public static final AnnotationLiteral<Opened> LITERAL = new AnnotationLiteral<>() {
+        AnnotationLiteral<Opened> LITERAL = new AnnotationLiteral<>() {
             private static final long serialVersionUID = 1L;
         };
     }
@@ -164,7 +164,7 @@ public final class SocketEvent implements Serializable {
         /**
          * The literal of {@link Switched}.
          */
-        public static final AnnotationLiteral<Switched> LITERAL = new AnnotationLiteral<>() {
+        AnnotationLiteral<Switched> LITERAL = new AnnotationLiteral<>() {
             private static final long serialVersionUID = 1L;
         };
     }
@@ -189,7 +189,7 @@ public final class SocketEvent implements Serializable {
          * The literal of {@link Closed}.
          * @since 3.2
          */
-        public static final AnnotationLiteral<Closed> LITERAL = new AnnotationLiteral<>() {
+        AnnotationLiteral<Closed> LITERAL = new AnnotationLiteral<>() {
             private static final long serialVersionUID = 1L;
         };
     }
