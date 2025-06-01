@@ -68,26 +68,26 @@
         <maven.source.excludeResources>true</maven.source.excludeResources>
 
         <!-- Test server versions. -->
-        <test.wildfly-mojarra4.version>31.0.1.Final</test.wildfly-mojarra4.version> <!-- https://mvnrepository.com/artifact/org.wildfly/wildfly-preview-dist -->
-        <test.liberty-myfaces3.version>24.0.0.8</test.liberty-myfaces3.version> <!-- https://mvnrepository.com/artifact/io.openliberty/openliberty-runtime -->
-        <test.glassfish-mojarra4.version>7.0.17</test.glassfish-mojarra4.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish -->
-        <test.tomcat.version>10.1.28</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
-        <test.piranha.version>24.8.0</test.piranha.version> <!-- https://mvnrepository.com/artifact/cloud.piranha.arquillian/piranha-arquillian-server -->
-        <test.tomee-myfaces3.version>9.1.3</test.tomee-myfaces3.version> <!-- https://mvnrepository.com/artifact/org.apache.tomee/apache-tomee -->
+        <test.wildfly-mojarra4.version>36.0.1.Final</test.wildfly-mojarra4.version> <!-- https://mvnrepository.com/artifact/org.wildfly/wildfly-dist -->
+        <test.liberty-myfaces3.version>25.0.0.5</test.liberty-myfaces3.version> <!-- https://mvnrepository.com/artifact/io.openliberty/openliberty-runtime -->
+        <test.glassfish-mojarra4.version>7.0.25</test.glassfish-mojarra4.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish -->
+        <test.tomcat.version>10.1.41</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
+        <test.piranha.version>25.5.0</test.piranha.version> <!-- https://mvnrepository.com/artifact/cloud.piranha.arquillian/piranha-arquillian-server -->
+        <test.tomee-myfaces4.version>10.0.1</test.tomee-myfaces4.version> <!-- https://mvnrepository.com/artifact/org.apache.tomee/apache-tomee -->
 
         <!-- Test impl versions for servletcontainers (Tomcat/Piranha). -->
-        <test.mojarra4.version>4.0.8</test.mojarra4.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
+        <test.mojarra4.version>4.0.11</test.mojarra4.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
         <test.mojarra3.version>3.0.5</test.mojarra3.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
-        <test.myfaces4.version>4.0.2</test.myfaces4.version> <!-- https://mvnrepository.com/artifact/org.apache.myfaces.core/myfaces-impl -->
+        <test.myfaces4.version>4.0.3</test.myfaces4.version> <!-- https://mvnrepository.com/artifact/org.apache.myfaces.core/myfaces-impl -->
         <test.myfaces3.version>3.0.2</test.myfaces3.version> <!-- https://mvnrepository.com/artifact/org.apache.myfaces.core/myfaces-impl -->
-        <test.weld5.version>5.1.3.Final</test.weld5.version> <!-- https://mvnrepository.com/artifact/org.jboss.weld.servlet/weld-servlet-shaded -->
+        <test.weld5.version>5.1.6.Final</test.weld5.version> <!-- https://mvnrepository.com/artifact/org.jboss.weld.servlet/weld-servlet-shaded -->
         <test.weld4.version>4.0.3.Final</test.weld4.version> <!-- https://mvnrepository.com/artifact/org.jboss.weld.servlet/weld-servlet-shaded -->
-        <test.hibernateValidator8.version>8.0.1.Final</test.hibernateValidator8.version> <!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
+        <test.hibernateValidator8.version>8.0.2.Final</test.hibernateValidator8.version> <!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
         <test.hibernateValidator7.version>7.0.5.Final</test.hibernateValidator7.version> <!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
         <test.jsonp.version>2.0.1</test.jsonp.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
         <test.jstl.version>2.0.0</test.jstl.version> <!-- https://mvnrepository.com/artifact/org.glassfish.web/jakarta.servlet.jsp.jstl NOTE: JSTL 3.x cannot be used because we also want to test Tomcat + Faces 3.0 -->
         <test.tyrus.version>2.2.0</test.tyrus.version> <!-- https://mvnrepository.com/artifact/org.glassfish.tyrus/tyrus-container-servlet -->
-        <test.primefaces.version>14.0.4</test.primefaces.version> <!-- https://mvnrepository.com/artifact/org.primefaces/primefaces -->
+        <test.primefaces.version>15.0.4</test.primefaces.version> <!-- https://mvnrepository.com/artifact/org.primefaces/primefaces -->
 
         <!-- Arquillian config. -->
         <arquillian.browser>chrome</arquillian.browser> <!-- To use a different browser, use e.g. mvn clean verify -Darquillian.browser=firefox -->
@@ -487,7 +487,7 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <rerunFailingTestsCount>2</rerunFailingTestsCount>
+                        <rerunFailingTestsCount>0</rerunFailingTestsCount>
                         <systemPropertyVariables>
                             <profile.id>${project.activeProfiles[0].id}</profile.id>
                             <omnifaces.jar>${project.build.directory}/${project.build.finalName}.jar</omnifaces.jar>
@@ -530,7 +530,7 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>org.wildfly</groupId>
-                                            <artifactId>wildfly-preview-dist</artifactId>
+                                            <artifactId>wildfly-dist</artifactId>
                                             <version>${test.wildfly-mojarra4.version}</version>
                                             <type>zip</type>
                                         </artifactItem>
@@ -544,7 +544,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
                             <systemPropertyVariables>
-                                <jboss.home>${project.build.directory}/wildfly-preview-${test.wildfly-mojarra4.version}</jboss.home>
+                                <jboss.home>${project.build.directory}/wildfly-${test.wildfly-mojarra4.version}</jboss.home>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>
@@ -1037,14 +1037,14 @@
             </build>
         </profile>
 
-        <!-- TomEE - MyFaces 3.x integration test profile: mvn verify -P tomee-myfaces3 -->
+        <!-- TomEE - MyFaces 4.x integration test profile: mvn verify -P tomee-myfaces4 -->
         <profile>
-            <id>tomee-myfaces3</id>
+            <id>tomee-myfaces4</id>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.tomee</groupId>
                     <artifactId>arquillian-tomee-remote</artifactId>
-                    <version>${test.tomee-myfaces3.version}</version>
+                    <version>${test.tomee-myfaces4.version}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -1060,7 +1060,7 @@
                                         <artifactItem>
                                             <groupId>org.apache.tomee</groupId>
                                             <artifactId>apache-tomee</artifactId>
-                                            <version>${test.tomee-myfaces3.version}</version>
+                                            <version>${test.tomee-myfaces4.version}</version>
                                             <type>zip</type>
                                             <classifier>webprofile</classifier>
                                         </artifactItem>
@@ -1074,7 +1074,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
                             <systemPropertyVariables>
-                                <tomee.dir>${project.build.directory}/apache-tomee-webprofile-${test.tomee-myfaces3.version}</tomee.dir>
+                                <tomee.dir>${project.build.directory}/apache-tomee-webprofile-${test.tomee-myfaces4.version}</tomee.dir>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>
