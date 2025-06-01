@@ -128,9 +128,9 @@ public abstract class OmniFacesIT {
     }
 
     protected void guardHttp(Runnable action) {
-        executeScript("window.$http=true;");
+        executeScript("window.$http=true");
         action.run();
-        waitUntil(() -> executeScript("!window.$http && return document.readyState=='complete'"));
+        waitUntil(() -> executeScript("return !window.$http && document.readyState=='complete'"));
     }
 
     protected void guardAjax(Runnable action) {
