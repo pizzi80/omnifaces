@@ -568,7 +568,8 @@ public final class Servlets {
 	 * <li><code>Expires: [expiration date of 0]</code></li>
 	 * <li><code>Pragma: no-cache</code></li>
 	 * </ul>
-	 * Set the no-cache headers.
+	 * <p>Since 2.7.28 a cookie with name "BFCache-Buster" will be set with a random value
+	 * in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
 	 * @param response The HTTP servlet response to set the headers on.
 	 * @since 2.2
 	 */
