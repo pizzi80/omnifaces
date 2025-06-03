@@ -15,49 +15,43 @@ package org.omnifaces.util;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_EVENT_PARAM_NAME;
 import static org.omnifaces.util.Components.getClosestParent;
 import static org.omnifaces.util.Components.getCurrentActionSource;
 import static org.omnifaces.util.FacesLocal.getApplicationAttribute;
-import static org.omnifaces.util.FacesLocal.getContextAttribute;
 import static org.omnifaces.util.FacesLocal.getInitParameter;
+import static org.omnifaces.util.FacesLocal.getPackage;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.getSessionAttribute;
 import static org.omnifaces.util.FacesLocal.isAjaxRequest;
 import static org.omnifaces.util.FacesLocal.isRenderResponse;
 import static org.omnifaces.util.FacesLocal.normalizeViewId;
-import static org.omnifaces.util.FacesLocal.setContextAttribute;
 import static org.omnifaces.util.Reflection.accessField;
-import static org.omnifaces.util.Reflection.instance;
 import static org.omnifaces.util.Reflection.invokeMethod;
 import static org.omnifaces.util.Reflection.toClassOrNull;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.unmodifiableSet;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.lang.reflect.Field;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
+import javax.el.VariableMapper;
+import javax.faces.FacesWrapper;
 import javax.faces.application.ResourceHandler;
 import javax.faces.component.StateHelper;
 import javax.faces.component.UIComponent;
 import javax.faces.component.UIViewRoot;
-import javax.faces.component.behavior.ClientBehavior;
 import javax.faces.component.behavior.ClientBehaviorHolder;
 import javax.faces.context.FacesContext;
-import javax.faces.context.FacesContextWrapper;
-import javax.faces.context.PartialViewContext;
-import javax.faces.context.PartialViewContextWrapper;
 import javax.faces.render.ResponseStateManager;
 import javax.websocket.Session;
-
-import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
  * Collection of JSF implementation and/or JSF component library and/or server specific hacks.
@@ -70,51 +64,44 @@ public final class Hacks {
 
 	// Constants ------------------------------------------------------------------------------------------------------
 
-	private static final Set<String> RICHFACES_PVC_CLASS_NAMES =
-		unmodifiableSet(
-			"org.richfaces.context.ExtendedPartialViewContextImpl", // RichFaces 4.0-4.3.
-			"org.richfaces.context.ExtendedPartialViewContext"); // RichFaces 4.5+.
-	private static final boolean RICHFACES_INSTALLED = initRichFacesInstalled();
-	private static final String RICHFACES_RLR_RENDERER_TYPE =
-		"org.richfaces.renderkit.ResourceLibraryRenderer";
-	private static final String RICHFACES_RLF_CLASS_NAME =
-		"org.richfaces.resource.ResourceLibraryFactoryImpl";
-
 	private static final Class<?> PRIMEFACES_AJAX_SOURCE_CLASS =
 		toClassOrNull("org.primefaces.component.api.AjaxSource");
 	private static final Class<UIComponent> PRIMEFACES_DIALOG_CLASS =
 		toClassOrNull("org.primefaces.component.dialog.Dialog");
 
+	private static final String MOJARRA_PACKAGE_PREFIX = "com.sun.faces.";
 	private static final String MYFACES_PACKAGE_PREFIX = "org.apache.myfaces.";
-	private static final String MYFACES_RENDERED_SCRIPT_RESOURCES_KEY =
-		"org.apache.myfaces.RENDERED_SCRIPT_RESOURCES_SET";
-	private static final String MYFACES_RENDERED_STYLESHEET_RESOURCES_KEY =
-		"org.apache.myfaces.RENDERED_STYLESHEET_RESOURCES_SET";
-	private static final Set<String> MOJARRA_MYFACES_RESOURCE_DEPENDENCY_KEYS =
+	private static final Set<String> MYFACES_RESOURCE_DEPENDENCY_KEYS =
 		unmodifiableSet(
-			"com.sun.faces.PROCESSED_RESOURCE_DEPENDENCIES", // Mojarra processed @ResourceDependency
-			MYFACES_RENDERED_SCRIPT_RESOURCES_KEY, // MyFaces rendered @ResourceDependency(name$=.js) and <h:outputScript>
-			MYFACES_RENDERED_STYLESHEET_RESOURCES_KEY); // MyFaces rendered @ResourceDependency(name$=.css) and <h:outputStylesheet>
+			"org.apache.myfaces.RENDERED_SCRIPT_RESOURCES_SET", // MyFaces rendered @ResourceDependency(name$=.js) and <h:outputScript>
+			"org.apache.myfaces.RENDERED_STYLESHEET_RESOURCES_SET"); // MyFaces rendered @ResourceDependency(name$=.css) and <h:outputStylesheet>
 	private static final String MOJARRA_DEFAULT_RESOURCE_MAX_AGE = "com.sun.faces.defaultResourceMaxAge";
 	private static final String MYFACES_DEFAULT_RESOURCE_MAX_AGE = "org.apache.myfaces.RESOURCE_MAX_TIME_EXPIRES";
 	private static final long DEFAULT_RESOURCE_MAX_AGE = 604800000L; // 1 week.
 	private static final String[] PARAM_NAMES_RESOURCE_MAX_AGE = {
 		MOJARRA_DEFAULT_RESOURCE_MAX_AGE, MYFACES_DEFAULT_RESOURCE_MAX_AGE
 	};
-    private static final String MYFACES_RESOURCE_DEPENDENCY_UNIQUE_ID = "oam.view.resourceDependencyUniqueId";
+	private static final String MYFACES_RESOURCE_DEPENDENCY_UNIQUE_ID = "oam.view.resourceDependencyUniqueId";
 
 	private static final String MOJARRA_SERIALIZED_VIEWS = "com.sun.faces.renderkit.ServerSideStateHelper.LogicalViewMap";
 	private static final String MOJARRA_SERIALIZED_VIEW_KEY = "com.sun.faces.logicalViewMap";
 	private static final String MOJARRA_ACTIVE_VIEW_MAPS = "com.sun.faces.application.view.activeViewMaps";
 	private static final String MOJARRA_VIEW_MAP_ID = "com.sun.faces.application.view.viewMapId";
-	private static final String MYFACES_SERIALIZED_VIEWS = "org.apache.myfaces.application.viewstate.ServerSideStateCacheImpl.SERIALIZED_VIEW";
+	private static final Set<String> MYFACES_SERIALIZED_VIEWS =
+		unmodifiableSet(
+			"org.apache.myfaces.application.viewstate.ServerSideStateCacheImpl.SERIALIZED_VIEW", // MyFaces 2.3.9
+			"org.apache.myfaces.application.viewstate.StateCacheServerSide.SERIALIZED_VIEW"); // MyFaces 2.3-next-M6
 	private static final String MYFACES_VIEW_SCOPE_PROVIDER = "org.apache.myfaces.spi.ViewScopeProvider.INSTANCE";
+
+	private static final String MOJARRA_CACHED_SERVLET_MAPPING_KEY = "com.sun.faces.INVOCATION_PATH";
+	private static final String MYFACES_CACHED_SERVLET_MAPPING_KEY = "org.apache.myfaces.shared.application.DefaultViewHandlerSupport.CACHED_SERVLET_MAPPING";
 
 	private static final String ERROR_MAX_AGE =
 		"The '%s' init param must be a number. Encountered an invalid value of '%s'.";
 
 	// Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
 
+	private static Boolean mojarraUsed;
 	private static Boolean myFacesUsed;
 	private static Long defaultResourceMaxAge;
 
@@ -124,120 +111,27 @@ public final class Hacks {
 		//
 	}
 
-	private static boolean initRichFacesInstalled() {
-		for (String richFacesPvcClassName : RICHFACES_PVC_CLASS_NAMES) {
-			if (toClassOrNull(richFacesPvcClassName) != null) {
-				return true;
+	// JSF impl related -----------------------------------------------------------------------------------------------
+
+	/**
+	 * Returns true if Mojarra is used. That is, when the FacesContext instance is from the Mojarra specific package.
+	 * @return Whether Mojarra is used.
+	 * @since 3.9
+	 */
+	public static boolean isMojarraUsed() {
+		if (mojarraUsed == null) {
+			FacesContext context = FacesContext.getCurrentInstance();
+
+			if (context != null) {
+				mojarraUsed = getPackage(context).getName().startsWith(MOJARRA_PACKAGE_PREFIX);
+			}
+			else {
+				return false;
 			}
 		}
 
-		return false;
+		return mojarraUsed;
 	}
-
-	// RichFaces related ----------------------------------------------------------------------------------------------
-
-	/**
-	 * Returns true if RichFaces 4.x is installed. That is, when the RichFaces 4.0-4.3 specific
-	 * ExtendedPartialViewContextImpl, or RichFaces 4.5+ specific ExtendedPartialViewContext is present in the runtime
-	 * classpath. As this is usually auto-registered, we may safely assume that RichFaces 4.x is installed.
-	 * <p>
-	 * Note that RichFaces 4.4 doesn't exist.
-	 * @return Whether RichFaces 4.x is installed.
-	 */
-	public static boolean isRichFacesInstalled() {
-		return RICHFACES_INSTALLED;
-	}
-
-	/**
-	 * RichFaces 4.0-4.3 ExtendedPartialViewContextImpl does not extend from PartialViewContextWrapper. So a hack wherin
-	 * the exact fully qualified class name needs to be known has to be used to properly extract it from the
-	 * {@link FacesContext#getPartialViewContext()}.
-	 * @return The RichFaces PartialViewContext implementation.
-	 */
-	public static PartialViewContext getRichFacesPartialViewContext() {
-		PartialViewContext context = Ajax.getContext();
-
-		while (!RICHFACES_PVC_CLASS_NAMES.contains(context.getClass().getName())
-			&& context instanceof PartialViewContextWrapper)
-		{
-			context = ((PartialViewContextWrapper) context).getWrapped();
-		}
-
-		if (RICHFACES_PVC_CLASS_NAMES.contains(context.getClass().getName())) {
-			return context;
-		}
-		else {
-			return null;
-		}
-	}
-
-	/**
-	 * RichFaces PartialViewContext implementation does not have the getRenderIds() method properly implemented. So a
-	 * hack wherin the exact name of the private field needs to be known has to be used to properly extract it from the
-	 * RichFaces PartialViewContext implementation.
-	 * @return The render IDs from the RichFaces PartialViewContext implementation.
-	 */
-	public static Collection<String> getRichFacesRenderIds() {
-		PartialViewContext richFacesContext = getRichFacesPartialViewContext();
-
-		if (richFacesContext != null) {
-			Collection<String> renderIds = accessField(richFacesContext, "componentRenderIds");
-
-			if (renderIds != null) {
-				return renderIds;
-			}
-		}
-
-		return Collections.emptyList();
-	}
-
-	/**
-	 * RichFaces 4.0-4.3 ExtendedPartialViewContextImpl does not have any getWrapped() method to return the wrapped
-	 * PartialViewContext. So a reflection hack is necessary to return it from the private field.
-	 * @return The wrapped PartialViewContext from the RichFaces 4.0-4.3 ExtendedPartialViewContextImpl.
-	 */
-	public static PartialViewContext getRichFacesWrappedPartialViewContext() {
-		PartialViewContext richFacesContext = getRichFacesPartialViewContext();
-
-		if (richFacesContext != null) {
-			return accessField(richFacesContext, "wrappedViewContext");
-		}
-
-		return null;
-	}
-
-	/**
-	 * Returns true if the given renderer type is recognizeable as RichFaces resource library renderer.
-	 * @param rendererType The renderer type to be checked.
-	 * @return Whether the given renderer type is recognizeable as RichFaces resource library renderer.
-	 */
-	public static boolean isRichFacesResourceLibraryRenderer(String rendererType) {
-		return RICHFACES_RLR_RENDERER_TYPE.equals(rendererType);
-	}
-
-	/**
-	 * Returns an ordered set of all JSF resource identifiers for the given RichFaces resource library resources.
-	 * @param id The resource identifier of the RichFaces resource library (e.g. org.richfaces:ajax.reslib).
-	 * @return An ordered set of all JSF resource identifiers for the given RichFaces resource library resources.
-	 */
-	@SuppressWarnings("rawtypes")
-	public static Set<ResourceIdentifier> getRichFacesResourceLibraryResources(ResourceIdentifier id) {
-		Object resourceFactory = instance(RICHFACES_RLF_CLASS_NAME);
-		String name = id.getName().split("\\.")[0];
-		Object resourceLibrary = invokeMethod(resourceFactory, "getResourceLibrary", name, id.getLibrary());
-		Iterable resources = invokeMethod(resourceLibrary, "getResources");
-		Set<ResourceIdentifier> resourceIdentifiers = new LinkedHashSet<>();
-
-		for (Object resource : resources) {
-			String libraryName = invokeMethod(resource, "getLibraryName");
-			String resourceName = invokeMethod(resource, "getResourceName");
-			resourceIdentifiers.add(new ResourceIdentifier(libraryName, resourceName));
-		}
-
-		return resourceIdentifiers;
-	}
-
-	// MyFaces related ------------------------------------------------------------------------------------------------
 
 	/**
 	 * Returns true if MyFaces is used. That is, when the FacesContext instance is from the MyFaces specific package.
@@ -249,11 +143,7 @@ public final class Hacks {
 			FacesContext context = FacesContext.getCurrentInstance();
 
 			if (context != null) {
-				while (context instanceof FacesContextWrapper) {
-					context = ((FacesContextWrapper) context).getWrapped();
-				}
-
-				myFacesUsed = context.getClass().getPackage().getName().startsWith(MYFACES_PACKAGE_PREFIX);
+				myFacesUsed = getPackage(context).getName().startsWith(MYFACES_PACKAGE_PREFIX);
 			}
 			else {
 				return false;
@@ -264,102 +154,6 @@ public final class Hacks {
 	}
 
 	// JSF resource handling related ----------------------------------------------------------------------------------
-
-	/**
-	 * Set the given script resource as rendered.
-	 * @param context The involved faces context.
-	 * @param id The resource identifier.
-	 * @since 1.8
-	 */
-	public static void setScriptResourceRendered(FacesContext context, ResourceIdentifier id) {
-		setMojarraResourceRendered(context, id);
-
-		if (isMyFacesUsed()) {
-			setMyFacesResourceRendered(context, MYFACES_RENDERED_SCRIPT_RESOURCES_KEY, id);
-		}
-	}
-
-	/**
-	 * Returns whether the given script resource is rendered.
-	 * @param context The involved faces context.
-	 * @param id The resource identifier.
-	 * @return Whether the given script resource is rendered.
-	 * @since 1.8
-	 */
-	public static boolean isScriptResourceRendered(FacesContext context, ResourceIdentifier id) {
-		boolean rendered = isMojarraResourceRendered(context, id);
-
-		if (!rendered && isMyFacesUsed()) {
-			return isMyFacesResourceRendered(context, MYFACES_RENDERED_SCRIPT_RESOURCES_KEY, id);
-		}
-		else {
-			return rendered;
-		}
-	}
-
-	/**
-	 * Set the given stylesheet resource as rendered.
-	 * @param context The involved faces context.
-	 * @param id The resource identifier.
-	 * @since 1.8
-	 */
-	public static void setStylesheetResourceRendered(FacesContext context, ResourceIdentifier id) {
-		setMojarraResourceRendered(context, id);
-
-		if (isMyFacesUsed()) {
-			setMyFacesResourceRendered(context, MYFACES_RENDERED_STYLESHEET_RESOURCES_KEY, id);
-		}
-	}
-
-	/**
-	 * Returns whether the given stylesheet resource is rendered.
-	 * @param context The involved faces context.
-	 * @param id The resource identifier.
-	 * @since 2.7.10
-	 */
-	public static boolean isStylesheetResourceRendered(FacesContext context, ResourceIdentifier id) {
-		boolean rendered = isMojarraResourceRendered(context, id);
-
-		if (!rendered && isMyFacesUsed()) {
-			return isMyFacesResourceRendered(context, MYFACES_RENDERED_STYLESHEET_RESOURCES_KEY, id);
-		}
-		else {
-			return rendered;
-		}
-	}
-
-	private static void setMojarraResourceRendered(FacesContext context, ResourceIdentifier id) {
-		context.getAttributes().put(id.getName() + id.getLibrary(), true);
-	}
-
-	private static boolean isMojarraResourceRendered(FacesContext context, ResourceIdentifier id) {
-		return context.getAttributes().containsKey(id.getName() + id.getLibrary());
-	}
-
-	private static void setMyFacesResourceRendered(FacesContext context, String key, ResourceIdentifier id) {
-		getMyFacesResourceMap(context, key).put(getMyFacesResourceKey(id), true);
-	}
-
-	private static boolean isMyFacesResourceRendered(FacesContext context, String key, ResourceIdentifier id) {
-		return getMyFacesResourceMap(context, key).containsKey(getMyFacesResourceKey(id));
-	}
-
-	private static Map<String, Boolean> getMyFacesResourceMap(FacesContext context, String key) {
-		Map<String, Boolean> map = getContextAttribute(context, key);
-
-		if (map == null) {
-			map = new HashMap<>();
-			setContextAttribute(context, key, map);
-		}
-
-		return map;
-	}
-
-	private static String getMyFacesResourceKey(ResourceIdentifier id) {
-		String library = id.getLibrary();
-		String name = id.getName();
-		return (library != null) ? (library + '/' + name) : name;
-	}
 
 	/**
 	 * Returns the default resource maximum age in milliseconds.
@@ -400,8 +194,8 @@ public final class Hacks {
 	 * @param context The involved faces context.
 	 */
 	public static void removeResourceDependencyState(FacesContext context) {
-		// Mojarra and MyFaces remembers processed and rendered resource dependencies in a map.
-		context.getAttributes().keySet().removeAll(MOJARRA_MYFACES_RESOURCE_DEPENDENCY_KEYS);
+		// MyFaces remembers rendered resource dependencies in a map which isn't cleared on change of view.
+		context.getAttributes().keySet().removeAll(MYFACES_RESOURCE_DEPENDENCY_KEYS);
 
 		if (isRenderResponse(context) || isPrimeFacesAjaxRequest(context)) {
 			// Mojarra 2.3+ resource dependency state is not properly cleared during render response, so it needs to be manually cleared.
@@ -409,7 +203,7 @@ public final class Hacks {
 			context.getAttributes().keySet().remove(ResourceHandler.RESOURCE_IDENTIFIER);
 		}
 
-		// Mojarra 2.2- and PrimeFaces puts "namelibrary=true" for every rendered resource dependency.
+		// PrimeFaces puts "namelibrary=true" for every rendered resource dependency.
 		// NOTE: This may possibly conflict with other keys with value=true. So far tested, this is harmless.
 		context.getAttributes().values().removeAll(Collections.singleton(true));
  	}
@@ -438,6 +232,16 @@ public final class Hacks {
 		}
 	}
 
+	/**
+	 * Clear the cached faces servlet mapping as interpreted by either Mojarra or MyFaces.
+	 * This is useful if you want to force the impl to recalculate the faces servlet mapping.
+	 * @param context The involved faces context.
+	 * @since 3.10
+	 */
+	public static void clearCachedFacesServletMapping(FacesContext context) {
+		context.getAttributes().remove(isMyFacesUsed() ? MYFACES_CACHED_SERVLET_MAPPING_KEY : MOJARRA_CACHED_SERVLET_MAPPING_KEY);
+	}
+
 	//  JSF state saving related --------------------------------------------------------------------------------------
 
 	/**
@@ -455,7 +259,7 @@ public final class Hacks {
 				return;
 			}
 
-			Object viewCollection = getSessionAttribute(context, MYFACES_SERIALIZED_VIEWS);
+			Object viewCollection = MYFACES_SERIALIZED_VIEWS.stream().map(k -> getSessionAttribute(context, k)).filter(Objects::nonNull).findFirst().orElse(null);
 
 			if (viewCollection == null) {
 				return;
@@ -527,6 +331,39 @@ public final class Hacks {
 	}
 
 
+	// EL related -----------------------------------------------------------------------------------------------------
+
+	/**
+	 * Finds the wrapped variable mapper of the given variable mapper.
+	 * @param mapper The variable mapper to find wrapped variable mapper for.
+	 * @return The wrapped variable mapper of the given variable mapper.
+	 * @since 3.14.4
+	 */
+	@SuppressWarnings("unchecked")
+	public static VariableMapper findWrappedVariableMapper(VariableMapper mapper) {
+		if (mapper instanceof FacesWrapper) { // MyFaces
+			return ((FacesWrapper<VariableMapper>) mapper).getWrapped();
+		}
+
+		for (Class<?> type = mapper.getClass(); type != Object.class; type = type.getSuperclass()) { // Mojarra
+			for (Field field : type.getDeclaredFields()) {
+				if (VariableMapper.class.isAssignableFrom(field.getType())) {
+					try {
+						field.setAccessible(true);
+						return (VariableMapper) field.get(mapper);
+					}
+					catch (IllegalAccessException e) {
+						throw new IllegalStateException(e);
+					}
+
+				}
+			}
+		}
+
+		return null;
+	}
+
+
 	// PrimeFaces related ---------------------------------------------------------------------------------------------
 
 	/**
@@ -565,7 +402,7 @@ public final class Hacks {
 			return false;
 		}
 
-		String ajaxEvent = getRequestParameter(context, "javax.faces.behavior.event");
+		String ajaxEvent = getRequestParameter(context, BEHAVIOR_EVENT_PARAM_NAME);
 
 		if (ajaxEvent == null) {
 			return false;
@@ -573,10 +410,8 @@ public final class Hacks {
 
 		ClientBehaviorHolder ajaxSource = (ClientBehaviorHolder) actionSource;
 
-		for (ClientBehavior ajaxBehavior : ajaxSource.getClientBehaviors().get(ajaxEvent)) {
-			if (isPrimeFacesAjaxSource(ajaxBehavior)) {
-				return true;
-			}
+		if (ajaxSource.getClientBehaviors().get(ajaxEvent).stream().anyMatch(Hacks::isPrimeFacesAjaxSource)) {
+			return true;
 		}
 
 		return false;

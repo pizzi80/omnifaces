@@ -12,13 +12,13 @@
  */
 package org.omnifaces.test.resourcehandler.cdnresourcehandler;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCDNResourceHandler;
 import static org.omnifaces.test.OmniFacesIT.WebXml.withCDNResources;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -41,8 +41,8 @@ public class CDNResourceHandlerIT extends OmniFacesIT {
 
 	@Test
 	public void cdnResources() {
-		assertEquals("http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css", cdnStylesheet.getAttribute("href"));
-		assertEquals("http://code.jquery.com/jquery-2.2.4.min.js", cdnScript.getAttribute("src"));
+		assertEquals("https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css", cdnStylesheet.getAttribute("href"));
+		assertEquals("https://code.jquery.com/jquery-2.2.4.min.js", cdnScript.getAttribute("src"));
 	}
 
 }

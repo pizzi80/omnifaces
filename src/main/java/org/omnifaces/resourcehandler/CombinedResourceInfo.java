@@ -13,15 +13,16 @@
 package org.omnifaces.resourcehandler;
 
 import static java.lang.String.format;
-import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
-import static org.omnifaces.util.FacesLocal.getRequestDomainURL;
+import static org.omnifaces.resourcehandler.CombinedResourceHandler.LIBRARY_NAME;
+import static org.omnifaces.util.FacesLocal.createResource;
+import static org.omnifaces.util.FacesLocal.isDevelopment;
 import static org.omnifaces.util.Utils.isEmpty;
+import static org.omnifaces.util.Utils.openConnection;
 import static org.omnifaces.util.Utils.serializeURLSafe;
 import static org.omnifaces.util.Utils.unserializeURLSafe;
 
-import java.io.IOException;
-import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -31,7 +32,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import javax.faces.application.Resource;
-import javax.faces.application.ResourceHandler;
 import javax.faces.context.FacesContext;
 
 import org.omnifaces.el.functions.Converters;
@@ -173,18 +173,19 @@ public final class CombinedResourceInfo {
 	 * resources empty.
 	 */
 	private synchronized void loadResources() {
-		if (!isEmpty(resources)) {
+		FacesContext context = FacesContext.getCurrentInstance();
+
+		if (!isEmpty(resources) && !isDevelopment(context)) {
 			return;
 		}
 
-		FacesContext context = FacesContext.getCurrentInstance();
-		ResourceHandler handler = context.getApplication().getResourceHandler();
+		long previousLastModified = lastModified;
 		resources = new LinkedHashSet<>();
 		contentLength = 0;
 		lastModified = 0;
 
 		for (ResourceIdentifier resourceIdentifier : resourceIdentifiers) {
-			Resource resource = handler.createResource(resourceIdentifier.getName(), resourceIdentifier.getLibrary());
+			Resource resource = createResource(context, resourceIdentifier.getLibrary(), resourceIdentifier.getName());
 
 			if (resource == null) {
 				if (logger.isLoggable(WARNING)) {
@@ -196,21 +197,10 @@ public final class CombinedResourceInfo {
 			}
 
 			resources.add(resource);
-			URLConnection connection;
+			URLConnection connection = openConnection(context, resource);
 
-			try {
-				connection = resource.getURL().openConnection();
-			}
-			catch (Exception richFacesDoesNotSupportThis) {
-				logger.log(FINE, "Ignoring thrown exception; this can only be caused by a buggy component library.", richFacesDoesNotSupportThis);
-
-				try {
-					connection = new URL(getRequestDomainURL(context) + resource.getRequestPath()).openConnection();
-				}
-				catch (IOException ignore) {
-					logger.log(FINE, "Ignoring thrown exception; cannot handle it at this point, it would be thrown during getInputStream() anyway.", ignore);
-					return;
-				}
+			if (connection == null) {
+				return;
 			}
 
 			contentLength += connection.getContentLength();
@@ -219,6 +209,11 @@ public final class CombinedResourceInfo {
 			if (resourceLastModified > lastModified) {
 				lastModified = resourceLastModified;
 			}
+		}
+
+		if (previousLastModified != 0 && lastModified != previousLastModified) {
+			String keyPrefix = LIBRARY_NAME + ":" + id + ".";
+			ResourceIdentifier.clearIntegrity(key -> key.startsWith(keyPrefix));
 		}
 	}
 
@@ -313,7 +308,7 @@ public final class CombinedResourceInfo {
 			resourcesId = unserializeURLSafe(id);
 		}
 		catch (IllegalArgumentException ignore) {
-			logger.log(FINE, "Ignoring thrown exception; this can only be a hacker attempt, just return null to indicate 404.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; this can only be a hacker attempt, just return null to indicate 404.", ignore);
 			return null;
 		}
 

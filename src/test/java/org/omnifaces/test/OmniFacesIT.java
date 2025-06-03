@@ -17,6 +17,7 @@ import static org.jboss.arquillian.graphene.Graphene.guardNoRequest;
 import static org.jboss.arquillian.graphene.Graphene.waitGui;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
+import static org.omnifaces.util.Utils.isOneOf;
 
 import java.io.File;
 import java.net.URL;
@@ -24,21 +25,21 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.jboss.arquillian.drone.api.annotation.Drone;
-import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.junit5.ArquillianExtension;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenResolverSystem;
-import org.junit.Before;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 import com.google.common.base.Predicate;
 
-@RunWith(Arquillian.class)
+@ExtendWith(ArquillianExtension.class)
 public abstract class OmniFacesIT {
 
 	@Drone
@@ -47,7 +48,7 @@ public abstract class OmniFacesIT {
 	@ArquillianResource
 	protected URL baseURL;
 
-	@Before
+	@BeforeEach
 	public void init() {
 		open(getClass().getSimpleName() + ".xhtml");
 	}
@@ -72,6 +73,14 @@ public abstract class OmniFacesIT {
 		return newTab;
 	}
 
+	protected void openWithQueryString(String queryString) {
+		open(getClass().getSimpleName() + ".xhtml?" + queryString);
+	}
+
+	protected void openWithHashString(String hashString) {
+		open(getClass().getSimpleName() + ".xhtml?" + System.currentTimeMillis() + "#" + hashString); // Query string trick is necessary because Selenium driver may not forcibly reload page.
+	}
+
 	protected void closeCurrentTabAndSwitchTo(String tabToSwitch) {
 		browser.close();
 		browser.switchTo().window(tabToSwitch);
@@ -83,7 +92,7 @@ public abstract class OmniFacesIT {
 	protected void triggerOnchange(WebElement input, WebElement messages) {
 		clearMessages(messages);
 		executeScript("document.getElementById('" + input.getAttribute("id") + "').onchange();");
-		waitUntilMessages(messages);
+		waitUntilTextContent(messages);
 	}
 
 	/**
@@ -92,20 +101,15 @@ public abstract class OmniFacesIT {
 	protected void guardAjaxUpload(WebElement submit, WebElement messages) {
 		clearMessages(messages);
 		submit.click();
-		waitUntilMessages(messages);
+		waitUntilTextContent(messages);
 	}
 
-	protected void waitUntilMessages(WebElement messages) {
-		waitGui(browser).withTimeout(3, SECONDS).until().element(messages).text().not().equalTo("");
+	protected void waitUntilTextContent(WebElement element) {
+		waitGui(browser).withTimeout(3, SECONDS).until().element(element).text().not().equalTo("");
 	}
 
 	protected void waitUntilPrimeFacesReady() {
-		Predicate<WebDriver> primeFacesReady = new Predicate<WebDriver>() {
-			@Override
-			public boolean apply(WebDriver $) {
-				return executeScript("return !!window.PrimeFaces && PrimeFaces.ajax.Queue.isEmpty()");
-			}
-		};
+		Predicate<WebDriver> primeFacesReady = $ -> executeScript("return !!window.PrimeFaces && PrimeFaces.ajax.Queue.isEmpty()");
 		waitGui(browser).withTimeout(3, SECONDS).until(primeFacesReady);
 	}
 
@@ -120,6 +124,14 @@ public abstract class OmniFacesIT {
 
 	protected static String stripJsessionid(String url) {
 		return url.split(";jsessionid=", 2)[0];
+	}
+
+	protected static boolean isTomee() {
+		return "tomee".equals(System.getProperty("profile.id"));
+	}
+
+	protected static boolean isMojarra() {
+		return isOneOf(System.getProperty("profile.id"), "wildfly", "payara");
 	}
 
 	protected static <T extends OmniFacesIT> WebArchive createWebArchive(Class<T> testClass) {
@@ -147,6 +159,12 @@ public abstract class OmniFacesIT {
 				.deleteClass(testClass)
 				.addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml")
 				.addAsLibrary(new File(System.getProperty("omnifaces.jar")));
+
+			String warLibraries = System.getProperty("war.libraries");
+
+			if (warLibraries != null) {
+				archive.addAsLibraries(Maven.resolver().resolve(warLibraries.split("\\s*,\\s*")).withTransitivity().asFile());
+			}
 
 			addWebResources(new File(testClass.getClassLoader().getResource(packageName).getFile()), "");
 		}
@@ -192,6 +210,7 @@ public abstract class OmniFacesIT {
 					archive.addAsWebInfResource("WEB-INF/500.xhtml");
 					break;
 				case withFacesViews:
+				case withFacesViewsLowercasedRequestURI:
 				case withMultiViews:
 					archive.addAsWebInfResource("WEB-INF/404.xhtml");
 					break;
@@ -209,7 +228,7 @@ public abstract class OmniFacesIT {
 			}
 
 			MavenResolverSystem maven = Maven.resolver();
-			archive.addAsLibraries(maven.resolve("org.primefaces:primefaces:8.0").withTransitivity().asFile());
+			archive.addAsLibraries(maven.resolve("org.primefaces:primefaces:10.0.0").withTransitivity().asFile());
 			primeFacesSet = true;
 			return this;
 		}
@@ -232,19 +251,28 @@ public abstract class OmniFacesIT {
 		withFullAjaxExceptionHandler,
 		withCombinedResourceHandler,
 		withMessageBundle,
-		withCDNResourceHandler;
+		withCDNResourceHandler,
+		withVersionedResourceHandler,
+		withViewExpiredExceptionHandler,
+		withViewResourceHandler;
 	}
 
 	public static enum WebXml {
 		basic,
+		distributable,
 		withDevelopmentStage,
 		withErrorPage,
 		withFacesViews,
+		withFacesViewsLowercasedRequestURI,
 		withMultiViews,
 		withThreeViewsInSession,
 		withSocket,
 		withClientStateSaving,
-		withCDNResources;
+		withCDNResources,
+		withInterpretEmptyStringSubmittedValuesAsNull,
+		withVersionedResourceHandler,
+		withViewResources,
+		withTaglib;
 	}
 
 }

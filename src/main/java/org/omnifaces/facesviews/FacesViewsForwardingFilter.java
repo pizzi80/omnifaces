@@ -13,14 +13,13 @@
 package org.omnifaces.facesviews;
 
 import static javax.faces.application.ProjectStage.Development;
-import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
-import static org.omnifaces.facesviews.FacesServletDispatchMethod.DO_FILTER;
+import static org.omnifaces.facesviews.ExtensionAction.PROCEED;
+import static org.omnifaces.facesviews.ExtensionAction.REDIRECT_TO_EXTENSIONLESS;
 import static org.omnifaces.facesviews.FacesViews.FACES_VIEWS_ORIGINAL_PATH_INFO;
 import static org.omnifaces.facesviews.FacesViews.FACES_VIEWS_ORIGINAL_SERVLET_PATH;
 import static org.omnifaces.facesviews.FacesViews.getExtensionAction;
 import static org.omnifaces.facesviews.FacesViews.getExtensionlessURLWithQuery;
-import static org.omnifaces.facesviews.FacesViews.getFacesServletDispatchMethod;
 import static org.omnifaces.facesviews.FacesViews.getMappedResources;
 import static org.omnifaces.facesviews.FacesViews.getMultiViewsWelcomeFile;
 import static org.omnifaces.facesviews.FacesViews.getPathAction;
@@ -34,6 +33,7 @@ import static org.omnifaces.util.ResourcePaths.getExtension;
 import static org.omnifaces.util.ResourcePaths.isExtensionless;
 import static org.omnifaces.util.ResourcePaths.stripTrailingSlash;
 import static org.omnifaces.util.Servlets.getRequestRelativeURI;
+import static org.omnifaces.util.Servlets.redirectPermanent;
 
 import java.io.IOException;
 import java.util.Map;
@@ -67,7 +67,6 @@ public class FacesViewsForwardingFilter extends HttpFilter {
 
 	private ExtensionAction extensionAction;
 	private PathAction pathAction;
-	private FacesServletDispatchMethod dispatchMethod;
 
 	@Override
 	public void init() throws ServletException {
@@ -76,7 +75,6 @@ public class FacesViewsForwardingFilter extends HttpFilter {
 		try {
 			extensionAction = getExtensionAction(servletContext);
 			pathAction = getPathAction(servletContext);
-			dispatchMethod = getFacesServletDispatchMethod(servletContext);
 		}
 		catch (IllegalStateException e) {
 			throw new ServletException(e);
@@ -142,7 +140,7 @@ public class FacesViewsForwardingFilter extends HttpFilter {
 
 			String servletPathWithExtension = path + getExtension(resources.get(resource));
 
-			if (dispatchMethod == DO_FILTER && resources.containsKey(servletPathWithExtension)) {
+			if (resources.containsKey(servletPathWithExtension)) {
 				filterExtensionLessToExtension(request, response, chain, servletPathWithExtension);
 				return true;
 			}
@@ -219,16 +217,18 @@ public class FacesViewsForwardingFilter extends HttpFilter {
 		Map<String, String> resources = getMappedResources(getServletContext());
 
 		if (resources.containsKey(resource)) {
-			switch (extensionAction) {
-				case REDIRECT_TO_EXTENSIONLESS:
+			if (resources.get(resource) != null) {
+				if (extensionAction == REDIRECT_TO_EXTENSIONLESS) {
 					redirectPermanent(response, getExtensionlessURLWithQuery(request, resource));
 					return true;
-				case SEND_404:
-					response.sendError(SC_NOT_FOUND);
-					return true;
-				case PROCEED:
-					break;
+				}
+				else if (extensionAction == PROCEED) {
+					return false;
+				}
 			}
+
+			response.sendError(SC_NOT_FOUND);
+			return true;
 		}
 
 		return false;
@@ -261,12 +261,6 @@ public class FacesViewsForwardingFilter extends HttpFilter {
 		}
 
 		return false;
-	}
-
-	private static void redirectPermanent(HttpServletResponse response, String url) {
-		response.setStatus(SC_MOVED_PERMANENTLY);
-		response.setHeader("Location", url);
-		response.setHeader("Connection", "close");
 	}
 
 }

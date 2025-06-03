@@ -12,11 +12,15 @@
  */
 package org.omnifaces.el.functions;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.omnifaces.util.Faces.getLocale;
+import static org.omnifaces.util.Utils.isEmpty;
 
 import java.text.MessageFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
+import java.util.Base64;
+import java.util.regex.Pattern;
 
 import org.omnifaces.util.Faces;
 import org.omnifaces.util.Utils;
@@ -24,13 +28,21 @@ import org.omnifaces.util.Utils;
 /**
  * <p>
  * Collection of EL functions for string manipulation: <code>of:abbreviate()</code>, <code>of:capitalize()</code>, <code>of:concat()</code>,
- * <code>of:prettyURL()</code>, <code>of:encodeURL()</code>, <code>of:escapeJS()</code> and <code>of:formatX()</code>.
+ * <code>of:prettyURL()</code>, <code>of:encodeURL()</code>, <code>of:encodeURI()</code>, <code>of:encodeBase64()</code>,
+ * <code>of:escapeJS()</code>,  <code>of:stripTags()</code> and <code>of:formatX()</code>.
  * <p>
  * Instead of <code>of:formatX()</code>, you can also use <code>&lt;o:outputFormat&gt;</code>.
  *
  * @author Bauke Scholtz
  */
 public final class Strings {
+
+	// Constants ------------------------------------------------------------------------------------------------------
+
+	private static final Pattern PATTERN_DIACRITICAL_MARKS = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+	private static final Pattern PATTERN_NON_ALPHANUMERIC_CHARS = Pattern.compile("[^\\p{Alnum}]+");
+	private static final Pattern PATTERN_XML_TAGS = Pattern.compile("\\<[^\\>]*+\\>");
+	private static final Pattern PATTERN_MULTIPLE_SPACES = Pattern.compile("\\s\\s+");
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -100,6 +112,20 @@ public final class Strings {
 	}
 
 	/**
+	 * Parenthesize the given object. This will only wrap the given object in parenthesis when it's not empty or zero.
+	 * @param object The object to be parenthesized.
+	 * @return The parenthesized object.
+	 * @since 3.0
+	 */
+	public static String parenthesize(Object object) {
+		if (isEmpty(object) || "0".equals(object.toString())) {
+			return null;
+		}
+
+		return format("({0})", object);
+	}
+
+	/**
 	 * Replace all matches of the given pattern on the given string with the given replacement.
 	 * @param value The string to be replaced.
 	 * @param pattern The regular expression pattern to be tested.
@@ -145,9 +171,9 @@ public final class Strings {
 			return null;
 		}
 
-		return Normalizer.normalize(string.toLowerCase(), Form.NFD)
-			.replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
-			.replaceAll("[^\\p{Alnum}]+", "-");
+		String normalized = Normalizer.normalize(string.toLowerCase(), Form.NFD);
+		String withoutDiacriticalMarks = PATTERN_DIACRITICAL_MARKS.matcher(normalized).replaceAll("");
+		return PATTERN_NON_ALPHANUMERIC_CHARS.matcher(withoutDiacriticalMarks).replaceAll("-");
 	}
 
 	/**
@@ -162,6 +188,31 @@ public final class Strings {
 	}
 
 	/**
+	 * URI-encode the given string using UTF-8. This is useful for cases where you need to embed path parameters in URLs.
+	 * @param string The string to be URI-encoded.
+	 * @return The URI-encoded string.
+	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
+	 * @since 3.5
+	 */
+	public static String encodeURI(String string) {
+		return Utils.encodeURI(string);
+	}
+
+	/**
+	 * Base64-encode the given string. This is useful for cases where you need to create data URLs.
+	 * @param string The string to be Base64-encoded.
+	 * @return The Base64-encoded string.
+	 * @since 3.8
+	 */
+	public static String encodeBase64(String string) {
+		if (string == null) {
+			return null;
+		}
+
+		return Base64.getEncoder().encodeToString(string.getBytes(UTF_8));
+	}
+
+	/**
 	 * Escapes the given string according the JavaScript code rules. This escapes among others the special characters,
 	 * the whitespace, the quotes and the unicode characters. Useful whenever you want to use a Java string variable as
 	 * a JavaScript string variable.
@@ -170,6 +221,21 @@ public final class Strings {
 	 */
 	public static String escapeJS(String string) {
 		return Utils.escapeJS(string, true);
+	}
+
+	/**
+	 * Remove XML tags from a string and return only plain text.
+	 * @param string The string with XML tags.
+	 * @return The string without XML tags.
+	 * @since 3.7
+	 */
+	public static String stripTags(String string) {
+		if (string == null || string.isEmpty()) {
+			return string;
+		}
+
+		String withoutTags = PATTERN_XML_TAGS.matcher(string).replaceAll("");
+		return PATTERN_MULTIPLE_SPACES.matcher(withoutTags).replaceAll(" ").trim();
 	}
 
 	/**

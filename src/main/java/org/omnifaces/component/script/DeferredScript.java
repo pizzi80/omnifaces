@@ -12,17 +12,19 @@
  */
 package org.omnifaces.component.script;
 
+import static org.omnifaces.config.OmniFaces.OMNIFACES_LIBRARY_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_SCRIPT_NAME;
+import static org.omnifaces.util.Components.getAttribute;
+
 import javax.faces.application.ResourceDependency;
 import javax.faces.component.FacesComponent;
+import javax.faces.context.FacesContext;
 import javax.faces.event.ComponentSystemEvent;
 import javax.faces.event.ListenerFor;
-import javax.faces.event.ListenersFor;
 import javax.faces.event.PostAddToViewEvent;
 import javax.faces.event.PostRestoreStateEvent;
 
 import org.omnifaces.renderer.DeferredScriptRenderer;
-import org.omnifaces.resourcehandler.ResourceIdentifier;
-import org.omnifaces.util.Hacks;
 
 /**
  * <p>
@@ -34,6 +36,10 @@ import org.omnifaces.util.Hacks;
  * <p>
  * This will give bonus points with among others the Google PageSpeed tool, on the contrary to placing the script at
  * bottom of body, or using <code>defer="true"</code> or even <code>async="true"</code>.
+ * <p>
+ * Since 2.4 this will render the <code>crossorigin</code> attribute with a value of <code>anonymous</code>.
+ * Since 3.13 this will also render the <code>integrity</code> attribute with a base64 encoded sha384 hash as SRI, see
+ * also <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity">MDN</a>.
  *
  * <h3>Usage</h3>
  * <p>
@@ -52,11 +58,9 @@ import org.omnifaces.util.Hacks;
  * @see ScriptFamily
  */
 @FacesComponent(DeferredScript.COMPONENT_TYPE)
-@ResourceDependency(library="omnifaces", name="omnifaces.js", target="head")
-@ListenersFor({
-	@ListenerFor(systemEventClass=PostAddToViewEvent.class),
-	@ListenerFor(systemEventClass=PostRestoreStateEvent.class)
-})
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head")
+@ListenerFor(systemEventClass=PostAddToViewEvent.class)
+@ListenerFor(systemEventClass=PostRestoreStateEvent.class)
 public class DeferredScript extends ScriptFamily {
 
 	// Public constants -----------------------------------------------------------------------------------------------
@@ -83,7 +87,8 @@ public class DeferredScript extends ScriptFamily {
 	@Override
 	public void processEvent(ComponentSystemEvent event) {
 		if (moveToBody(event)) {
-			Hacks.setScriptResourceRendered(getFacesContext(), new ResourceIdentifier(this));
+			FacesContext context = event.getFacesContext();
+			context.getApplication().getResourceHandler().markResourceRendered(context, getAttribute(this, "name"), getAttribute(this, "library"));
 		}
 	}
 

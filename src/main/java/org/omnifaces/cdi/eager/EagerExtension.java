@@ -79,6 +79,7 @@ public class EagerExtension implements Extension {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	public void load(@Observes AfterDeploymentValidation event, BeanManager beanManager) {
 
 		if (eagerBeans.isEmpty()) {

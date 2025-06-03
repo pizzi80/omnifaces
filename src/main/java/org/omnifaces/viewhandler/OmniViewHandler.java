@@ -13,16 +13,24 @@
 package org.omnifaces.viewhandler;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.omnifaces.cdi.viewscope.ViewScopeManager.isUnloadRequest;
+import static org.omnifaces.resourcehandler.ViewResourceHandler.isViewResourceRequest;
 import static org.omnifaces.taghandler.EnableRestorableView.isRestorableView;
 import static org.omnifaces.taghandler.EnableRestorableView.isRestorableViewRequest;
 import static org.omnifaces.util.Components.buildView;
+import static org.omnifaces.util.Faces.isPrefixMapping;
 import static org.omnifaces.util.Faces.responseComplete;
+import static org.omnifaces.util.FacesLocal.getMimeType;
 import static org.omnifaces.util.FacesLocal.getRenderKit;
+import static org.omnifaces.util.FacesLocal.getRequestServletPath;
 import static org.omnifaces.util.FacesLocal.getRequestURIWithQueryString;
+import static org.omnifaces.util.FacesLocal.getServletContext;
+import static org.omnifaces.util.FacesLocal.isAjaxRequest;
 import static org.omnifaces.util.FacesLocal.isDevelopment;
 import static org.omnifaces.util.FacesLocal.isSessionNew;
 import static org.omnifaces.util.FacesLocal.redirectPermanent;
+import static org.omnifaces.util.Platform.getDefaultFacesServletMapping;
 
 import java.io.IOException;
 import java.util.Map;
@@ -34,12 +42,16 @@ import javax.faces.application.ViewHandlerWrapper;
 import javax.faces.component.UIComponent;
 import javax.faces.component.UIForm;
 import javax.faces.component.UIViewRoot;
+import javax.faces.context.ExternalContext;
+import javax.faces.context.ExternalContextWrapper;
 import javax.faces.context.FacesContext;
+import javax.faces.context.FacesContextWrapper;
 import javax.faces.event.PreDestroyViewMapEvent;
 import javax.faces.render.ResponseStateManager;
 
 import org.omnifaces.cdi.ViewScoped;
 import org.omnifaces.cdi.viewscope.ViewScopeManager;
+import org.omnifaces.resourcehandler.ViewResourceHandler;
 import org.omnifaces.taghandler.EnableRestorableView;
 import org.omnifaces.util.Hacks;
 
@@ -54,6 +66,9 @@ import org.omnifaces.util.Hacks;
  * restore the view scoped state instead of building and restoring the entire view.
  * <li>Since 2.5: If project stage is development, then throw an {@link IllegalStateException} when there's a nested
  * {@link UIForm} component.
+ * <li>Since 3.10: If {@link ViewResourceHandler#isViewResourceRequest(FacesContext)} is <code>true</code>, then
+ * replace the HTML response writer with a XML response writer in {@link #renderView(FacesContext, UIViewRoot)}, and
+ * ensure that proper action URL is returned in {@link #getActionURL(FacesContext, String)}.
  * </ol>
  *
  * @author Bauke Scholtz
@@ -65,12 +80,10 @@ public class OmniViewHandler extends ViewHandlerWrapper {
 
 	// Constants ------------------------------------------------------------------------------------------------------
 
+	private static final String XML_CONTENT_TYPE = "text/xml";
+
 	private static final String ERROR_NESTED_FORM_ENCOUNTERED =
 		"Nested form with ID '%s' encountered inside parent form with ID '%s'. This is illegal in HTML.";
-
-	// Properties -----------------------------------------------------------------------------------------------------
-
-	private ViewHandler wrapped;
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -79,7 +92,7 @@ public class OmniViewHandler extends ViewHandlerWrapper {
 	 * @param wrapped The wrapped view handler.
 	 */
 	public OmniViewHandler(ViewHandler wrapped) {
-		this.wrapped = wrapped;
+		super(wrapped);
 	}
 
 	// Actions --------------------------------------------------------------------------------------------------------
@@ -112,7 +125,31 @@ public class OmniViewHandler extends ViewHandlerWrapper {
 			validateComponentTreeStructure(context, viewToRender);
 		}
 
-		super.renderView(context, viewToRender);
+		if (isAjaxRequest(context)) {
+			context.getAttributes().put("facelets.ContentType", XML_CONTENT_TYPE); // Work around for nasty Mojarra 2.3.4+ bug reported as #4484.
+		}
+
+		if (isViewResourceRequest(context)) {
+			String contentType = getMimeType(context, getRequestServletPath(context));
+			String characterEncoding = UTF_8.name();
+
+			ExternalContext externalContext = context.getExternalContext();
+			externalContext.setResponseContentType(contentType);
+			externalContext.setResponseCharacterEncoding(characterEncoding);
+			context.setResponseWriter(context.getRenderKit().createResponseWriter(externalContext.getResponseOutputWriter(), XML_CONTENT_TYPE, characterEncoding));
+			context.getAttributes().put("facelets.ContentType", contentType); // Work around for MyFaces ignoring the setResponseContentType.
+
+			try {
+				Hacks.clearCachedFacesServletMapping(context);
+				super.renderView(new RenderViewResourceFacesContext(context), viewToRender);
+			}
+			finally {
+				Hacks.clearCachedFacesServletMapping(context);
+			}
+		}
+		else {
+			super.renderView(context, viewToRender);
+		}
 	}
 
 	/**
@@ -210,9 +247,51 @@ public class OmniViewHandler extends ViewHandlerWrapper {
 		}
 	}
 
-	@Override
-	public ViewHandler getWrapped() {
-		return wrapped;
+	// Inner classes -------------------------------------------------------------------------------------------------
+
+	private static class RenderViewResourceFacesContext extends FacesContextWrapper {
+
+		private final ExternalContext externalContext;
+
+		private RenderViewResourceFacesContext(FacesContext wrapped) {
+			super(wrapped);
+			String defaultMapping = getDefaultFacesServletMapping(getServletContext(getWrapped()));
+			boolean prefixMapping = isPrefixMapping(defaultMapping);
+			String requestPathInfo = prefixMapping ? defaultMapping : null;
+			String requestServletPath = getRequestServletPath(getWrapped()) + (prefixMapping ? "" : defaultMapping);
+			this.externalContext = new RenderViewResourceExternalContext(getWrapped().getExternalContext(), requestPathInfo, requestServletPath);
+		}
+
+		@Override
+		public ExternalContext getExternalContext() {
+			return externalContext;
+		}
 	}
 
+	private static class RenderViewResourceExternalContext extends ExternalContextWrapper {
+
+		private final String requestPathInfo;
+		private final String requestServletPath;
+
+		private RenderViewResourceExternalContext(ExternalContext wrapped, String requestPathInfo, String requestServletPath) {
+			super(wrapped);
+			this.requestPathInfo = requestPathInfo;
+			this.requestServletPath = requestServletPath;
+		}
+
+		@Override
+		public String getRequestPathInfo() {
+			return requestPathInfo;
+		}
+
+		@Override
+		public String getRequestServletPath() {
+			return requestServletPath;
+		}
+
+		@Override
+		public String encodeActionURL(String url) {
+			return super.encodeActionURL(url).replaceAll(";jsessionid=[^&?#]*", "");
+		}
+	}
 }

@@ -14,13 +14,14 @@ package org.omnifaces.test.push.socket;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.jboss.arquillian.graphene.Graphene.guardAjax;
+import static org.jboss.arquillian.graphene.Graphene.guardNoRequest;
 import static org.jboss.arquillian.graphene.Graphene.waitGui;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.omnifaces.test.OmniFacesIT.WebXml.withSocket;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -91,45 +92,36 @@ public class SocketIT extends OmniFacesIT {
 	}
 
 	private void testOnopen() {
-		assertEquals("|applicationScopedServerEvent||sessionScopedUserTargeted||viewScopedAjaxAware|", clientOpenedMessages.getText());
-		waitGui(browser).withTimeout(3, SECONDS).until().element(applicationScopedServerEventMessage).text().equalTo("|opened:sessionScopedUserTargeted||opened:viewScopedAjaxAware|");
+		assertEquals("|applicationScopedServerEvent||sessionScopedUserTargeted||viewScopedAjaxAware|", clientOpenedMessages.getText()); // These are sync.
+		waitGui(browser).withTimeout(3, SECONDS).until().element(applicationScopedServerEventMessage).text().contains("|opened:sessionScopedUserTargeted|"); // These are async.
+		waitGui(browser).withTimeout(3, SECONDS).until().element(applicationScopedServerEventMessage).text().contains("|opened:viewScopedAjaxAware|");
 	}
 
 	private void testOnclose(String tabToSwitch) {
-
-/* Outcomment for now.
- *
- * TODO: HtmlUnit (Selenium 2.53.1) bugs on close of websockets after a long time out with below error:
- * WARN: oejut.QueuedThreadPool:main: WebSocketClient@1366581056{STOPPING,8<=8<=200,i=0,q=1} Couldn't stop Thread[WebSocketClient@1366581056-104,5,main]
-
 		guardNoRequest(closeAllSockets).click();
-		String closeMessages = clientClosedMessages.getText();
-		assertTrue(closeMessages.contains("|applicationScopedServerEvent|")); // Closing doesn't happen synchronously, so ordering may be different.
-		assertTrue(closeMessages.contains("|sessionScopedUserTargeted|"));
-		assertTrue(closeMessages.contains("|viewScopedAjaxAware|"));
+		waitGui(browser).withTimeout(3, SECONDS).until().element(clientClosedMessages).text().contains("|sessionScopedUserTargeted|"); // These are async.
+		waitGui(browser).withTimeout(3, SECONDS).until().element(clientClosedMessages).text().contains("|viewScopedAjaxAware|");
 		closeCurrentTabAndSwitchTo(tabToSwitch);
-
-*/
 	}
 
 	private String pushApplicationScopedServerEvent() {
 		guardAjax(pushApplicationScopedServerEvent).click();
 		String message = messages.getText();
-		waitUntilMessages(applicationScopedServerEventMessage);
+		waitUntilTextContent(applicationScopedServerEventMessage);
 		return message;
 	}
 
 	private String pushSessionScopedUserTargeted() {
 		guardAjax(pushSessionScopedUserTargeted).click();
 		String message = messages.getText();
-		waitUntilMessages(sessionScopedUserTargetedMessage);
+		waitUntilTextContent(sessionScopedUserTargetedMessage);
 		return message;
 	}
 
 	private String pushViewScopedAjaxAware() {
 		guardAjax(pushViewScopedAjaxAware).click();
 		String message = messages.getText();
-		waitUntilMessages(viewScopedAjaxAwareMessage);
+		waitUntilTextContent(viewScopedAjaxAwareMessage);
 		return message;
 	}
 

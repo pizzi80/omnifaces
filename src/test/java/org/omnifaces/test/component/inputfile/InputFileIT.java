@@ -14,8 +14,8 @@ package org.omnifaces.test.component.inputfile;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.jboss.arquillian.graphene.Graphene.guardHttp;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +24,7 @@ import java.nio.file.Path;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -58,8 +58,17 @@ public class InputFileIT extends OmniFacesIT {
 	@FindBy(id="uploadSingleAcceptSvgImage:submit")
 	private WebElement uploadSingleAcceptSvgImageSubmit;
 
+    @FindBy(id="uploadSingleAcceptAnyImageAndPdf:file")
+    private WebElement uploadSingleAcceptAnyImageAndPdfFile;
+
+    @FindBy(id="uploadSingleAcceptAnyImageAndPdf:submit")
+    private WebElement uploadSingleAcceptAnyImageAndPdfSubmit;
+
 	@FindBy(id="uploadSingleMaxsizeClient:file")
 	private WebElement uploadSingleMaxsizeClientFile;
+
+	@FindBy(id="uploadSingleMaxsizeClient:message")
+	private WebElement uploadSingleMaxsizeClientMessage;
 
 	@FindBy(id="uploadSingleMaxsizeClient:submit")
 	private WebElement uploadSingleMaxsizeClientSubmit;
@@ -130,6 +139,13 @@ public class InputFileIT extends OmniFacesIT {
 		guardHttp(uploadSingleAcceptAnyImageSubmit).click();
 		assertTrue(uploadSingleAcceptAnyImageFile.getText().isEmpty());
 		assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), messages.getText());
+
+        File pdfFile = createTempFile("file", "pdf", "%PDF-1.7");
+        uploadSingleAcceptAnyImageFile.clear();
+        uploadSingleAcceptAnyImageFile.sendKeys(pdfFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageSubmit).click();
+        assertTrue(uploadSingleAcceptAnyImageFile.getText().isEmpty());
+        assertEquals("label: " + pdfFile.getName() + " is not image/*", messages.getText());
 	}
 
 	@Test
@@ -140,28 +156,58 @@ public class InputFileIT extends OmniFacesIT {
 		assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
 		assertEquals("label: " + txtFile.getName() + " is not image/svg+xml", messages.getText());
 
-		File svgFile = createTempFile("file", "svg", "<svg/>");
-		uploadSingleAcceptSvgImageFile.clear();
-		uploadSingleAcceptSvgImageFile.sendKeys(svgFile.getAbsolutePath());
-		guardHttp(uploadSingleAcceptSvgImageSubmit).click();
-		assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
-		assertEquals("uploadSingle: " + svgFile.length() + ", " + svgFile.getName(), messages.getText());
+        File svgFile = createTempFile("file", "svg", "<svg/>");
+        uploadSingleAcceptSvgImageFile.clear();
+        uploadSingleAcceptSvgImageFile.sendKeys(svgFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptSvgImageSubmit).click();
+        assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
+        assertEquals("uploadSingle: " + svgFile.length() + ", " + svgFile.getName(), messages.getText());
+
+        File gifFile = createTempFile("file", "gif", "GIF89a");
+        uploadSingleAcceptSvgImageFile.clear();
+        uploadSingleAcceptSvgImageFile.sendKeys(gifFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptSvgImageSubmit).click();
+        assertTrue(uploadSingleAcceptSvgImageFile.getText().isEmpty());
+        assertEquals("label: " + gifFile.getName() + " is not image/svg+xml", messages.getText());
 	}
+
+    @Test
+    public void uploadSingleAcceptAnyImageAndPdf() throws IOException {
+        File txtFile = createTempFile("file", "txt", "hello world");
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(txtFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit).click();
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("label: " + txtFile.getName() + " is not image/*,.pdf", messages.getText());
+
+        File gifFile = createTempFile("file", "gif", "GIF89a");
+        uploadSingleAcceptAnyImageAndPdfFile.clear();
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(gifFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit).click();
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), messages.getText());
+
+        File pdfFile = createTempFile("file", "pdf", "%PDF-1.7");
+        uploadSingleAcceptAnyImageAndPdfFile.clear();
+        uploadSingleAcceptAnyImageAndPdfFile.sendKeys(pdfFile.getAbsolutePath());
+        guardHttp(uploadSingleAcceptAnyImageAndPdfSubmit).click();
+        assertTrue(uploadSingleAcceptAnyImageAndPdfFile.getText().isEmpty());
+        assertEquals("uploadSingle: " + pdfFile.length() + ", " + pdfFile.getName(), messages.getText());
+    }
 
 	@Test
 	public void uploadSingleMaxsizeClient() throws IOException {
 		File txtFile = createTempFile("file", "txt", "hello world");
 		uploadSingleMaxsizeClientFile.sendKeys(txtFile.getAbsolutePath());
-		triggerOnchange(uploadSingleMaxsizeClientFile, messages);
+		triggerOnchange(uploadSingleMaxsizeClientFile, uploadSingleMaxsizeClientMessage);
 		assertTrue(uploadSingleMaxsizeClientFile.getText().isEmpty());
-		String message = messages.getText();
+		String message = uploadSingleMaxsizeClientMessage.getText();
 		assertTrue(message.startsWith("label: ") && message.endsWith(" larger than 10 B")); // Selenium JS engine doesn't correctly implement HTML5 File API as to obtaining file name.
 
 		File gifFile = createTempFile("file", "gif", "GIF89a");
 		uploadSingleMaxsizeClientFile.sendKeys(gifFile.getAbsolutePath());
 		guardHttp(uploadSingleMaxsizeClientSubmit).click();
 		assertTrue(uploadSingleMaxsizeClientFile.getText().isEmpty());
-		assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), messages.getText());
+		assertEquals("uploadSingle: " + gifFile.length() + ", " + gifFile.getName(), uploadSingleMaxsizeClientMessage.getText());
 	}
 
 	@Test

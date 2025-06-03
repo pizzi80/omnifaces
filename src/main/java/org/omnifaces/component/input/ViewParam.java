@@ -12,6 +12,7 @@
  */
 package org.omnifaces.component.input;
 
+import static org.omnifaces.util.Components.VALUE_ATTRIBUTE;
 import static org.omnifaces.util.Faces.getELContext;
 import static org.omnifaces.util.Faces.isPostback;
 
@@ -146,7 +147,7 @@ public class ViewParam extends UIViewParameter {
 			return null;
 		}
 
-		ValueExpression ve = getValueExpression("value");
+		ValueExpression ve = getValueExpression(VALUE_ATTRIBUTE);
 		Object value = (ve != null) ? ve.getValue(context.getELContext()) : null;
 		return (value != null) ? super.getStringValueFromModel(context) : null;
 	}
@@ -192,7 +193,7 @@ public class ViewParam extends UIViewParameter {
 
 	private class AttributeInterceptMap extends MapWrapper<String, Object> {
 
-		private static final long serialVersionUID = -7674000948288609007L;
+		private static final long serialVersionUID = 1L;
 
 		private AttributeInterceptMap(Map<String, Object> map) {
 			super(map);

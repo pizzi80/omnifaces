@@ -15,18 +15,19 @@ package org.omnifaces.cdi.push;
 import static java.lang.String.format;
 import static javax.faces.component.visit.VisitHint.SKIP_ITERATION;
 import static org.omnifaces.cdi.push.SocketChannelManager.ESTIMATED_TOTAL_CHANNELS;
-import static org.omnifaces.util.Ajax.oncomplete;
-import static org.omnifaces.util.Components.addScriptToBody;
+import static org.omnifaces.util.Components.addScript;
 import static org.omnifaces.util.Components.forEachComponent;
 import static org.omnifaces.util.Faces.getViewRoot;
 import static org.omnifaces.util.FacesLocal.getViewAttribute;
 import static org.omnifaces.util.FacesLocal.isAjaxRequest;
-import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
-import static org.omnifaces.util.FacesLocal.setViewAttribute;
 
+import java.io.Serializable;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 
 import javax.faces.component.UIViewRoot;
 import javax.faces.context.FacesContext;
@@ -34,8 +35,6 @@ import javax.faces.event.PostAddToViewEvent;
 import javax.faces.event.PreRenderViewEvent;
 import javax.faces.event.SystemEvent;
 import javax.faces.event.SystemEventListener;
-
-import org.omnifaces.util.Callback;
 
 /**
  * <p>
@@ -75,32 +74,25 @@ public class SocketFacesListener implements SystemEventListener {
 			return;
 		}
 
-		final FacesContext context = FacesContext.getCurrentInstance();
-		final Map<String, Boolean> sockets = getSockets(context);
+		FacesContext context = FacesContext.getCurrentInstance();
+		Map<String, Entry<Serializable, Boolean>> sockets = getSockets(context);
 
 		if (!isAjaxRequest(context)) {
 			sockets.clear();
 		}
 
-		forEachComponent(context).ofTypes(Socket.class).withHints(SKIP_ITERATION).invoke(new Callback.WithArgument<Socket>() { @Override public void invoke(Socket socket) {
+		forEachComponent(context).ofTypes(Socket.class).withHints(SKIP_ITERATION).<Socket>invoke(socket -> {
 			if (!sockets.containsKey(socket.getChannel())) {
 				return;
 			}
 
 			boolean connected = socket.isRendered() && socket.isConnected();
-			boolean previouslyConnected = sockets.put(socket.getChannel(), connected);
+			boolean previouslyConnected = sockets.get(socket.getChannel()).setValue(connected);
 
 			if (connected != previouslyConnected) {
-				String script = format(connected ? SCRIPT_OPEN : SCRIPT_CLOSE, socket.getChannel());
-
-				if (isAjaxRequestWithPartialRendering(context)) {
-					oncomplete(script);
-				}
-				else {
-					addScriptToBody(script);
-				}
+				addScript(format(connected ? SCRIPT_OPEN : SCRIPT_CLOSE, socket.getChannel()));
 			}
-		}});
+		});
 	}
 
 	// Helpers --------------------------------------------------------------------------------------------------------
@@ -128,22 +120,22 @@ public class SocketFacesListener implements SystemEventListener {
 	 * <code>socket.isRendered()</code> returns <code>false</code>, so this check is not done here.
 	 */
 	static boolean register(FacesContext context, Socket socket) {
-		return getSockets(context).put(socket.getChannel(), socket.isConnected()) == null;
+		Entry<Serializable, Boolean> currentlyConnectedUser = new AbstractMap.SimpleEntry<>(socket.getUser(), socket.isConnected());
+		Entry<Serializable, Boolean> previouslyConnectedUser = getSockets(context).put(socket.getChannel(), currentlyConnectedUser);
+
+		if (previouslyConnectedUser != null && !Objects.equals(previouslyConnectedUser.getKey(), socket.getUser())) {
+			SocketChannelManager.getInstance().switchUser(socket.getChannel(), socket.getScope(), previouslyConnectedUser.getKey(), socket.getUser());
+		}
+
+		return previouslyConnectedUser == null;
 	}
 
 	/**
 	 * Helper to remember which sockets are initialized on the view. The map key represents the <code>channel</code>
-	 * and the map value represents the last known value of the <code>connected</code> attribute.
+	 * and the map value represents the last known value of the <code>user</code> and <code>connected</code> attributes.
 	 */
-	private static Map<String, Boolean> getSockets(FacesContext context) {
-		Map<String, Boolean> sockets = getViewAttribute(context, Socket.class.getName());
-
-		if (sockets == null) {
-			sockets = new HashMap<>(ESTIMATED_TOTAL_CHANNELS);
-			setViewAttribute(context, Socket.class.getName(), sockets);
-		}
-
-		return sockets;
+	private static Map<String, Entry<Serializable, Boolean>> getSockets(FacesContext context) {
+		return getViewAttribute(context, Socket.class.getName(), () -> new HashMap<>(ESTIMATED_TOTAL_CHANNELS));
 	}
 
 }

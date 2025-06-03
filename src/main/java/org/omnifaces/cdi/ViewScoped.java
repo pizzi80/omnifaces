@@ -25,6 +25,7 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.NormalScope;
 import javax.enterprise.util.Nonbinding;
 import javax.faces.component.UIViewRoot;
+import javax.faces.context.FacesContext;
 
 import org.omnifaces.cdi.viewscope.ViewScopeContext;
 import org.omnifaces.cdi.viewscope.ViewScopeEventListener;
@@ -50,10 +51,8 @@ import org.omnifaces.viewhandler.OmniViewHandler;
  * <code>unload</code> event is invoked. I.e. when the user navigates away by GET, or closes the browser tab/window.
  * None of the both JSF 2.2 view scope annotations support this. Since OmniFaces 2.2, this CDI view scope annotation
  * will guarantee that the <code>&#64;PreDestroy</code> annotated method is also invoked on browser unload. This trick
- * is done by a synchronous XHR request via an automatically included helper script <code>omnifaces:unload.js</code>.
- * There's however a small caveat: on slow network and/or poor server hardware, there may be a noticeable lag between
- * the enduser action of unloading the page and the desired result. If this is undesireable, then better stick to JSF
- * 2.2's own view scope annotations and accept the postponed destroy.
+ * is done by <code>navigator.sendBeacon</code>. For browsers not supporting <code>navigator.sendBeacon</code>, it will
+ * fallback to a synchronous XHR request.
  * <p>
  * Since OmniFaces 2.3, the unload has been further improved to also physically remove the associated JSF view state
  * from JSF implementation's internal LRU map in case of server side state saving, hereby further decreasing the risk
@@ -112,7 +111,7 @@ import org.omnifaces.viewhandler.OmniViewHandler;
  * &lt;env-entry&gt;
  *     &lt;env-entry-name&gt;jsf/ClientSideSecretKey&lt;/env-entry-name&gt;
  *     &lt;env-entry-type&gt;java.lang.String&lt;/env-entry-type&gt;
- *     &lt;env-entry-value&gt;&lt;!-- See http://stackoverflow.com/q/35102645/157882 --&gt;&lt;/env-entry-value&gt;
+ *     &lt;env-entry-value&gt;&lt;!-- See https://stackoverflow.com/q/35102645/157882 --&gt;&lt;/env-entry-value&gt;
  * &lt;/env-entry&gt;
  * </pre>
  * <p>
@@ -201,6 +200,24 @@ import org.omnifaces.viewhandler.OmniViewHandler;
  * <code>Content-Disposition: attachment</code> is received.
  * <pre>
  * &lt;a href="/path/to/file.ext" target="_blank"&gt;download&lt;/a&gt;
+ * </pre>
+ *
+ * <h3>Detecting unload requests</h3>
+ * <p>
+ * When the unload request has hit your servlet filter or authentication mechanism or whatever global listener/observer,
+ * and you would like to be able to detect them, so that you can exclude them from the logic, then you can use
+ * {@link ViewScopeManager#isUnloadRequest(javax.servlet.http.HttpServletRequest)} or
+ * {@link ViewScopeManager#isUnloadRequest(javax.faces.context.FacesContext)}, depending on whether the
+ * {@link FacesContext} is available in the current context. You should always ensure that the flow just continues for
+ * them, else the unload requests won't be able to do their work of explicitly destroying the bean and state.
+ * <p>
+ * Here is an example assuming that you're in a servlet filter:
+ * <pre>
+ * if (!ViewScopeManager.isUnloadRequest(request)) {
+ *     // Do actual job here.
+ * }
+ *
+ * chain.doFilter(request, response); // Ensure that this just continues!
  * </pre>
  *
  *

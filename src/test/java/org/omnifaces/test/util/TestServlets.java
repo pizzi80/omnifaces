@@ -13,7 +13,7 @@
 package org.omnifaces.test.util;
 
 import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +22,7 @@ import java.util.Collections;
 
 import javax.servlet.http.Part;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.omnifaces.util.Servlets;
 
 import com.google.common.collect.ImmutableMap;
@@ -68,7 +68,9 @@ public class TestServlets {
 		{ "form-data; filename*0*=ISO-8859-15''euro-sign%3d%a4; filename*=ISO-8859-1''currency-sign%3d%a4", "currency-sign=¤" },
 		{ "form-data; foobar=x; filename=\"foo.html\"", "foo.html" },
 		{ "form-data; filename=C:\\fakepath\\foo.html", "foo.html" },
-		{ "form-data; filename=\"C:\\fakepath\\foo.html\"", "foo.html" },
+		{ "form-data; filename=\"c:\\fakepath\\foo.html\"", "foo.html" },
+		{ "form-data; filename=c:/fakepath/foo.html", "foo.html" },
+		{ "form-data; filename=\"C:/fakepath/foo.html\"", "foo.html" },
 	};
 
 	@Test
@@ -115,6 +117,11 @@ public class TestServlets {
 		}
 
 		@Override
+		public String getSubmittedFileName() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
 		public long getSize() {
 			throw new UnsupportedOperationException();
 		}
@@ -139,7 +146,7 @@ public class TestServlets {
 	@Test
 	public void testToParameterMap() {
 		assertEquals(Collections.emptyMap(), Servlets.toParameterMap("="));
-		assertEquals(ImmutableMap.of("", asList("%")), Servlets.toParameterMap("=%"));
+		assertEquals(ImmutableMap.of("foo", asList("%")), Servlets.toParameterMap("foo=%"));
 		assertEquals(ImmutableMap.of("myParam", asList("123"), "anotherParam", asList("x")), Servlets.toParameterMap("myParam=123&=&anotherParam=x"));
 	}
 

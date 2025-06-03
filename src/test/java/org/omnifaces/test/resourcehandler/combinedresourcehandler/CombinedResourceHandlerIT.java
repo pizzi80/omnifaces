@@ -16,7 +16,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.jboss.arquillian.graphene.Graphene.guardAjax;
 import static org.jboss.arquillian.graphene.Graphene.guardHttp;
 import static org.jboss.arquillian.graphene.Graphene.waitGui;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCombinedResourceHandler;
 import static org.omnifaces.util.Utils.serializeURLSafe;
 
@@ -24,18 +24,28 @@ import java.util.List;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 
 public class CombinedResourceHandlerIT extends OmniFacesIT {
 
-	private static final String HEAD_COMBINED_RESOURCE_NAME = serializeURLSafe("omnifaces:omnifaces.js|javax.faces:jsf.js|headWithTarget.js|bodyWithTargetHead.js");
-	private static final String DEFERRED_COMBINED_RESOURCE_NAME = serializeURLSafe("deferredInHead.js|deferredInBody.js");
+	private static final String HEAD_COMBINED_SCRIPT_NAME = serializeURLSafe("omnifaces:omnifaces.js|javax.faces:jsf.js|headWithTarget.js|bodyWithTargetHead.js");
+	private static final String DEFERRED_COMBINED_SCRIPT_NAME = serializeURLSafe("deferredInHead.js|deferredInBody.js");
+	private static final String HEAD_COMBINED_STYLESHEET_NAME = serializeURLSafe("main.css|screen.css");
+	private static final String DEFERRED_COMBINED_SCRIPT_INTEGRITY = "sha384-O+BEiFMIrNp5+3EV1U/ZpJg3T+qlYYvqTsF0UIsd5swios9XPYrMkDuxHxvtkBlx";
+	private static final String HEAD_COMBINED_STYLESHEET_INTEGRITY = "sha384-hK8kfbP+Ilff/XDJqs5ZaQnx8kmWBoGYRkf3kcvQzdDSHLbfIe8QAkpIkR4uh4UX";
+	private static final String HEAD_PRINT_STYLESHEET_NAME = "print";
 
-	@FindBy(css="script[crossorigin=anonymous]")
-	private List<WebElement> combinedResources;
+	@FindBy(css="script[src*='ln=omnifaces.combined']")
+	private List<WebElement> combinedScripts;
+
+	@FindBy(css="link[rel=stylesheet][href*='ln=omnifaces.combined']")
+	private List<WebElement> combinedStylesheets;
+
+	@FindBy(css="link[rel=stylesheet][href*='print.css']")
+	private List<WebElement> printStylesheets;
 
 	@FindBy(id="bodyWithTargetBody")
 	private WebElement bodyWithTargetBody;
@@ -119,9 +129,14 @@ public class CombinedResourceHandlerIT extends OmniFacesIT {
 	private void verifyElements() {
 		waitGui(browser).withTimeout(3, SECONDS).until().element(deferredInBody).text().not().equalTo(""); // Wait until last o:deferredScript is finished.
 
-		assertEquals(2, combinedResources.size());
-		assertEquals(HEAD_COMBINED_RESOURCE_NAME, combinedResources.get(0).getAttribute("src").split("(.*/javax.faces.resource/)|(\\.js\\.xhtml.*)")[1]);
-		assertEquals(DEFERRED_COMBINED_RESOURCE_NAME, combinedResources.get(1).getAttribute("src").split("(.*/javax.faces.resource/)|(\\.js\\.xhtml.*)")[1]);
+		assertEquals(2, combinedScripts.size());
+		assertEquals(HEAD_COMBINED_SCRIPT_NAME, combinedScripts.get(0).getAttribute("src").split("(.*/javax.faces.resource/)|(\\.js\\.xhtml.*)")[1]);
+		assertEquals(DEFERRED_COMBINED_SCRIPT_NAME, combinedScripts.get(1).getAttribute("src").split("(.*/javax.faces.resource/)|(\\.js\\.xhtml.*)")[1]);
+		assertEquals(1, combinedStylesheets.size());
+		assertEquals(HEAD_COMBINED_STYLESHEET_NAME, combinedStylesheets.get(0).getAttribute("href").split("(.*/javax.faces.resource/)|(\\.css\\.xhtml.*)")[1]);
+		assertEquals(1, printStylesheets.size());
+		assertEquals(HEAD_PRINT_STYLESHEET_NAME, printStylesheets.get(0).getAttribute("href").split("(.*/javax.faces.resource/)|(\\.css\\.xhtml.*)")[1]);
+
 		assertEquals("1,bodyWithTargetBody", bodyWithTargetBody.getText());
 		assertEquals("2,headWithoutTarget", headWithoutTarget.getText());
 		assertEquals("3,headWithTarget", headWithTarget.getText());
@@ -129,6 +144,14 @@ public class CombinedResourceHandlerIT extends OmniFacesIT {
 		assertEquals("5,bodyWithoutTarget", bodyWithoutTarget.getText());
 		assertEquals("6,deferredInHead", deferredInHead.getText());
 		assertEquals("7,deferredInBody", deferredInBody.getText());
+
+		verifyIntegrity(combinedScripts.get(1), DEFERRED_COMBINED_SCRIPT_INTEGRITY);
+		verifyIntegrity(combinedStylesheets.get(0), HEAD_COMBINED_STYLESHEET_INTEGRITY);
+	}
+
+	private void verifyIntegrity(WebElement element, String integrity) {
+		assertEquals("anonymous", element.getAttribute("crossorigin"));
+		assertEquals(integrity, element.getAttribute("integrity"));
 	}
 
 }

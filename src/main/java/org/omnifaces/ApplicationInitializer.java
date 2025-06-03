@@ -12,15 +12,20 @@
  */
 package org.omnifaces;
 
+import static java.lang.String.format;
+import static java.util.logging.Level.WARNING;
+
 import java.util.Set;
 import java.util.logging.Logger;
 
+import javax.faces.webapp.FacesServlet;
 import javax.servlet.ServletContainerInitializer;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import org.omnifaces.config.OmniFaces;
 import org.omnifaces.facesviews.FacesViews;
+import org.omnifaces.util.Platform;
 
 /**
  * <p>
@@ -28,8 +33,13 @@ import org.omnifaces.facesviews.FacesViews;
  * This performs the following tasks:
  * <ol>
  * <li>Log OmniFaces version.
+ * <li>Determine the default {@link FacesServlet} mapping.
  * <li>Register {@link FacesViews} forwarding filter.
  * </ol>
+ * <p>
+ * This is invoked <strong>before</strong> {@link ApplicationListener} and {@link ApplicationProcessor}.
+ * If any exception is thrown, then the deployment will fail, unless the {@value OmniFaces#PARAM_NAME_SKIP_DEPLOYMENT_EXCEPTION}
+ * context parameter is set to <code>true</code>, it will then merely log a WARNING line.
  *
  * @author Bauke Scholtz
  * @since 2.0
@@ -40,9 +50,10 @@ public class ApplicationInitializer implements ServletContainerInitializer {
 
 	private static final Logger logger = Logger.getLogger(ApplicationInitializer.class.getName());
 
-
+	static final String WARNING_OMNIFACES_INITIALIZATION_FAIL =
+			"OmniFaces failed to initialize! %s";
 	static final String ERROR_OMNIFACES_INITIALIZATION_FAIL =
-		"OmniFaces failed to initialize! Report an issue to OmniFaces.";
+			"OmniFaces failed to initialize! Report an issue to OmniFaces.";
 
 	// Actions --------------------------------------------------------------------------------------------------------
 
@@ -51,10 +62,16 @@ public class ApplicationInitializer implements ServletContainerInitializer {
 		logOmniFacesVersion();
 
 		try {
+			Platform.getDefaultFacesServletMapping(servletContext);
 			FacesViews.registerForwardingFilter(servletContext);
 		}
 		catch (Exception | LinkageError e) {
-			throw new IllegalStateException(ERROR_OMNIFACES_INITIALIZATION_FAIL, e);
+			if (OmniFaces.skipDeploymentException(servletContext)) {
+				logger.log(WARNING, format(WARNING_OMNIFACES_INITIALIZATION_FAIL, e));
+			}
+			else {
+				throw new IllegalStateException(ERROR_OMNIFACES_INITIALIZATION_FAIL, e);
+			}
 		}
 	}
 

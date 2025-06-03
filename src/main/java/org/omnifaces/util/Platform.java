@@ -12,28 +12,22 @@
  */
 package org.omnifaces.util;
 
-import static java.util.logging.Level.WARNING;
-import static javax.faces.validator.BeanValidator.VALIDATOR_FACTORY_KEY;
-import static javax.validation.Validation.buildDefaultValidatorFactory;
-import static org.omnifaces.util.Faces.getApplicationAttribute;
-import static org.omnifaces.util.Faces.getLocale;
-import static org.omnifaces.util.Faces.setApplicationAttribute;
+import static java.util.stream.Collectors.toMap;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import javax.faces.webapp.FacesServlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRegistration;
 import javax.validation.ConstraintViolation;
-import javax.validation.MessageInterpolator;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
+
+import org.omnifaces.ApplicationInitializer;
 
 /**
  * This class provides access to (Java EE 6) platform services from the view point of JSF.
@@ -46,11 +40,8 @@ import javax.validation.ValidatorFactory;
  */
 public final class Platform {
 
-	// Constants ------------------------------------------------------------------------------------------------------
-
-	public static final String BEAN_VALIDATION_AVAILABLE = "org.omnifaces.BEAN_VALIDATION_AVAILABLE";
-
-	private static final Logger logger = Logger.getLogger(Platform.class.getName());
+	private static final String DEFAULT_FACES_SERVLET_MAPPING_KEY = "org.omnifaces.DEFAULT_FACES_SERVLET_MAPPING";
+	private static final String DEFAULT_FACES_SERVLET_MAPPING_VALUE = ".xhtml";
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -64,53 +55,35 @@ public final class Platform {
 	/**
 	 * Returns <code>true</code> if Bean Validation is available. This is remembered in the application scope.
 	 * @return <code>true</code> if Bean Validation is available.
+	 * @deprecated Since 3.8. Bean Validation utilities are migrated to {@link Validators}.
+	 * Use {@link Validators#isBeanValidationAvailable()} instead.
 	 */
+	@Deprecated
 	public static boolean isBeanValidationAvailable() {
-		Boolean beanValidationAvailable = getApplicationAttribute(BEAN_VALIDATION_AVAILABLE);
-
-		if (beanValidationAvailable == null) {
-			try {
-				Class.forName("javax.validation.Validation");
-				getBeanValidator();
-				beanValidationAvailable = true;
-			}
-			catch (Exception | LinkageError e) {
-				beanValidationAvailable = false;
-				logger.log(WARNING, "Bean validation not available.", e);
-			}
-
-			setApplicationAttribute(BEAN_VALIDATION_AVAILABLE, beanValidationAvailable);
-		}
-
-		return beanValidationAvailable;
+		return Validators.isBeanValidationAvailable();
 	}
 
 	/**
 	 * Returns the default bean validator factory. This is remembered in the application scope.
 	 * @return The default bean validator factory.
+	 * @deprecated Since 3.8. Bean Validation utilities are migrated to {@link Validators}.
+	 * Use {@link Validators#getBeanValidatorFactory()} instead.
 	 */
+	@Deprecated
 	public static ValidatorFactory getBeanValidatorFactory() {
-
-		ValidatorFactory validatorFactory = getApplicationAttribute(VALIDATOR_FACTORY_KEY);
-
-		if (validatorFactory == null) {
-			validatorFactory = buildDefaultValidatorFactory();
-			setApplicationAttribute(VALIDATOR_FACTORY_KEY, validatorFactory);
-		}
-
-		return validatorFactory;
+		return Validators.getBeanValidatorFactory();
 	}
 
 	/**
 	 * Returns the bean validator which is aware of the JSF locale.
 	 * @return The bean validator which is aware of the JSF locale.
 	 * @see Faces#getLocale()
+	 * @deprecated Since 3.8. Bean Validation utilities are migrated to {@link Validators}.
+	 * Use {@link Validators#getBeanValidator()} instead.
 	 */
+	@Deprecated
 	public static Validator getBeanValidator() {
-		ValidatorFactory validatorFactory = getBeanValidatorFactory();
-        return validatorFactory.usingContext()
-        	.messageInterpolator(new FacesLocaleAwareMessageInterpolator(validatorFactory.getMessageInterpolator()))
-        	.getValidator();
+		return Validators.getBeanValidator();
 	}
 
 	/**
@@ -120,12 +93,12 @@ public final class Platform {
 	 * @param groups Bean validation groups, if any.
 	 * @return Constraint violation messages mapped by property path.
 	 * @since 2.7
+	 * @deprecated Since 3.8. This method should have returned actual constraint violations instead of abstracting them.
+	 * Use {@link Validators#validateBean(Object, Class...)} instead.
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Deprecated
 	public static Map<String, String> validateBean(Object bean, Class<?>... groups) {
-		Set violationsRaw = getBeanValidator().validate(bean, groups);
-		Set<ConstraintViolation<?>> violations = violationsRaw;
-		return mapViolationMessagesByPropertyPath(violations);
+		return mapViolationMessagesByPropertyPath(Validators.validateBean(bean, groups));
 	}
 
 	/**
@@ -137,40 +110,17 @@ public final class Platform {
 	 * @param groups Bean validation groups, if any.
 	 * @return Constraint violation messages mapped by property path.
 	 * @since 2.7
+	 * @deprecated Since 3.8. This method should have returned actual constraint violations instead of abstracting them.
+	 * Use {@link Validators#validateBeanProperty(Class, String, Object, Class...)} instead.
 	 */
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Deprecated
 	public static Map<String, String> validateBeanProperty(Class<?> beanType, String propertyName, Object value, Class<?>... groups) {
-		Set violationsRaw = getBeanValidator().validateValue(beanType, propertyName, value, groups);
-		Set<ConstraintViolation<?>> violations = violationsRaw;
-		return mapViolationMessagesByPropertyPath(violations);
+		return mapViolationMessagesByPropertyPath(Validators.validateBeanProperty(beanType, propertyName, value, groups));
 	}
 
-	private static Map<String, String> mapViolationMessagesByPropertyPath(Collection<ConstraintViolation<?>> violations) {
-		Map<String, String> violationMessagesByPropertyPath = new LinkedHashMap<>();
-		for (ConstraintViolation<?> violation : violations) {
-			violationMessagesByPropertyPath.put(violation.getPropertyPath().toString(), violation.getMessage());
-		}
-		return violationMessagesByPropertyPath;
+	private static Map<String, String> mapViolationMessagesByPropertyPath(Set<ConstraintViolation<?>> violations) {
+		return violations.stream().collect(toMap(violation -> violation.getPropertyPath().toString(), ConstraintViolation::getMessage, (l, r) -> l, LinkedHashMap::new));
 	}
-
-    private static class FacesLocaleAwareMessageInterpolator implements MessageInterpolator {
-
-        private MessageInterpolator wrapped;
-
-        public FacesLocaleAwareMessageInterpolator(MessageInterpolator wrapped) {
-            this.wrapped = wrapped;
-        }
-
-        @Override
-		public String interpolate(String message, MessageInterpolator.Context context) {
-            return wrapped.interpolate(message, context, getLocale());
-        }
-
-        @Override
-		public String interpolate(String message, MessageInterpolator.Context context, Locale locale) {
-            return wrapped.interpolate(message, context, locale);
-        }
-    }
 
 
 	// FacesServlet ---------------------------------------------------------------------------------------------------
@@ -203,6 +153,29 @@ public final class Platform {
 	public static Collection<String> getFacesServletMappings(ServletContext servletContext) {
 		ServletRegistration facesServlet = getFacesServletRegistration(servletContext);
 		return (facesServlet != null) ? facesServlet.getMappings() : Collections.<String>emptySet();
+	}
+
+	/**
+	 * Determines and returns the default faces servlet mapping. This will loop over {@link #getFacesServletMappings(ServletContext)}
+	 * and pick the first one starting with <code>*.</code> or ending with <code>/*</code>. If JSF is prefix mapped (e.g.
+	 * <code>/faces/*</code>), then this returns the whole path, with a leading slash (e.g. <code>/faces</code>). If JSF
+	 * is suffix mapped (e.g. <code>*.xhtml</code>), then this returns the whole extension (e.g. <code>.xhtml</code>). If
+	 * none is found, then this falls back to <code>.xhtml</code>. This is for the first time determined in
+	 * {@link ApplicationInitializer} and cached in the {@link ServletContext}.
+	 * @return The default faces servlet mapping (without the wildcard).
+	 * @since 3.10
+	 */
+	public static String getDefaultFacesServletMapping(ServletContext servletContext) {
+		String defaultFacesServletMapping = (String) servletContext.getAttribute(DEFAULT_FACES_SERVLET_MAPPING_KEY);
+
+		if (defaultFacesServletMapping == null) {
+			defaultFacesServletMapping = getFacesServletMappings(servletContext).stream()
+				.filter(mapping -> mapping.startsWith("*.") || mapping.endsWith("/*"))
+				.findFirst().orElse(DEFAULT_FACES_SERVLET_MAPPING_VALUE).replace("*", "");
+			servletContext.setAttribute(DEFAULT_FACES_SERVLET_MAPPING_KEY, defaultFacesServletMapping);
+		}
+
+		return defaultFacesServletMapping;
 	}
 
 }

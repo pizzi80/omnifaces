@@ -16,9 +16,9 @@ import static java.lang.Boolean.TRUE;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
-import static java.util.logging.Logger.getLogger;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_EVENT_PARAM_NAME;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_SOURCE_PARAM_NAME;
 import static javax.faces.component.behavior.ClientBehaviorContext.createClientBehaviorContext;
-import static org.omnifaces.util.Beans.getReference;
 import static org.omnifaces.util.FacesLocal.getApplicationAttribute;
 import static org.omnifaces.util.FacesLocal.getRequestContextPath;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
@@ -53,6 +53,7 @@ import org.omnifaces.cdi.Push;
 import org.omnifaces.cdi.PushContext;
 import org.omnifaces.cdi.push.SocketEvent.Closed;
 import org.omnifaces.cdi.push.SocketEvent.Opened;
+import org.omnifaces.cdi.push.SocketEvent.Switched;
 import org.omnifaces.component.script.ScriptFamily;
 import org.omnifaces.util.Beans;
 import org.omnifaces.util.Callback;
@@ -157,11 +158,11 @@ import org.omnifaces.util.State;
  * <p>
  * Although web sockets support two-way communication, the <code>&lt;o:socket&gt;</code> push is designed for one-way
  * communication, from server to client. In case you intend to send some data from client to server, just continue
- * using JSF ajax the usual way, if necessary from JavaScript on with <code>&lt;o:commandScript&gt;</code> or perhaps
+ * using JSF ajax the usual way, if necessary from JavaScript on with <code>&lt;h:commandScript&gt;</code> or perhaps
  * <code>&lt;p:remoteCommand&gt;</code> or similar. This has among others the advantage of maintaining the JSF view
  * state, the HTTP session and, importantingly, all security constraints on business service methods. Namely, those
  * security constraints are not available during an incoming web socket message per se. See also a.o.
- * <a href="https://github.com/eclipse-ee4j/websocket-api/issues/238">WS spec issue 238</a>.
+ * <a href="https://github.com/javaee/websocket-spec/issues/238">WS spec issue 238</a>.
  *
  *
  * <h3 id="scopes-and-users"><a href="#scopes-and-users">Scopes and users</a></h3>
@@ -214,6 +215,11 @@ import org.omnifaces.util.State;
  * which is in turn poor security practice). If in such case a session scoped socket is reused, undefined behavior may
  * occur when user-targeted push message is sent. It may target previously logged-in user only. This can be solved by
  * setting the scope to <code>view</code>, but better is to fix the logout to invalidate the HTTP session altogether.
+ * <p>
+ * When the <code>user</code> attribute is an EL expression and it changes during an ajax request, then the socket
+ * user will be actually switched, even though you did not cover the <code>&lt;o:socket&gt;</code> component in any ajax
+ * render/update. So make sure the value is tied to at least a view scoped property in case you intend to control it
+ * during the view scope.
  * <p>
  * In the server side, the push message can be targeted to the user specified in the <code>user</code> attribute via
  * <strong>{@link PushContext#send(Object, Serializable)}</strong>. The push message can be sent by all users and the
@@ -416,7 +422,9 @@ import org.omnifaces.util.State;
  * <h3 id="events-server"><a href="#events-server">Events (server)</a></h3>
  * <p>
  * When a web socket has been opened, a new CDI <strong>{@link SocketEvent}</strong> will be fired with
- * <strong><code>&#64;</code>{@link Opened}</strong> qualifier. When a web socket has been closed, a new CDI
+ * <strong><code>&#64;</code>{@link Opened}</strong> qualifier. When the <code>user</code> attribute of the
+ * <code>&lt;o:socket&gt;</code> changes, a new CDI <strong>{@link SocketEvent}</strong> will be fired with
+ * <strong><code>&#64;</code>{@link Switched}</strong> qualifier. When a web socket has been closed, a new CDI
  * {@link SocketEvent} will be fired with <strong><code>&#64;</code>{@link Closed}</strong> qualifier. They can only be
  * observed and collected in an application scoped CDI bean as below. Observing in a request/view/session scoped CDI
  * bean is not possible as there's no means of a HTTP request anywhere at that moment.
@@ -429,6 +437,13 @@ import org.omnifaces.util.State;
  *         Long userId = event.getUser(); // Returns &lt;o:socket user&gt;, if any.
  *         // Do your thing with it. E.g. collecting them in a concurrent/synchronized collection.
  *         // Do note that a single person can open multiple sockets on same channel/user.
+ *     }
+ *
+ *     public void onSwitch(&#64;Observes &#64;Switched SocketEvent event) {
+ *         String channel = event.getChannel(); // Returns &lt;o:socket channel&gt;.
+ *         Long currentUserId = event.getUser(); // Returns current &lt;o:socket user&gt;, if any.
+ *         Long previousUserId = event.getPreviousUser(); // Returns previous &lt;o:socket user&gt;, if any.
+ *         // Do your thing with it. E.g. updating in a concurrent/synchronized collection.
  *     }
  *
  *     public void onClose(&#64;Observes &#64;Closed SocketEvent event) {
@@ -694,7 +709,7 @@ import org.omnifaces.util.State;
  * someChannel.send("someEvent");
  * </pre>
  * <p>
- * An alternative is to combine <code>&lt;o:socket&gt;</code> with <code>&lt;o:commandScript&gt;</code>. E.g.
+ * An alternative is to combine <code>&lt;o:socket&gt;</code> with <code>&lt;h:commandScript&gt;</code>. E.g.
  * <pre>
  * &lt;h:panelGroup id="foo"&gt;
  *     ... (some complex UI here) ...
@@ -702,7 +717,7 @@ import org.omnifaces.util.State;
  *
  * &lt;o:socket channel="someChannel" scope="view" onmessage="someCommandScript" /&gt;
  * &lt;h:form&gt;
- *     &lt;o:commandScript name="someCommandScript" action="#{bean.pushed}" render=":foo" /&gt;
+ *     &lt;h:commandScript name="someCommandScript" action="#{bean.pushed}" render=":foo" /&gt;
  * &lt;/h:form&gt;
  * </pre>
  * <p>
@@ -735,17 +750,10 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 	/** The boolean context parameter name to register web socket endpoint during startup. */
 	public static final String PARAM_SOCKET_ENDPOINT_ENABLED = "org.omnifaces.SOCKET_ENDPOINT_ENABLED";
 
-	/** Naming convention was wrong. Use {@link #PARAM_SOCKET_ENDPOINT_ENABLED} instead. @deprecated */
-	@Deprecated // TODO: remove in 3.0.
-	public static final String PARAM_ENABLE_SOCKET_ENDPOINT = "org.omnifaces.ENABLE_SOCKET_ENDPOINT";
-
 	// Private constants ----------------------------------------------------------------------------------------------
 
 	private static final Pattern PATTERN_CHANNEL = Pattern.compile("[\\w.-]+");
 
-	private static final String WARNING_PARAM_DEPRECATED = "Context parameter name '" + PARAM_ENABLE_SOCKET_ENDPOINT
-		+ "' is deprecated. It has been renamed to '" + PARAM_SOCKET_ENDPOINT_ENABLED + "'."
-		+ " Please update web.xml accordingly.";
 	private static final String ERROR_EXPRESSION_DISALLOWED =
 		"o:socket 'channel' and 'scope' attributes may not contain an EL expression.";
 	private static final String ERROR_INVALID_USER =
@@ -848,7 +856,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 
 			Integer port = getPort();
 			String host = (port != null ? ":" + port : "") + getRequestContextPath(context);
-			String channelId = getReference(SocketChannelManager.class).register(channel, getScope(), getUser());
+			String channelId = SocketChannelManager.getInstance().register(channel, getScope(), getUser());
 			String functions = getOnopen() + "," + getOnmessage() + "," + getOnerror() + "," + getOnclose();
 			String behaviors = getBehaviorScripts();
 			boolean connected = isConnected();
@@ -893,11 +901,11 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 			return;
 		}
 
-		if (!getClientId(context).equals(getRequestParameter(context, "javax.faces.source"))) {
+		if (!getClientId(context).equals(getRequestParameter(context, BEHAVIOR_SOURCE_PARAM_NAME))) {
 			return;
 		}
 
-		List<ClientBehavior> behaviors = clientBehaviors.get(getRequestParameter(context, "javax.faces.behavior.event"));
+		List<ClientBehavior> behaviors = clientBehaviors.get(getRequestParameter(context, BEHAVIOR_EVENT_PARAM_NAME));
 
 		if (behaviors == null) {
 			return;
@@ -1026,7 +1034,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 	 * socket will attempt to reconnect.
 	 * @return The JavaScript event handler function that is invoked when a connection error has occurred and the web
 	 * socket will attempt to reconnect.
-	 * @since 3.4 and 2.7.7
+	 * @since 3.4
 	 */
 	public String getOnerror() {
 		return state.get(PropertyKeys.onerror);
@@ -1040,7 +1048,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 	 * <a href="https://tools.ietf.org/html/rfc6455#section-7.4.1">RFC 6455 section 7.4.1</a> and {@link CloseCodes} API
 	 * for an elaborate list of all close codes.
 	 * @param onerror The JavaScript event handler function that is invoked when a reconnection error has occurred.
-	 * @since 3.4 and 2.7.7
+	 * @since 3.4
 	 */
 	public void setOnerror(String onerror) {
 		state.put(PropertyKeys.onerror, onerror);
@@ -1101,12 +1109,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 		}
 
 		if (!parseBoolean(context.getInitParameter(PARAM_SOCKET_ENDPOINT_ENABLED))) {
-			if (parseBoolean(context.getInitParameter(PARAM_ENABLE_SOCKET_ENDPOINT))) { // TODO: remove in OmniFaces 3.0.
-				getLogger(Socket.class.getName()).warning(WARNING_PARAM_DEPRECATED);
-			}
-			else {
-				return;
-			}
+			return;
 		}
 
 		try {

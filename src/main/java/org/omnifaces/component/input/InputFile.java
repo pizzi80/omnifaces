@@ -16,6 +16,12 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.String.format;
 import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableList;
+import static javax.faces.application.ResourceHandler.JSF_SCRIPT_LIBRARY_NAME;
+import static javax.faces.application.ResourceHandler.JSF_SCRIPT_RESOURCE_NAME;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_SOURCE_PARAM_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_EVENT_PARAM_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_LIBRARY_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_SCRIPT_NAME;
 import static org.omnifaces.config.OmniFaces.getMessage;
 import static org.omnifaces.el.functions.Numbers.formatBytes;
 import static org.omnifaces.util.Ajax.update;
@@ -40,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.faces.application.ResourceDependencies;
 import javax.faces.application.ResourceDependency;
 import javax.faces.component.FacesComponent;
 import javax.faces.component.UIComponent;
@@ -154,7 +159,7 @@ import org.omnifaces.util.Utils;
  * <p>
  * The <code>accept</code> attribute can be set with a comma separated string of media types of files to filter in
  * browse dialog. An overview of all registered media types can be found at
- * <a href="http://www.iana.org/assignments/media-types">IANA</a>.
+ * <a href="https://www.iana.org/assignments/media-types">IANA</a>.
  * <pre>
  * &lt;h:form enctype="multipart/form-data"&gt;
  *     &lt;o:inputFile id="file" value="#{bean.losslessImageFile}" accept="image/png,image/gif" /&gt;
@@ -207,10 +212,17 @@ import org.omnifaces.util.Utils;
  * <h4>File size validation</h4>
  * <p>
  * The <code>maxsize</code> attribute can be set with the maximum file size in bytes which will be validated on each
- * selected file in the client side if the client supports HTML5 File API. This only requires that there is a
+ * selected file in the client side if the client supports HTML5 File API. This validation will be performed by custom
+ * JavaScript in client side instead of by JSF in server side. This only requires that there is a
  * <code>&lt;h:message&gt;</code> or <code>&lt;h:messages&gt;</code> component and that it has its <code>id</code> set.
- * Namely, the client side validation will on fail trigger JSF via an ajax request to render the faces message. Noted
- * should be that the file(s) will <strong>not</strong> be sent, hereby saving network bandwidth.
+ * <pre>
+ * &lt;o:inputFile id="file" ... /&gt;
+ * &lt;h:message id="messageForFile" for="file" /&gt; &lt;!-- This must have 'id' attribute set! --&gt;
+ * </pre>
+ * <p>
+ * This way the client side can trigger JSF via an ajax request to update the message component with the client side
+ * validation message. Noted should be that the file(s) will <strong>not</strong> be sent, hereby saving network
+ * bandwidth.
  * <pre>
  * &lt;h:form enctype="multipart/form-data"&gt;
  *     &lt;o:inputFile id="file" value="#{bean.file}" maxsize="#{10 * 1024 * 1024}" /&gt; &lt;!-- 10MiB --&gt;
@@ -246,10 +258,8 @@ import org.omnifaces.util.Utils;
  * @since 2.5
  */
 @FacesComponent(InputFile.COMPONENT_TYPE)
-@ResourceDependencies({
-	@ResourceDependency(library="javax.faces", name="jsf.js", target="head"), // Required for jsf.ajax.request.
-	@ResourceDependency(library="omnifaces", name="omnifaces.js", target="head") // Specifically inputfile.js.
-})
+@ResourceDependency(library=JSF_SCRIPT_LIBRARY_NAME, name=JSF_SCRIPT_RESOURCE_NAME, target="head") // Required for jsf.ajax.request.
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically inputfile.js.
 public class InputFile extends HtmlInputFile {
 
 	// Public constants -----------------------------------------------------------------------------------------------
@@ -283,8 +293,8 @@ public class InputFile extends HtmlInputFile {
 	 */
 	@Override
 	public void decode(FacesContext context) {
-		if ("validationFailed".equals(getRequestParameter(context, "omnifaces.event"))
-			&& getClientId(context).equals(getRequestParameter(context, "javax.faces.source")))
+		if ("validationFailed".equals(getRequestParameter(context, OMNIFACES_EVENT_PARAM_NAME))
+			&& getClientId(context).equals(getRequestParameter(context, BEHAVIOR_SOURCE_PARAM_NAME)))
 		{
 			String fileName = getRequestParameter(context, "fileName");
 			addError(getClientId(context), getMaxsizeMessage(), Components.getLabel(this), fileName, formatBytes(getMaxsize()));
@@ -382,7 +392,7 @@ public class InputFile extends HtmlInputFile {
 		Map<String, Object> passThroughAttributes = getPassThroughAttributes();
 
 		if (isMultiple()) {
-			passThroughAttributes.put("multiple", true); // http://caniuse.com/#feat=input-file-multiple
+			passThroughAttributes.put("multiple", true); // https://caniuse.com/#feat=input-file-multiple
 		}
 
 		if (isDirectory()) {
@@ -393,7 +403,7 @@ public class InputFile extends HtmlInputFile {
 		String accept = getAccept();
 
 		if (accept != null) {
-			passThroughAttributes.put("accept", accept); // http://caniuse.com/#feat=input-file-accept
+			passThroughAttributes.put("accept", accept); // https://caniuse.com/#feat=input-file-accept
 		}
 
 		Long maxsize = getMaxsize();
@@ -563,7 +573,7 @@ public class InputFile extends HtmlInputFile {
 		if (accept != null) {
 			String contentType = isEmpty(fileName) ? part.getContentType() : getMimeType(context, fileName.toLowerCase(getLocale()));
 
-			if (contentType == null || !contentType.matches(convertAcceptToRegex(accept))) {
+			if (contentType == null || !contentType.matches(convertAcceptToRegex(context, accept))) {
 				message = getAcceptMessage();
 				param = accept;
 			}
@@ -580,15 +590,15 @@ public class InputFile extends HtmlInputFile {
 		}
 	}
 
-	private String convertAcceptToRegex(String accept) {
+	private String convertAcceptToRegex(FacesContext context, String accept) {
 		String[] parts = accept.replaceAll("\\s*", "").split("(?<=[*,])|(?=[*,])");
 		StringBuilder regex = new StringBuilder();
 
 		for (String part : parts) {
 			switch (part) {
 				case "*": regex.append(".*"); break;
-				case ",": regex.append("|"); break;
-				default: regex.append(Pattern.quote(part)); break;
+                case ",": regex.append("|"); break;
+				default: regex.append(Pattern.quote(part.startsWith(".") ? getMimeType(context, "filename".concat(part)) : part)); break;
 			}
 		}
 
@@ -606,7 +616,7 @@ public class InputFile extends HtmlInputFile {
 			component = getMessagesComponent();
 		}
 
-		messageComponentClientId = (component != null && component.getId() != null) ? component.getClientId() : null;
+		messageComponentClientId = component != null && component.getId() != null ? component.getClientId() : null;
 		return messageComponentClientId;
 	}
 

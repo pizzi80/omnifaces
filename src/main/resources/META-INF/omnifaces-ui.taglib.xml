@@ -16,8 +16,8 @@
 <facelet-taglib
 	xmlns="http://xmlns.jcp.org/xml/ns/javaee"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facelettaglibrary_2_2.xsd"
-	version="2.2"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facelettaglibrary_2_3.xsd"
+	version="2.3"
 >
 	<description>OmniFaces UI components.</description>
 	<namespace>http://omnifaces.org/ui</namespace>
@@ -2222,6 +2222,143 @@ public class ValidateValuesBean implements MultiFieldValidator {
 
 	<tag>
 		<description>
+			<![CDATA[
+				The <code>&lt;o:inputHidden&gt;</code> is a component that extends the standard <code>&lt;h:inputHidden&gt;</code>
+				and changes the behavior to immediately convert, validate and update during apply request values phase, regardless of
+				any conversion/validation errors on other <code>UIInput</code> components within the same form. The standard
+				<code>&lt;h:inputHidden&gt;</code> follows the same lifecycle as other <code>UIInput</code> components which is in
+				the end unintuive as hidden input fields are usually under control of the developer.
+			]]>
+		</description>
+		<tag-name>inputHidden</tag-name>
+		<component>
+			<component-type>org.omnifaces.component.input.InputHidden</component-type>
+		</component>
+		<attribute>
+			<description>
+				<![CDATA[
+					The component identifier for this component. This value must be unique within the closest parent
+					component that is a naming container.
+				]]>
+			</description>
+			<name>id</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Flag indicating whether or not this component should be rendered (during Render Response Phase), or
+					processed on any subsequent form submit. The default value for this property is true.
+				]]>
+			</description>
+			<name>rendered</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The <code>ValueExpression</code> linking this component to a property in a backing bean.
+				]]>
+			</description>
+			<name>binding</name>
+			<required>false</required>
+			<type>javax.faces.component.UIComponent</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[The current value of this component.]]>
+			</description>
+			<name>value</name>
+			<required>false</required>
+			<type>java.lang.Object</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[Converter instance	registered with	this component.]]>
+			</description>
+			<name>converter</name>
+			<required>false</required>
+			<type>javax.faces.convert.Converter</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[A ValueExpression enabled attribute that, if present, will	be
+				used as	the	text of	the	converter message, replacing any message
+				that comes from	the	converter.]]>
+			</description>
+			<name>converterMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[Flag indicating that this component's value must be
+				converted and validated	immediately	(that is, during
+				Apply Request Values phase), rather	than waiting
+				until Process Validations phase.]]>
+			</description>
+			<name>immediate</name>
+			<required>false</required>
+			<type>java.lang.Boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[Flag indicating that the user is required to provide a	submitted
+				value for this input component.]]>
+			</description>
+			<name>required</name>
+			<required>false</required>
+			<type>java.lang.Boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[A ValueExpression enabled attribute that, if present, will	be
+				used as	the	text of	the	validation message for the "required"
+				facility, if the "required"	facility is	used.]]>
+			</description>
+			<name>requiredMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[MethodExpression representing a validator method that will	be called
+				during Process Validations to perform correctness checks on	the
+				value of this component.  The expression must evaluate to a	public
+				method that	takes FacesContext,	UIComponent, and Object	parameters,
+				with a return type of void.]]>
+			</description>
+			<name>validator</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+				
+				MethodExpression representing a	value change listener method
+				that will be notified when a new value has been	set	for	this
+				input component.  The expression must evaluate to a	public
+				method that	takes a	<code>ValueChangeEvent</code> parameter,
+				with a return type of void,	<span class="changed_added_2_0">or
+				to a public	method that	takes no arguments with	a return type
+				of void.  In the latter	case, the method has no	way	of easily
+				knowing	what the new value is, but this	can	be useful in cases
+				where a	notification is	needed that	"this value
+				changed".</span>
+				
+				]]>
+			</description>
+			<name>valueChangeListener</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+	</tag>
+
+	<tag>
+		<description>
 				<![CDATA[
 					<strong>ViewParameter</strong> is a component that extends the standard <code>UIViewParameter</code> and provides a
 					stateless mode of operation and fixes the issue wherein null model values are converted to empty string parameters
@@ -2419,17 +2556,479 @@ public class ValidateValuesBean implements MultiFieldValidator {
 			<required>false</required>
 			<type>javax.faces.component.UIComponent</type>
 		</attribute>
+	</tag>
+	
+	<tag>
+		<description>
+				<![CDATA[
+<p>
+The <code>&lt;o:scriptParam&gt;</code> is a component that extends the standard <code>&lt;f:viewParam&gt;</code>
+with support for setting results of client-side evaluated JavaScript code in bean.
+
+<h3>Usage</h3>
+<p>
+It's similar to the <code>&lt;f:viewParam&gt;</code>.
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:scriptParam script="new Date().getTimezoneOffset()" value="#{bean.clientTimeZoneOffset}" /&gt;
+    &lt;o:scriptParam script="window.screen.width" value="#{bean.clientScreenWidth}" /&gt;
+    &lt;o:scriptParam script="someFunctionName()" value="#{bean.resultOfSomeFunctionName}" /&gt;
+&lt;/f:metadata&gt;
+</pre>
+<p>
+You can use the <code>render</code> attribute to declare which components should be updated when a script parameter
+has been set.
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:scriptParam script="foo()" value="#{bean.resultOfFoo}" render="fooResult" /&gt;
+&lt;/f:metadata&gt;
+...
+&lt;h:body&gt;
+    ...
+    &lt;h:panelGroup id="fooResult"&gt;
+        &lt;ui:fragment rendered="#{not empty bean.resultOfFoo}"&gt;
+            The result of foo() script is: #{bean.resultOfFoo}
+        &lt;/ui:fragment&gt;
+    &lt;/h:panelGroup&gt;
+    ...
+&lt;/h:body&gt;
+</pre>
+<p>
+Note that as it extends from the standard <code>&lt;f:viewParam&gt;</code>, its built-in conversion and validation
+functionality is also supported on this component. So, the following is also possible:
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:scriptParam script="window.navigator" value="#{bean.clientNavigator}" /&gt;
+&lt;/f:metadata&gt;
+</pre>
+With a <code>clientNavigator</code> being an instance of <code>javax.json.JsonObject</code>:
+<pre>
+private JsonObject clientNavigator;
+</pre>
+And this converter:
+<pre>
+package com.example;
+
+import java.io.StringReader;
+import javax.faces.component.UIComponent;
+import javax.faces.context.FacesContext;
+import javax.faces.convert.Converter;
+import javax.faces.convert.ConverterException;
+import javax.faces.convert.FacesConverter;
+import javax.json.Json;
+import javax.json.JsonObject;
+
+&#64;FacesConverter(forClass = JsonObject.class)
+public class JsobObjectConverter implements Converter&lt;JsonObject&gt; {
+
+    &#64;Override
+    public String getAsString(FacesContext context, UIComponent component, JsonObject modelValue) {
+        if (modelValue == null) {
+            return "";
+        }
+
+        return modelValue.toString();
+    }
+
+    &#64;Override
+    public JsonObject getAsObject(FacesContext context, UIComponent component, String submittedValue) {
+        if (submittedValue == null || submittedValue.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return Json.createReader(new StringReader(submittedValue)).readObject();
+        }
+        catch (Exception e) {
+            throw new ConverterException("Not a valid JSON object", e);
+        }
+    }
+}
+</pre>
+				]]>
+		</description>
+		<tag-name>scriptParam</tag-name>
+		<component>
+			<component-type>org.omnifaces.component.input.ScriptParam</component-type>
+		</component>
 		<attribute>
 			<description>
 				<![CDATA[
-					If present, this attribute refers to the value of one of the exposed
-					attached objects within the composite component inside
-					of which this tag is nested.
+					The script to be evaluated.
 				]]>
 			</description>
-			<name>for</name>
+			<name>script</name>
+			<required>true</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Converter instance registered with this component.
+				]]></description>
+			<name>converter</name>
+			<required>false</required>
+			<type>javax.faces.convert.Converter</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the converter message, replacing any message
+					that comes from the converter.
+				]]>
+			</description>
+			<name>converterMessage</name>
 			<required>false</required>
 			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The component identifier for this component. This value must be
+					unique within the closest parent component that is a naming
+					container.
+				]]>
+			</description>
+			<name>id</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Flag indicating that the user is required to provide a submitted
+					value for this input component. This component extends the behavior of
+					this by only making this required for a non-faces request.
+				]]>
+			</description>
+			<name>required</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the validation message for the "required"
+					facility, if the "required" facility is used.
+				]]>
+			</description>
+			<name>requiredMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					MethodExpression representing a validator method that will be
+					called
+					during Process Validations to perform correctness checks on the
+					value of this component. The expression must evaluate to a
+					public
+					method that takes FacesContext, UIComponent, and Object
+					parameters,
+					with a return type of void.
+				]]>
+			</description>
+			<name>validator</name>
+			<required>false</required>
+			<method-signature>void validate(javax.faces.context.FacesContext,
+				javax.faces.component.UIComponent, java.lang.Object)
+			</method-signature>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the validator message, replacing any
+					message that comes from the validator.
+				]]>
+			</description>
+			<name>validatorMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression to which the value representing the evaluated result of the script, as
+					determined by the script attribute, is bound.
+				]]>
+			</description>
+			<name>value</name>
+			<required>false</required>
+			<type>java.lang.Object</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A space separated string of client IDs to update after the script param has been set in bean on page load.
+				]]>
+			</description>
+			<name>render</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The ValueExpression linking this component to a property in a
+					backing bean
+				]]>
+			</description>
+			<name>binding</name>
+			<required>false</required>
+			<type>javax.faces.component.UIComponent</type>
+		</attribute>
+	</tag>
+	
+	<tag>
+		<description>
+				<![CDATA[
+<p>
+The <code>&lt;o:hashParam&gt;</code> is a component that extends the standard <code>&lt;f:viewParam&gt;</code>
+with support for setting hash query parameter values in bean and automatically reflecting updated model values in
+hash query string.
+<p>
+The "hash query string" is the part in URL after the <code>#</code> which could be formatted in the same format
+as a regular request query string (the part in URL after the <code>?</code>). An example:
+<pre>
+https://example.com/page.xhtml#foo=baz&bar=kaz
+</pre>
+<p>
+This specific part of the URL (also called hash fragment identifier) is by default not sent to the server. This
+component will on page load send it anyway and on every ajax request update the hash query string in client side
+when the model value has changed in server side.
+<h3>Usage</h3>
+<p>
+It's very similar to the <code>&lt;o:viewParam&gt;</code>.
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:hashParam name="foo" value="#{bean.foo}" /&gt;
+    &lt;o:hashParam name="bar" value="#{bean.bar}" /&gt;
+&lt;/f:metadata&gt;
+</pre>
+<p>
+This only requires that the JSF page has at least one {@link UIForm} component, such as <code>&lt;h:form&gt;</code>
+or <code>&lt;o:form&gt;</code>, otherwise the <code>&lt;o:hashParam&gt;</code> won't be able to fire the ajax
+request which sets the with hash query parameter values in bean. In such case an error will be printed to JS console
+when the project stage is <code>Development</code>.
+<p>
+You can use the <code>render</code> attribute to declare which components should be updated when a hash parameter
+value is present.
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:hashParam name="foo" value="#{bean.foo}" render="fooResult" /&gt;
+    &lt;o:hashParam name="bar" value="#{bean.bar}" /&gt;
+&lt;/f:metadata&gt;
+...
+&lt;h:body&gt;
+    ...
+    &lt;h:panelGroup id="fooResult"&gt;
+        ...
+    &lt;/h:panelGroup&gt;
+    ...
+&lt;/h:body&gt;
+</pre>
+<p>
+You can use the <code>default</code> attribute to declare a non-null value which should be interpreted as the default
+value. In other words, when the current model value matches the default value, then the hash parameter will be
+removed.
+<pre>
+&lt;f:metadata&gt;
+    &lt;o:hashParam name="foo" value="#{bean.foo}" /&gt;
+    &lt;o:hashParam name="bar" value="#{bean.bar}" default="kaz" /&gt;
+&lt;/f:metadata&gt;
+</pre>
+<p>
+When <code>#{bean.foo}</code> is <code>"baz"</code> and <code>#{bean.bar}</code> is <code>"kaz"</code> or empty,
+then the reflected hash query string will become <code>https://example.com/page.xhtml#foo=baz</code>.
+If <code>#{bean.bar}</code> is any other value, then it will appear in the hash query string.
+				]]>
+		</description>
+		<tag-name>hashParam</tag-name>
+		<component>
+			<component-type>org.omnifaces.component.input.HashParam</component-type>
+		</component>
+		<attribute>
+			<description>
+				<![CDATA[
+					The name of the hash parameter from which the value for this component
+					is retrieved on an initial request or to override the stored value on a
+					postback.
+				]]>
+			</description>
+			<name>name</name>
+			<required>true</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Converter instance registered with this component.
+				]]></description>
+			<name>converter</name>
+			<required>false</required>
+			<type>javax.faces.convert.Converter</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the converter message, replacing any message
+					that comes from the converter.
+				]]>
+			</description>
+			<name>converterMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The component identifier for this component. This value must be
+					unique within the closest parent component that is a naming
+					container.
+				]]>
+			</description>
+			<name>id</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Flag indicating that the user is required to provide a submitted
+					value for this input component. This component extends the behavior of
+					this by only making this required for a non-faces request.
+				]]>
+			</description>
+			<name>required</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the validation message for the "required"
+					facility, if the "required" facility is used.
+				]]>
+			</description>
+			<name>requiredMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					MethodExpression representing a validator method that will be
+					called
+					during Process Validations to perform correctness checks on the
+					value of this component. The expression must evaluate to a
+					public
+					method that takes FacesContext, UIComponent, and Object
+					parameters,
+					with a return type of void.
+				]]>
+			</description>
+			<name>validator</name>
+			<required>false</required>
+			<method-signature>void validate(javax.faces.context.FacesContext,
+				javax.faces.component.UIComponent, java.lang.Object)
+			</method-signature>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression enabled attribute that, if present, will be
+					used as the text of the validator message, replacing any
+					message that comes from the validator.
+				]]>
+			</description>
+			<name>validatorMessage</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A ValueExpression to which the value of the hash parameter, as
+					determined by the name attribute, is bound. The resolved value of this
+					expression is used when encoding the view parameter into a bookmarkable link or
+					redirect URL with view parameter encoding enabled. If this attribute is omitted,
+					the value of the request parameter will instead be the local value of the
+					UIViewParameter.
+				]]>
+			</description>
+			<name>value</name>
+			<required>false</required>
+			<type>java.lang.Object</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The default value of the hash parameter. When the model value matches the default value, then the hash parameter will be hidden.
+				]]>
+			</description>
+			<name>default</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					A space separated string of client IDs to update after the hash param has been set in bean on page load.
+				]]>
+			</description>
+			<name>render</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					MethodExpression representing a value change listener method
+					that will be notified when a new value has been set for this
+					input component. The expression must evaluate to a public
+					method that takes a <code>ValueChangeEvent</code>
+					parameter,
+					with a return type of void, or
+					to a public method that takes no arguments with a return type
+					of void. In the latter case, the method has no way of easily
+					knowing what the new value is, but this can be useful in cases
+					where a notification is needed that "this value
+					changed".
+				]]>
+			</description>
+			<name>valueChangeListener</name>
+			<required>false</required>
+			<method-signature>void
+				valueChange(javax.faces.event.ValueChangeEvent)
+			</method-signature>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The maximum number of characters that may
+					be entered in this field.
+				]]>
+			</description>
+			<name>maxlength</name>
+			<required>false</required>
+			<type>int</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The ValueExpression linking this component to a property in a
+					backing bean
+				]]>
+			</description>
+			<name>binding</name>
+			<required>false</required>
+			<type>javax.faces.component.UIComponent</type>
 		</attribute>
 	</tag>
 	
@@ -2458,6 +3057,15 @@ public class ValidateValuesBean implements MultiFieldValidator {
 					<p>
 					Only when you set <code>immediate="true"</code>, then it will behave the same as the standard
 					<code>&lt;f:viewAction&gt;</code>.
+					<h3>Messaging</h3>
+					<p>
+					You can use the <code>message</code> attribute to add a global flash warning message.
+					<pre>
+					&lt;o:viewAction ... message="Please use a valid link from within the site" /&gt;
+					</pre>
+					<p>
+					Note that the message will only be shown when the redirect has actually taken place. The support was added in
+					OmniFaces 3.2.
  				]]>
 		</description>
 		<tag-name>viewAction</tag-name>
@@ -2538,6 +3146,16 @@ public class ValidateValuesBean implements MultiFieldValidator {
 			<name>immediate</name>
 			<required>false</required>
 			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The message to send along with the redirect, if any.
+				]]>
+			</description>
+			<name>message</name>
+			<required>false</required>
+			<type>java.lang.String</type>
 		</attribute>
 	</tag>
 	
@@ -2683,8 +3301,8 @@ public class ValidateValuesBean implements MultiFieldValidator {
 				<pre>
 &lt;ui:composition
 	xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:ui="http://java.sun.com/jsf/facelets"
-	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+	xmlns:h="http://xmlns.jcp.org/jsf/html"
 	xmlns:o="http://omnifaces.org/ui"
 &gt;
 	&lt;o:methodParam name="method" value="#{action}"/&gt;
@@ -3302,6 +3920,18 @@ public class ValidateValuesBean implements MultiFieldValidator {
 		<attribute>
 			<description>
 				<![CDATA[
+					When set to <code>true</code> then the referenced image will only be loaded when the window is finished
+					loading and the image is visible in the viewport.
+					This attribute is ignored when 'dataURI' attribute is specified.
+				]]>
+			</description>
+			<name>lazy</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
 					The image type, represented as file extension. E.g. "webp", "jpg", "png", "gif", "ico", "svg", "bmp", "tiff", etc.
 					This attribute is ignored when 'name' attribute is specified.
 				]]>
@@ -3546,10 +4176,10 @@ public class ValidateValuesBean implements MultiFieldValidator {
 	<tag>
 		<description>
 			<![CDATA[
-				The <code>&lt;o:url&gt;</code> is a component which renders the given JSF view ID as a bookmarkable URL with support
-				for exposing it into the request scope by the variable name as specified by the <code>var</code> attribute instead of
-				rendering it. This component also supports adding query string parameters to the URL via nested
-				<code>&lt;f:param&gt;</code> and <code>&lt;o:param&gt;</code>.
+				The <code>&lt;o:url&gt;</code> is a component which renders the given target URL or JSF view ID as a bookmarkable
+				URL with support for adding additional query string parameters to the URL via nested <code>&lt;f:param&gt;</code>
+				and <code>&lt;o:param&gt;</code>, and for exposing it into the request scope by the variable name as specified by
+				the <code>var</code> attribute instead of rendering it.
 			 ]]>
 		</description>
 		<tag-name>url</tag-name>
@@ -3600,14 +4230,11 @@ public class ValidateValuesBean implements MultiFieldValidator {
 		<attribute>
 			<description>
 				<![CDATA[
-					The domain of the URL.
-					Valid formats are: <code>http://example.com</code>, <code>//example.com</code>, <code>example.com</code>, <code>/</code> and <code>//</code>.
-					If the value equals <code>/</code>, then the URL becomes domain-relative.
-					If the value equals <code>//</code>, then the URL becomes scheme-relative.
-					Defaults to current domain.
+					The target URL to encode.
+					When specified, the <code>domain</code> and <code>viewId</code> attributes are ignored.
 				]]>
 			</description>
-			<name>domain</name>
+			<name>value</name>
 			<required>false</required>
 			<type>java.lang.String</type>
 		</attribute>
@@ -3616,9 +4243,25 @@ public class ValidateValuesBean implements MultiFieldValidator {
 				<![CDATA[
 					The view ID to create URL for.
 					Defaults to current view ID.
+					This is ignored when <code>value</code> attribute is specified.
 				]]>
 			</description>
 			<name>viewId</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The domain of the URL.
+					Valid formats are: <code>https://example.com</code>, <code>//example.com</code>, <code>example.com</code>, <code>/</code> and <code>//</code>.
+					If the value equals <code>/</code>, then the URL becomes domain-relative.
+					If the value equals <code>//</code>, then the URL becomes scheme-relative.
+					Defaults to current domain.
+					This is ignored when <code>value</code> attribute is specified.
+				]]>
+			</description>
+			<name>domain</name>
 			<required>false</required>
 			<type>java.lang.String</type>
 		</attribute>
@@ -3651,10 +4294,129 @@ public class ValidateValuesBean implements MultiFieldValidator {
 	<tag>
 		<description>
 			<![CDATA[
-				<strong>Form</strong> is a component that extends the standard <code>UIForm</code> and provides a way to keep view
-				parameters in the request URL after a post-back and offers in combination with the
+				The <code>&lt;o:sitemapUrl&gt;</code> is a component which renders the given target URL or JSF view ID as a sitemap
+				URL with support for adding additional query string parameters to the URL via nested <code>&lt;f:param&gt;</code>
+				and <code>&lt;o:param&gt;</code>.
+			 ]]>
+		</description>
+		<tag-name>sitemapUrl</tag-name>
+		<component>
+			<component-type>org.omnifaces.component.output.SitemapUrl</component-type>
+		</component>
+		<attribute>
+			<description>
+				<![CDATA[
+					The component identifier for this component. This value must be unique within the closest parent
+					component that is a naming container.
+				]]>
+			</description>
+			<name>id</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					Flag indicating whether or not this component should be rendered (during Render Response Phase), or
+					processed on any subsequent form submit. The default value for this property is true.
+				]]>
+			</description>
+			<name>rendered</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The <code>ValueExpression</code> linking this component to a property in a backing bean.
+				]]>
+			</description>
+			<name>binding</name>
+			<required>false</required>
+			<type>javax.faces.component.UIComponent</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The value of the "loc" element of the sitemap URL.
+					When specified, then the <code>viewId</code> and <code>domain</code> attributes are ignored.
+				]]>
+			</description>
+			<name>value</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The view ID to create the URI part of the "loc" element of the sitemap URL for.
+					This is ignored when <code>value</code> attribute is specified.
+				]]>
+			</description>
+			<name>viewId</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The domain of the "loc" element of the sitemap URL.
+					Valid formats are: <code>https://example.com</code>, <code>//example.com</code>, <code>example.com</code>, <code>/</code> and <code>//</code>.
+					If the value equals <code>/</code>, then the URL becomes domain-relative.
+					If the value equals <code>//</code>, then the URL becomes scheme-relative.
+					A runtime exception will be thrown if an unsupported value is used.
+					Defaults to current domain.
+					This is ignored when <code>value</code> attribute is specified.
+				]]>
+			</description>
+			<name>domain</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The value of the "lastmod" element of the sitemap URL.
+				]]>
+			</description>
+			<name>lastModified</name>
+			<required>false</required>
+			<type>java.time.Temporal</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The value of the "changefreq" element of the sitemap URL.
+					Must be one of the known enum values.
+					A runtime exception will be thrown if an unsupported value is used.
+				]]>
+			</description>
+			<name>changeFrequency</name>
+			<required>false</required>
+			<type>org.omnifaces.component.output.SitemapUrl.ChangeFrequency</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The value of the "priority" element of the sitemap URL.
+					Must be between 0.0 and 1.0.
+					A runtime exception will be thrown if an unsupported value is used.
+				]]>
+			</description>
+			<name>priority</name>
+			<required>false</required>
+			<type>java.math.BigDecimal</type>
+		</attribute>
+	</tag>
+
+	<tag>
+		<description>
+			<![CDATA[
+				<strong>Form</strong> is a component that extends the standard <code>UIForm</code> and submits by default
+				to current request URI with query string and offers in combination with the
 				<code>&lt;o:ignoreValidationFailed&gt;</code> tag on an <code>UICommand</code> component the possibility to ignore
-				validation failures so that the invoke action phase will be executed anyway.
+				validation failures so that the invoke action phase will be executed anyway. It also supports adding custom
+				query string parameters via a nested <code>&lt;o|h:param&gt;</code>. 
 			 ]]>
 		</description>
 		<tag-name>form</tag-name>
@@ -3673,23 +4435,11 @@ public class ValidateValuesBean implements MultiFieldValidator {
 		</attribute>
 		<attribute>
 			<description>
-				Whether to include view parameters in the action URI.
-			</description>
-			<name>includeViewParams</name>
-			<required>false</required>
-			<type>boolean</type>
-		</attribute>
-		<attribute>
-			<description>
-				Whether to include all URL (GET) request parameters in the action URI. This overrides includeViewParams.
-			</description>
-			<name>includeRequestParams</name>
-			<required>false</required>
-			<type>boolean</type>
-		</attribute>
-		<attribute>
-			<description>
-				Whether to use current request URI with query string as action URI. This overrides includeViewParams and includeRequestParams.
+				<![CDATA[
+					Whether to use current request URI with query string as action URI. 
+					Defaults to true.
+					This setting is ignored when <code>includeRequestParams</code> is set to <code>true</code>.
+				]]>
 			</description>
 			<name>useRequestURI</name>
 			<required>false</required>
@@ -3697,11 +4447,21 @@ public class ValidateValuesBean implements MultiFieldValidator {
 		</attribute>
 		<attribute>
 			<description>
-				Flag indicating whether or not this form should prepend its id
-				to its descendent's id during the clientId generation process.
-				If this flag is not set, the default value is true.
+				<![CDATA[
+					Whether to include request query string parameters in the URL.
+					Defaults to false.
+					When this setting is set to <code>true</code>, <code>useRequestURI</code> is ignored.
+				]]>
 			</description>
-			<name>prependId</name>
+			<name>includeRequestParams</name>
+			<required>false</required>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<description>
+				Whether to send only the form data which actually need to be processed as opposed to the entire form. Defaults to true.
+			</description>
+			<name>partialSubmit</name>
 			<required>false</required>
 			<type>boolean</type>
 		</attribute>
@@ -4398,6 +5158,24 @@ public enum Baz {
 			<required>false</required>
 			<type>java.lang.String</type>
 		</attribute>
+        <attribute>
+			<description>
+				<![CDATA[
+					The faces message uses a predefined message format, which corresponds to the value of <code>javax.faces.validator.BeanValidator.MESSAGE</code>
+					in the message bundle. The default message format of <code>{1}: {0}</code> prepends all the validated labels which
+					were checked when the error message occurred. This is useful in the case of validating a single bean property, but
+					sometimes confusing in the case of validating a bean with many properties.
+					<p>
+					In case you'd like to fine-tune the bean
+					validation message on a per-<code>&lt;o:validateBean&gt;</code>-basis, then you can since OmniFaces 3.12 use the
+					<code>messageFormat</code> attribute. Any <code>{0}</code> placeholder will be substituted with the error message
+					and any <code>{1}</code> placeholder will be substituted with the labels of all validated fields.
+				]]>
+			</description>
+			<name>messageFormat</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
 	</tag>
 
 	<tag>
@@ -4539,7 +5317,7 @@ public enum Baz {
 				<![CDATA[
 					The FQN (fully qualified name) of the specific <code>UIComponent</code> (super)class for which the
 					attribute should be set. For example, <code>javax.faces.component.UIInput</code> which has the
-					<code>valid</code> property.
+					<code>valid</code> property. Since OmniFaces 3.10, this value can be a comma separated string of FQNs.
 				]]>
 			</description>
 			<name>target</name>
@@ -5485,4 +6263,167 @@ String name2 = Faces.getRequestParameter("name2"); // value2
 			<type>boolean</type>
 		</attribute>
 	</tag>
+
+	<tag>
+		<description>
+			<![CDATA[
+				The <code>o:selectItemGroups</code> is an extension of {@link UISelectItems} which allows you to iterate over a nested collection representing groups of select items.
+				This is the {@link UIComponent} counterpart of <code>javax.faces.model.SelectItemGroup</code>.
+				There is no equivalent (yet) in the standard JSF API. Currently the only way to represent {@link SelectItemGroup} in UI is to manually create and populate them in a backing bean which can end up to be quite verbose.
+				<p>
+				Below example assumes a <code>List&lt;Category&gt;</code> as value wherein <code>Category</code> in turn has a <code>List&lt;Product&gt;</code>.
+				<pre>
+&lt;h:selectOneMenu value="#{bean.selectedProduct}" converter="omnifaces.SelectItemsConverter"&gt;
+    &lt;f:selectItem itemValue="#{null}" /&gt;
+    &lt;o:selectItemGroups value="#{bean.categories}" var="category" itemLabel="#{category.name}"&gt;
+        &lt;f:selectItems value="#{category.products}" var="product" itemLabel="#{product.name}" /&gt;
+    &lt;/o:selectItemGroups&gt;
+&lt;/h:selectOneMenu&gt;
+				</pre>
+			]]>
+		</description>
+		<tag-name>selectItemGroups</tag-name>
+		<component>
+			<component-type>org.omnifaces.component.model.SelectItemGroups</component-type>
+		</component>
+		<attribute>
+			<description>
+				<![CDATA[
+					Any Iterable, Map or array of objects representing select item groups.
+				]]>
+			</description>
+			<name>value</name>
+			<required>true</required>
+			<type>java.lang.Object</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The name of the EL variable which exposes the currently iterated select item group.
+					Defaults to <code>item</code>.
+				]]>
+			</description>
+			<name>var</name>
+			<required>false</required>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The value of the select item group.
+					This will be exposed to any nested UISelectItem(s) children.
+					Defaults to the currently iterated select item group.
+				]]>
+			</description>
+			<name>itemValue</name>
+			<required>false</required>
+			<type>java.lang.Object</type>
+		</attribute>
+		<attribute>
+			<description>
+				<![CDATA[
+					The label of the select item group.
+					Defaults to the String representation of <code>itemValue</code>.
+				]]>
+			</description>
+			<name>itemLabel</name>
+			<required>false</required>
+			<type>java.lang.String</type>
+		</attribute>
+	</tag>
+        
+        <tag>
+                <description>
+                <![CDATA[
+                        <strong>The <code>PathParam</code> is a component that extends the OmniFaces <code>Param</code> to support 
+                        <code>MultiViews</code> feature of <code>FacesViews</code>.</strong> It is done by rendering the supplied parameters 
+                        of such components as <code>&lt;h:link&gt;</code> and <code>&lt;h:button&gt;</code> among others as path parameters and not as 
+                        query parameters as otherwise will be produced by <code>&lt;o:param&gt;</code> and <code>&lt;f:param&gt;</code> tags. 
+                        <p>
+                        The component has built-in support for a <code>Converter</code> to convert the supplied value to string by usual means via 
+                        the <code>converter</code> attribute of the tag, or the nested <code>&lt;f:converter&gt;</code> tag, or just automatically 
+                        if a converter is already registered for the target class via <code>@FacesConverter(forClass)</code>.
+                        <p>
+                        This component doesn't support returning encoded output of its children as parameter value in case no value is present.
+                        This feature is provided by <code>Param</code> component instead.
+                        <p>
+                        Also, the name attribute must not be specified for this component as it already evaluates to a predefined one.
+                        <p>
+                        This component is used to create bookmarkable URLs via standard outcome target components that take into account
+                        <code>&lt;o:pathParam&gt;</code> tags nested in the components. The path parameters will be rendered 
+                        in the order they were declared for a view id that is defined as a multi view and if the view was
+                        not defined as a multi view then they won't be rendered at all. Additionally, declaring path parameters
+                        for a non-multi view will be logged as a warning and a faces warning message will be added for any
+                        stage different from <code>Production</code>.
+                        <p>
+                        In the following example the link to the multi view page will be rendered with two path parameters:
+                        <pre>
+&lt;h:link value="Link" outcome="multiview-supported-path"&gt;
+    &lt;o:pathParam value="first" /&gt;
+    &lt;o:pathParam value="second" /&gt;
+&lt;/h:link&gt;
+                        </pre>
+                        The code above will be rendered as: 
+                        <code>&lt;a id="..." name="..." href="/context-path/multiview-supported-path/first/second"&gt;Link&lt;/a&gt;</code>.
+                        The path parameters will be available via <code>@Inject @Param(pathIndex=0) private String first;</code> and
+                        <code>@Inject @Param(pathIndex=1) private String second;</code> the usual way.
+                ]]>
+                </description>
+                <tag-name>pathParam</tag-name>
+                <component>
+                        <component-type>org.omnifaces.component.output.PathParam</component-type>
+                </component>
+        
+                <attribute>
+                        <description>
+                        <![CDATA[
+                                The component identifier for this component. This value must be unique within the closest parent
+                                component that is a naming container.
+                        ]]>
+                        </description>
+                        <name>id</name>
+                        <required>false</required>
+                        <type>java.lang.String</type>
+                </attribute>
+                <attribute>
+                        <description>
+                        <![CDATA[
+                                The <code>ValueExpression</code> linking this component to a property in a backing bean.
+                        ]]>
+                        </description>
+                        <name>binding</name>
+                        <required>false</required>
+                        <type>javax.faces.component.UIComponent</type>
+                </attribute>
+
+                <attribute>
+                        <description>
+                        <![CDATA[
+                                Converter instance registered with this component.
+                        ]]>
+                        </description>
+                        <name>converter</name>
+                        <required>false</required>
+                        <type>javax.faces.convert.Converter</type>
+                </attribute>
+                <attribute>
+                        <description>
+                        <![CDATA[
+                                Flag enabling or disabling the inclusion of the parameter.
+                        ]]>
+                        </description>
+                        <name>disable</name>
+                        <required>false</required>
+                        <type>boolean</type>
+                </attribute>
+                <attribute>
+                        <description>
+                        <![CDATA[
+                                Value of the parameter to be set.
+                        ]]>
+                        </description>
+                        <name>value</name>
+                        <required>false</required>
+                        <type>java.lang.Object</type>
+                </attribute>
+        </tag>
 </facelet-taglib>

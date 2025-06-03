@@ -41,13 +41,13 @@
  * @author Bauke Scholtz
  * @link https://github.com/javaee/javaserverfaces-spec/issues/790
  * @since 1.7
+ * @deprecated Since 3.0 as this is already fixed in JSF 2.3.
  */
 OmniFaces.FixViewState = (function(window, document) {
 
 	// "Constant" fields ----------------------------------------------------------------------------------------------
 
-	var VIEW_STATE_PARAM = "javax.faces.ViewState";
-	var VIEW_STATE_REGEX = new RegExp("^([\\w]+:)?" + VIEW_STATE_PARAM.replace(/\./g, "\\.") + "(:[0-9]+)?$");
+	var VIEW_STATE_REGEX = new RegExp("^([\\w]+:)?" + OmniFaces.VIEW_STATE_PARAM.replace(/\./g, "\\.") + "(:[0-9]+)?$");
 
 	// Private static fields ------------------------------------------------------------------------------------------
 
@@ -72,7 +72,7 @@ OmniFaces.FixViewState = (function(window, document) {
 
 		for (var i = 0; i < document.forms.length; i++) {
 			var form = document.forms[i];
-			var viewStateElement = form[VIEW_STATE_PARAM];
+			var viewStateElement = form[OmniFaces.VIEW_STATE_PARAM];
 
 			if (form.method == "post" && !viewStateElement) {
 				// This POST form doesn't have a view state. This isn't right. Create it.
@@ -111,11 +111,11 @@ OmniFaces.FixViewState = (function(window, document) {
 		var hidden;
 
 		try {
-			hidden = document.createElement("<input name='" + VIEW_STATE_PARAM + "'>"); // IE6-8.
+			hidden = document.createElement("<input name='" + OmniFaces.VIEW_STATE_PARAM + "'>"); // IE6-8.
 		}
 		catch(e) {
 			hidden = document.createElement("input");
-			hidden.setAttribute("name", VIEW_STATE_PARAM);
+			hidden.setAttribute("name", OmniFaces.VIEW_STATE_PARAM);
 		}
 
 		hidden.setAttribute("type", "hidden");
@@ -135,7 +135,7 @@ OmniFaces.FixViewState = (function(window, document) {
 	}
 
 	if (window.jQuery) { // jQuery ajax API present?
-		jQuery(document).ajaxComplete(function(event, xhr, options) {
+		jQuery(document).ajaxComplete(function(event, xhr) {
 			if (typeof xhr !== "undefined") {
 				self.apply(xhr.responseXML);
 			}

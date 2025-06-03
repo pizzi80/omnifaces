@@ -12,10 +12,12 @@
  */
 package org.omnifaces;
 
+import static java.lang.String.format;
+import static java.util.logging.Level.WARNING;
 import static org.omnifaces.ApplicationInitializer.ERROR_OMNIFACES_INITIALIZATION_FAIL;
+import static org.omnifaces.ApplicationInitializer.WARNING_OMNIFACES_INITIALIZATION_FAIL;
 import static org.omnifaces.util.Reflection.toClass;
 
-import java.lang.annotation.Annotation;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
@@ -28,25 +30,31 @@ import org.omnifaces.cdi.eager.EagerBeansRepository;
 import org.omnifaces.cdi.eager.EagerBeansWebListener;
 import org.omnifaces.cdi.push.Socket;
 import org.omnifaces.component.output.Cache;
-import org.omnifaces.component.output.cache.CacheInitializer;
+import org.omnifaces.config.OmniFaces;
 import org.omnifaces.eventlistener.DefaultServletContextListener;
 import org.omnifaces.facesviews.FacesViews;
 import org.omnifaces.resourcehandler.GraphicResource;
+import org.omnifaces.resourcehandler.ViewResourceHandler;
+import org.omnifaces.util.cache.CacheInitializer;
 
 /**
  * <p>
- * OmniFaces application listener. This runs when the servlet context is created and thus after the
- * {@link ApplicationInitializer}.
+ * OmniFaces application listener. This runs when the servlet context is created.
  * This performs the following tasks:
  * <ol>
- * <li>Check if JSF 2.2 is available, otherwise log and fail.
+ * <li>Check if JSF 2.3 is available, otherwise log and fail.
  * <li>Check if CDI 1.1 is available, otherwise log and fail.
  * <li>Load {@link Cache} provider and register its filter if necessary.
- * <li>Instantiate {@link Eager} application scoed beans and register {@link EagerBeansWebListener} if necessary.
  * <li>Add {@link FacesViews} mappings to FacesServlet if necessary.
+ * <li>Add {@link ViewResourceHandler} mapping to FacesServlet if necessary.
+ * <li>Instantiate {@link Eager} application scoped beans and register {@link EagerBeansWebListener} if necessary.
  * <li>Register {@link GraphicImageBean} beans in {@link GraphicResource}.
  * <li>Register {@link Socket} endpoint if necessary.
  * </ol>
+ * <p>
+ * This is invoked <strong>after</strong> {@link ApplicationInitializer} and <strong>before</strong> {@link ApplicationProcessor}.
+ * If any exception is thrown, then the deployment will fail, unless the {@value OmniFaces#PARAM_NAME_SKIP_DEPLOYMENT_EXCEPTION}
+ * context parameter is set to <code>true</code>, it will then merely log a WARNING line.
  *
  * @author Bauke Scholtz
  * @since 2.0
@@ -61,7 +69,7 @@ public class ApplicationListener extends DefaultServletContextListener {
 	private static final String ERROR_JSF_API_UNAVAILABLE =
 		"JSF API is not available in this environment.";
 	private static final String ERROR_JSF_API_INCOMPATIBLE =
-		"JSF API of this environment is not JSF 2.2 compatible.";
+		"JSF API of this environment is not JSF 2.3 compatible.";
 	private static final String ERROR_CDI_API_UNAVAILABLE =
 		"CDI API is not available in this environment.";
 	private static final String ERROR_CDI_API_INCOMPATIBLE =
@@ -73,26 +81,41 @@ public class ApplicationListener extends DefaultServletContextListener {
 
 	@Override
 	public void contextInitialized(ServletContextEvent event) {
-		checkJSF22Available();
-		checkCDI11Available();
+		ServletContext servletContext = event.getServletContext();
+		boolean skipDeploymentException = OmniFaces.skipDeploymentException(servletContext);
+
+		if (!skipDeploymentException) {
+			checkJSF23Available();
+			checkCDI11Available();
+		}
 
 		try {
-			ServletContext servletContext = event.getServletContext();
 			CacheInitializer.loadProviderAndRegisterFilter(servletContext);
-			EagerBeansRepository.instantiateApplicationScopedAndRegisterListenerIfNecessary(servletContext);
 			FacesViews.addFacesServletMappings(servletContext);
+			ViewResourceHandler.addFacesServletMappingsIfNecessary(servletContext);
+
+			if (skipDeploymentException) {
+				checkCDIImplAvailable(); // Because below three initializations require CDI impl being available, see #703
+			}
+
+			EagerBeansRepository.instantiateApplicationScopedAndRegisterListenerIfNecessary(servletContext);
 			GraphicResource.registerGraphicImageBeans();
 			Socket.registerEndpointIfNecessary(servletContext);
 		}
 		catch (Exception | LinkageError e) {
-			throw new IllegalStateException(ERROR_OMNIFACES_INITIALIZATION_FAIL, e);
+			if (skipDeploymentException) {
+				logger.log(WARNING, format(WARNING_OMNIFACES_INITIALIZATION_FAIL, e));
+			}
+			else {
+				throw new IllegalStateException(ERROR_OMNIFACES_INITIALIZATION_FAIL, e);
+			}
 		}
 	}
 
-	private void checkJSF22Available() {
+	private void checkJSF23Available() {
 		try {
 			checkJSFAPIAvailable();
-			checkJSF22Compatible();
+			checkJSF23Compatible();
 		}
 		catch (Exception | LinkageError e) {
 			logger.severe(""
@@ -100,9 +123,9 @@ public class ApplicationListener extends DefaultServletContextListener {
 				+ "\n█░▀░░░░▀█▀░░░░░░▀█░░░░░░▀█▀░░░░░▀█                                             ▐"
 				+ "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█ OmniFaces failed to initialize!             ▐"
 				+ "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█                                             ▐"
-				+ "\n█░░▐█▌░░█░░░██░░░█░░░░░░▄█░░▄▄▄▄▄█ This OmniFaces version requires JSF 2.2,    ▐"
+				+ "\n█░░▐█▌░░█░░░██░░░█░░░░░░▄█░░▄▄▄▄▄█ OmniFaces 3.x requires JSF 2.3,             ▐"
 				+ "\n█░░▐█▌░░█░░░██░░░█░░░░████░░░░░░░█ but none was found on this environment.     ▐"
-				+ "\n█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█                                             ▐"
+				+ "\n█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█ Downgrade to OmniFaces 2.x or 1.1x.         ▐"
 				+ "\n████████████████████████████████████████████████████████████████████████████████"
 			);
 			throw e;
@@ -121,23 +144,23 @@ public class ApplicationListener extends DefaultServletContextListener {
 				+ "\n▌                         ▐█     ▐                                             ▐"
 				+ "\n▌    ▄                  ▄█▓█▌    ▐ OmniFaces failed to initialize!             ▐"
 				+ "\n▌   ▐██▄               ▄▓░░▓▓    ▐                                             ▐"
-				+ "\n▌   ▐█░██▓            ▓▓░░░▓▌    ▐ This OmniFaces version requires CDI 1.1,    ▐"
+				+ "\n▌   ▐█░██▓            ▓▓░░░▓▌    ▐ This OmniFaces version requires CDI,        ▐"
 				+ "\n▌   ▐█▌░▓██          █▓░░░░▓     ▐ but none was found on this environment.     ▐"
 				+ "\n▌    ▓█▌░░▓█▄███████▄███▓░▓█     ▐                                             ▐"
-				+ "\n▌    ▓██▌░▓██░░░░░░░░░░▓█░▓▌     ▐ OmniFaces 2.x requires a minimum of JSF 2.2.▐"
+				+ "\n▌    ▓██▌░▓██░░░░░░░░░░▓█░▓▌     ▐ OmniFaces 3.x requires a minimum of JSF 2.3.▐"
 				+ "\n▌     ▓█████░░░░░░░░░░░░▓██      ▐ Since this JSF version, the JSF managed bean▐"
-				+ "\n▌     ▓██▓░░░░░░░░░░░░░░░▓█      ▐ facility @ManagedBean is semi-official      ▐"
-				+ "\n▌     ▐█▓░░░░░░█▓░░▓█░░░░▓█▌     ▐ deprecated in favour of CDI. JSF 2.2 users  ▐"
-				+ "\n▌     ▓█▌░▓█▓▓██▓░█▓▓▓▓▓░▓█▌     ▐ are strongly encouraged to move to CDI.     ▐"
+				+ "\n▌     ▓██▓░░░░░░░░░░░░░░░▓█      ▐ facility @ManagedBean is DEPRECATED in      ▐"
+				+ "\n▌     ▐█▓░░░░░░█▓░░▓█░░░░▓█▌     ▐ in favour of CDI and CDI has become a       ▐"
+				+ "\n▌     ▓█▌░▓█▓▓██▓░█▓▓▓▓▓░▓█▌     ▐ REQUIRED dependency for JSF 2.3.            ▐"
 				+ "\n▌     ▓▓░▓██████▓░▓███▓▓▌░█▓     ▐                                             ▐"
-				+ "\n▌    ▐▓▓░█▄▐▓▌█▓░░▓█▐▓▌▄▓░██     ▐ OmniFaces goes a step further by making CDI ▐"
-				+ "\n▌    ▓█▓░▓█▄▄▄█▓░░▓█▄▄▄█▓░██▌    ▐ a REQUIRED dependency next to JSF 2.2. This ▐"
-				+ "\n▌    ▓█▌░▓█████▓░░░▓███▓▀░▓█▓    ▐ not only ensures that your web application  ▐"
-				+ "\n▌   ▐▓█░░░▀▓██▀░░░░░ ▀▓▀░░▓█▓    ▐ represents the state of art, but this also  ▐"
-				+ "\n▌   ▓██░░░░░░░░▀▄▄▄▄▀░░░░░░▓▓    ▐ makes for us easier to develop OmniFaces,   ▐"
-				+ "\n▌   ▓█▌░░░░░░░░░░▐▌░░░░░░░░▓▓▌   ▐ without the need for all sorts of hacks in  ▐"
-				+ "\n▌   ▓█░░░░░░░░░▄▀▀▀▀▄░░░░░░░█▓   ▐ in order to get OmniFaces to deploy on      ▐"
-				+ "\n▌  ▐█▌░░░░░░░░▀░░░░░░▀░░░░░░█▓▌  ▐ environments without CDI.                   ▐"
+				+ "\n▌    ▐▓▓░█▄▐▓▌█▓░░▓█▐▓▌▄▓░██     ▐                                             ▐"
+				+ "\n▌    ▓█▓░▓█▄▄▄█▓░░▓█▄▄▄█▓░██▌    ▐                                             ▐"
+				+ "\n▌    ▓█▌░▓█████▓░░░▓███▓▀░▓█▓    ▐                                             ▐"
+				+ "\n▌   ▐▓█░░░▀▓██▀░░░░░ ▀▓▀░░▓█▓    ▐                                             ▐"
+				+ "\n▌   ▓██░░░░░░░░▀▄▄▄▄▀░░░░░░▓▓    ▐                                             ▐"
+				+ "\n▌   ▓█▌░░░░░░░░░░▐▌░░░░░░░░▓▓▌   ▐                                             ▐"
+				+ "\n▌   ▓█░░░░░░░░░▄▀▀▀▀▄░░░░░░░█▓   ▐                                             ▐"
+				+ "\n▌  ▐█▌░░░░░░░░▀░░░░░░▀░░░░░░█▓▌  ▐                                             ▐"
 				+ "\n▌  ▓█░░░░░░░░░░░░░░░░░░░░░░░██▓  ▐                                             ▐"
 				+ "\n▌  ▓█░░░░░░░░░░░░░░░░░░░░░░░▓█▓  ▐ You have 3 options:                         ▐"
 				+ "\n██████████████████████████████████ 1. Downgrade to OmniFaces 1.x.              ▐"
@@ -145,7 +168,7 @@ public class ApplicationListener extends DefaultServletContextListener {
 				+ "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█ 3. Switch to a CDI capable environment.     ▐"
 				+ "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█                                             ▐"
 				+ "\n█░░▐█▌░░█░░░██░░░█░░░░░░▄█░░▄▄▄▄▄█ For additional instructions, check          ▐"
-				+ "\n█░░▐█▌░░█░░░██░░░█░░░░████░░░░░░░█ http://omnifaces.org/cdi                    ▐"
+				+ "\n█░░▐█▌░░█░░░██░░░█░░░░████░░░░░░░█ https://omnifaces.org/cdi                   ▐"
 				+ "\n█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█                                             ▐"
 				+ "\n████████████████████████████████████████████████████████████████████████████████"
 			);
@@ -164,10 +187,9 @@ public class ApplicationListener extends DefaultServletContextListener {
 		}
 	}
 
-	private static void checkJSF22Compatible() {
+	private static void checkJSF23Compatible() {
 		try {
-			Class<Annotation> servlet30Annotation = toClass("javax.servlet.annotation.MultipartConfig");
-			toClass("javax.faces.webapp.FacesServlet").getAnnotation(servlet30Annotation).toString();
+			toClass("javax.faces.annotation.FacesConfig");
 		}
 		catch (Exception | LinkageError e) {
 			throw new IllegalStateException(ERROR_JSF_API_INCOMPATIBLE, e);
@@ -183,7 +205,7 @@ public class ApplicationListener extends DefaultServletContextListener {
 		}
 	}
 
-	private static void checkCDI11Compatible() {
+	private static void checkCDI11Compatible() { // For now, until we really need CDI 2.0 features (scan for javax.enterprise.inject.spi.Prioritized then).
 		try {
 			toClass("javax.enterprise.inject.spi.CDI");
 		}

@@ -22,13 +22,21 @@ import javax.faces.context.ExternalContext;
 import javax.faces.context.ExternalContextWrapper;
 import javax.faces.context.FacesContext;
 import javax.faces.context.Flash;
+import javax.faces.context.FlashWrapper;
 
 import org.omnifaces.cdi.ViewScoped;
 import org.omnifaces.cdi.viewscope.ViewScopeManager;
 import org.omnifaces.util.Faces;
+import org.omnifaces.util.Hacks;
 
 /**
- * This external context takes care that the {@link Flash} will be ignored during an unload request.
+ * OmniFaces external context.
+ * This external context performs the following tasks:
+ * <ol>
+ * <li>Since 2.2: Take care that the {@link Flash} will be ignored during an unload request.
+ * <li>Since 3.9: If {@link Faces#isSessionNew()} and {@link Hacks#isMojarraUsed()} then return patched flash which work
+ * arounds Mojarra issue 4431
+ * </ol>
  *
  * @author Bauke Scholtz
  * @since 2.2
@@ -40,10 +48,6 @@ public class OmniExternalContext extends ExternalContextWrapper {
 
 	private static final Flash DUMMY_FLASH = new DummyFlash();
 
-	// Variables ------------------------------------------------------------------------------------------------------
-
-	private ExternalContext wrapped;
-
 	// Constructors ---------------------------------------------------------------------------------------------------
 
 	/**
@@ -51,26 +55,52 @@ public class OmniExternalContext extends ExternalContextWrapper {
 	 * @param wrapped The wrapped external context.
 	 */
 	public OmniExternalContext(ExternalContext wrapped) {
-		this.wrapped = wrapped;
+		super(wrapped);
 	}
 
 	// Actions --------------------------------------------------------------------------------------------------------
 
 	/**
 	 * If the current request is an unload request from {@link ViewScoped}, then return a dummy flash scope which does
-	 * not modify the flash state, else return the original flash scope.
+	 * not modify the flash state, else if Mojarra is used and session is new, then return a patched flash which work
+	 * arounds Mojarra issue 4431, else return the original flash scope.
 	 */
 	@Override
 	public Flash getFlash() {
-		return ViewScopeManager.isUnloadRequest(Faces.getContext()) ? DUMMY_FLASH : super.getFlash();
-	}
+		if (ViewScopeManager.isUnloadRequest(Faces.getContext())) {
+			return DUMMY_FLASH;
+		}
 
-	@Override
-	public ExternalContext getWrapped() {
-		return wrapped;
+		Flash flash = super.getFlash();
+
+		if (Faces.isSessionNew() && Hacks.isMojarraUsed()) {
+			return new PatchedFlash(flash);
+		}
+
+		return flash;
 	}
 
 	// Inner classes --------------------------------------------------------------------------------------------------
+
+	/**
+	 * Patch for https://github.com/eclipse-ee4j/mojarra/issues/4431.
+	 */
+	private static class PatchedFlash extends FlashWrapper {
+
+		public PatchedFlash(Flash wrapped) {
+			super(wrapped);
+		}
+
+		@Override
+		public Object get(Object key) {
+			try {
+				return super.get(key);
+			}
+			catch (NullPointerException e) {
+				return null;
+			}
+		}
+	}
 
 	/**
 	 * A dummy flash class which does absolutely nothing with regard to the flash scope.

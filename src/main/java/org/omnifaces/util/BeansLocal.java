@@ -12,7 +12,8 @@
  */
 package org.omnifaces.util;
 
-import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINEST;
+import static org.omnifaces.util.Beans.isProxy;
 
 import java.lang.annotation.Annotation;
 import java.util.Collections;
@@ -78,6 +79,14 @@ public final class BeansLocal {
 	}
 
 	/**
+	 * @see Beans#resolveExact(Class, Annotation...)
+	 */
+	public static <T> Bean<T> resolveExact(BeanManager beanManager, Class<T> beanClass, Annotation... qualifiers) {
+		Bean<T> bean = resolve(beanManager, beanClass, qualifiers);
+		return (bean != null) && (bean.getBeanClass() == beanClass) ? bean : null;
+	}
+
+	/**
 	 * @see Beans#getReference(Class, Annotation...)
 	 */
 	public static <T> T getReference(BeanManager beanManager, Class<T> beanClass, Annotation... qualifiers) {
@@ -127,6 +136,44 @@ public final class BeansLocal {
 	}
 
 	/**
+	 * @see Beans#getInstance(String, boolean)
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> T getInstance(BeanManager beanManager, String name, boolean create) {
+		Set<Bean<?>> beans = beanManager.getBeans(name);
+		Bean<?> bean = beanManager.resolve(beans);
+		return (bean != null) ? (T) getInstance(beanManager, bean, create) : null;
+	}
+
+	/**
+	 * @see Beans#getInstance(String)
+	 */
+	public static <T> T getInstance(BeanManager beanManager, String name) {
+		return getInstance(beanManager, name, true);
+	}
+
+	/**
+	 * @see Beans#unwrapIfNecessary(Object)
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> T unwrapIfNecessary(BeanManager beanManager, T object) {
+		if (object == null) {
+			return null;
+		}
+
+		if (!isProxy(object)) {
+			return object;
+		}
+
+		if (object instanceof Class) {
+			return (T) ((Class<?>) object).getSuperclass();
+		}
+		else {
+			return (T) getInstance(beanManager, object.getClass().getSuperclass());
+		}
+	}
+
+	/**
 	 * @see Beans#isActive(Class)
 	 */
 	public static <S extends Annotation> boolean isActive(BeanManager beanManager, Class<S> scope) {
@@ -134,7 +181,7 @@ public final class BeansLocal {
 			return beanManager.getContext(scope).isActive();
 		}
 		catch (Exception ignore) {
-			logger.log(FINE, "Ignoring thrown exception; given scope is very unlikely active anyway.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; given scope is very unlikely active anyway.", ignore);
 			return false;
 		}
 	}

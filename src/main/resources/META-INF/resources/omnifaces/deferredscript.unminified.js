@@ -17,7 +17,7 @@
  * @see org.omnifaces.component.script.DeferredScript
  * @since 1.8
  */
-OmniFaces.DeferredScript = (function(Util, document) {
+OmniFaces.DeferredScript = (function(Util) {
 
 	// Private static fields ------------------------------------------------------------------------------------------
 
@@ -29,13 +29,17 @@ OmniFaces.DeferredScript = (function(Util, document) {
 	/**
 	 * Add a deferred script to the loader and registers the onload listener to load the first deferred script.
 	 * @param {string} url Required; The URL of the deferred script.
+	 * @param {string} crossorigin Optional; The crossorigin of the deferred script. Defaults to "anonymous".
+	 * @param {string} integrity Optional; The integrity of the deferred script. Defaults to "".
 	 * @param {function} begin Optional; Function to invoke before deferred script is loaded.
 	 * @param {function} success Optional; Function to invoke after deferred script is successfully loaded.
 	 * @param {function} error Optional; Function to invoke when loading of deferred script failed.
 	 */
-	self.add = function(url, begin, success, error) {
+	self.add = function(url, crossorigin, integrity, begin, success, error) {
 		deferredScripts.push({
 			url: url, 
+			crossorigin: crossorigin,
+			integrity: integrity,
 			begin: begin, 
 			success: success, 
 			error: error
@@ -64,11 +68,11 @@ OmniFaces.DeferredScript = (function(Util, document) {
 			loadDeferredScript(index + 1);
 		};
 
-		Util.loadScript(deferredScript.url, deferredScript.begin, deferredScript.success, deferredScript.error, completeFunction);
+		Util.loadScript(deferredScript.url, deferredScript.crossorigin, deferredScript.integrity, deferredScript.begin, deferredScript.success, deferredScript.error, completeFunction);
 	}
 
 	// Expose self to public ------------------------------------------------------------------------------------------
 
 	return self;
 
-})(OmniFaces.Util, document);
+})(OmniFaces.Util);

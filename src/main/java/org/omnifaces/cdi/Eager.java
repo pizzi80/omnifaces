@@ -12,6 +12,7 @@
  */
 package org.omnifaces.cdi;
 
+import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -27,12 +28,9 @@ import javax.faces.context.FacesContext;
 import javax.faces.event.PhaseId;
 import javax.faces.webapp.FacesServlet;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletRequestListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionListener;
 
-import org.omnifaces.cdi.eager.EagerBeansFilter;
 import org.omnifaces.cdi.eager.EagerBeansPhaseListener;
 import org.omnifaces.cdi.eager.EagerBeansRepository;
 import org.omnifaces.cdi.eager.EagerBeansWebListener;
@@ -102,7 +100,7 @@ import org.omnifaces.cdi.eager.EagerExtension;
  * <p>
  * The following bean will be instantiated whenever the URI <code>/components/cache</code> (relatively to the
  * application root) is requested, i.e. when an app is deployed to <code>/myapp</code> at localhost this will correspond to
- * a URL like <code>http://localhost:8080/myapp/components/cache</code>:
+ * a URL like <code>https://example.com/myapp/components/cache</code>:
  * <pre>
  * &#64;Eager(requestURI = "/components/cache")
  * &#64;RequestScoped
@@ -128,58 +126,17 @@ import org.omnifaces.cdi.eager.EagerExtension;
  * via <code>&#64;Inject</code>, as long as they do also not depend on {@link FacesContext} in their
  * <code>&#64;PostConstruct</code>.
  *
- * <h3>Compatibility</h3>
- *
- * <p>
- * In some (older) containers, most notably GlassFish 3, the CDI request scope is not available in a {@link ServletRequestListener}
- * (this is actually not spec complicant, as CDI demands this scope to be active then, but it is what it is).
- * <p>
- * Additionally in some containers, most notably GlassFish 3 again, instantiating session scoped beans from a {@link HttpSessionListener}
- * will corrupt "something" in the container. The instantiating of the beans will succeed, but if the session is later accessed an
- * exception like the following will be thrown:
- *
- * <pre>
- * java.lang.IllegalArgumentException: Should never reach here
- *     at org.apache.catalina.connector.SessionTracker.track(SessionTracker.java:168)
- *     at org.apache.catalina.connector.Request.doGetSession(Request.java:2939)
- *     at org.apache.catalina.connector.Request.getSession(Request.java:2583)
- *     at org.apache.catalina.connector.RequestFacade.getSession(RequestFacade.java:920)
- *     at javax.servlet.http.HttpServletRequestWrapper.getSession(HttpServletRequestWrapper.java:259)
- *     at com.sun.faces.context.ExternalContextImpl.getSession(ExternalContextImpl.java:155)
- *     at javax.faces.context.ExternalContextWrapper.getSession(ExternalContextWrapper.java:396)
- *     at javax.faces.context.ExternalContextWrapper.getSession(ExternalContextWrapper.java:396)
- *     ...
- * </pre>
- *
- * If any or both of those problems occur, a filter needs to be installed instead in <code>web.xml</code> as follows:
- *
- * <pre>
- * &lt;filter&gt;
- *     &lt;filter-name&gt;eagerBeansFilter&lt;/filter-name&gt;
- *     &lt;filter-class&gt;org.omnifaces.cdi.eager.EagerBeansFilter&lt;/filter-class&gt;
- * &lt;/filter&gt;
- * &lt;filter-mapping&gt;
- * &lt;filter-name&gt;eagerBeansFilter&lt;/filter-name&gt;
- *     &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
- * &lt;/filter-mapping&gt;
- *</pre>
- *
- * <p>
- * Note that the {@link EagerBeansFilter} will automatically disable the {@link EagerBeansWebListener}.
- *
- *
  * @since 1.8
  * @author Arjan Tijms
  * @see EagerExtension
  * @see EagerBeansRepository
  * @see EagerBeansPhaseListener
  * @see EagerBeansWebListener
- * @see EagerBeansFilter
  *
  */
 @Documented
 @Retention(RUNTIME)
-@Target(TYPE)
+@Target({ TYPE, METHOD })
 public @interface Eager {
 
 	/**

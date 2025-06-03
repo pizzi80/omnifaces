@@ -12,20 +12,20 @@
  */
 package org.omnifaces.cdi.viewscope;
 
-import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
-import static java.util.logging.Level.FINE;
-import static org.omnifaces.config.OmniFaces.LIBRARY_NAME;
-import static org.omnifaces.config.OmniFaces.SCRIPT_NAME;
-import static org.omnifaces.config.OmniFaces.UNLOAD_SCRIPT_NAME;
-import static org.omnifaces.util.Ajax.load;
-import static org.omnifaces.util.Ajax.oncomplete;
+import static java.util.logging.Level.FINEST;
+import static javax.faces.application.ResourceHandler.JSF_SCRIPT_LIBRARY_NAME;
+import static javax.faces.application.ResourceHandler.JSF_SCRIPT_RESOURCE_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_EVENT_PARAM_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_LIBRARY_NAME;
+import static org.omnifaces.config.OmniFaces.OMNIFACES_SCRIPT_NAME;
 import static org.omnifaces.util.BeansLocal.getInstance;
-import static org.omnifaces.util.Components.addScriptResourceToBody;
-import static org.omnifaces.util.Components.addScriptResourceToHead;
-import static org.omnifaces.util.Components.addScriptToBody;
+import static org.omnifaces.util.Components.addFormIfNecessary;
+import static org.omnifaces.util.Components.addScript;
+import static org.omnifaces.util.Components.addScriptResource;
 import static org.omnifaces.util.Faces.getViewId;
 import static org.omnifaces.util.Faces.getViewRoot;
+import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
 import static org.omnifaces.util.FacesLocal.isPostback;
@@ -39,16 +39,13 @@ import javax.enterprise.context.spi.Contextual;
 import javax.enterprise.context.spi.CreationalContext;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
-import javax.faces.application.StateManager;
 import javax.faces.application.ViewExpiredException;
 import javax.faces.context.FacesContext;
-import javax.faces.event.PhaseId;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
-import org.omnifaces.resourcehandler.ResourceIdentifier;
-import org.omnifaces.util.Hacks;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
@@ -89,7 +86,6 @@ public class ViewScopeManager {
 
 	private static final Logger logger = Logger.getLogger(ViewScopeManager.class.getName());
 
-	private static final ResourceIdentifier SCRIPT_ID = new ResourceIdentifier(LIBRARY_NAME, SCRIPT_NAME);
 	private static final String SCRIPT_INIT = "OmniFaces.Unload.init('%s')";
 	private static final int DEFAULT_BEANS_PER_VIEW_SCOPE = 3;
 
@@ -150,12 +146,12 @@ public class ViewScopeManager {
 				beanStorageId = UUID.fromString(getRequestParameter(context, "id"));
 			}
 			catch (Exception ignore) {
-				logger.log(FINE, "Ignoring thrown exception; this can only be a hacker attempt.", ignore);
+				logger.log(FINEST, "Ignoring thrown exception; this can only be a hacker attempt.", ignore);
 				return;
 			}
 		}
 		else if (isAjaxRequestWithPartialRendering(context)) {
-			Hacks.setScriptResourceRendered(context, SCRIPT_ID); // Otherwise MyFaces will load a new one during createViewScope() when still in same document (e.g. navigation).
+			context.getApplication().getResourceHandler().markResourceRendered(context, OMNIFACES_SCRIPT_NAME, OMNIFACES_LIBRARY_NAME); // Otherwise MyFaces will load a new one during createViewScope() when still in same document (e.g. navigation).
 		}
 
 		if (getInstance(manager, ViewScopeStorageInSession.class, false) != null) { // Avoid unnecessary session creation when accessing storageInSession for nothing.
@@ -217,7 +213,7 @@ public class ViewScopeManager {
 		return beanStorage;
 	}
 
-	private void checkStateSavingMethod(Class<?> beanClass) {
+	private static void checkStateSavingMethod(Class<?> beanClass) {
 		FacesContext context = FacesContext.getCurrentInstance();
 
 		if (!context.getApplication().getStateManager().isSavingStateInClient(context)) {
@@ -229,29 +225,10 @@ public class ViewScopeManager {
 	 * Register unload script.
 	 */
 	private static void registerUnloadScript(UUID beanStorageId) {
-		FacesContext context = FacesContext.getCurrentInstance();
-		boolean ajaxRequestWithPartialRendering = isAjaxRequestWithPartialRendering(context);
-
-		if (!Hacks.isScriptResourceRendered(context, SCRIPT_ID)) {
-			if (ajaxRequestWithPartialRendering) {
-				load(LIBRARY_NAME, UNLOAD_SCRIPT_NAME);
-			}
-			else if (context.getCurrentPhaseId() != PhaseId.RENDER_RESPONSE || TRUE.equals(context.getAttributes().get(StateManager.IS_BUILDING_INITIAL_STATE))) {
-				addScriptResourceToHead(LIBRARY_NAME, SCRIPT_NAME);
-			}
-			else {
-				addScriptResourceToBody(LIBRARY_NAME, UNLOAD_SCRIPT_NAME);
-			}
-		}
-
-		String script = format(SCRIPT_INIT, beanStorageId);
-
-		if (ajaxRequestWithPartialRendering) {
-			oncomplete(script);
-		}
-		else {
-			addScriptToBody(script);
-		}
+		addFormIfNecessary(); // Required to get view state ID.
+		addScriptResource(JSF_SCRIPT_LIBRARY_NAME, JSF_SCRIPT_RESOURCE_NAME); // Ensure it's always included BEFORE omnifaces.js.
+		addScriptResource(OMNIFACES_LIBRARY_NAME, OMNIFACES_SCRIPT_NAME);
+		addScript(format(SCRIPT_INIT, beanStorageId));
 	}
 
 	/**
@@ -261,7 +238,17 @@ public class ViewScopeManager {
 	 * @since 2.2
 	 */
 	public static boolean isUnloadRequest(FacesContext context) {
-		return "unload".equals(getRequestParameter(context, "omnifaces.event"));
+		return isUnloadRequest(getRequest(context));
+	}
+
+	/**
+	 * Returns <code>true</code> if the given request is triggered by an unload request.
+	 * @param request The involved request.
+	 * @return <code>true</code> if the given request is triggered by an unload request.
+	 * @since 3.1
+	 */
+	public static boolean isUnloadRequest(HttpServletRequest request) {
+		return "unload".equals(request.getParameter(OMNIFACES_EVENT_PARAM_NAME));
 	}
 
 }

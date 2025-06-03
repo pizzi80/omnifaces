@@ -24,6 +24,7 @@ import javax.el.ValueExpression;
 import javax.faces.component.EditableValueHolder;
 import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
+import javax.faces.validator.FacesValidator;
 import javax.faces.validator.ValidatorException;
 import javax.faces.view.facelets.ComponentHandler;
 import javax.faces.view.facelets.FaceletContext;
@@ -32,10 +33,10 @@ import javax.faces.view.facelets.TagHandlerDelegate;
 import javax.faces.view.facelets.ValidatorConfig;
 import javax.faces.view.facelets.ValidatorHandler;
 
+import org.omnifaces.cdi.validator.ValidatorManager;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredAttributes;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredTagHandler;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredTagHandlerDelegate;
-import org.omnifaces.util.Callback;
 import org.omnifaces.util.Messages;
 
 /**
@@ -58,7 +59,7 @@ import org.omnifaces.util.Messages;
  * </pre>
  * <p>
  * The validator ID of all standard JSF validators can be found in
- * <a href="http://docs.oracle.com/javaee/7/api/javax/faces/validator/package-summary.html">their javadocs</a>.
+ * <a href="https://jakarta.ee/specifications/platform/8/apidocs/javax/faces/validator/package-summary.html">their javadocs</a>.
  * First go to the javadoc of the class of interest, then go to <code>VALIDATOR_ID</code> in its field summary
  * and finally click the Constant Field Values link to see the value.
  * <p>
@@ -69,6 +70,14 @@ import org.omnifaces.util.Messages;
  * &lt;o:validator validatorId="javax.faces.LongRange" minimum="#{item.minimum}" maximum="#{item.maximum}"
  *     message="Please enter between #{item.minimum} and #{item.maximum} characters" /&gt;
  * </pre>
+ *
+ * <h3>JSF 2.3 compatibility</h3>
+ * <p>
+ * The <code>&lt;o:validator&gt;</code> is currently not compatible with validators which are managed via JSF 2.3's
+ * new <code>managed=true</code> attribute set on the {@link FacesValidator} annotation, at least not when using
+ * Mojarra. Internally, the converters are wrapped in another instance which doesn't have the needed setter methods
+ * specified. In order to get them to work with <code>&lt;o:validator&gt;</code>, the <code>managed=true</code>
+ * attribute needs to be removed, so that OmniFaces {@link ValidatorManager} will automatically manage them.
  *
  * @author Bauke Scholtz
  * @see DeferredTagHandlerHelper
@@ -117,7 +126,7 @@ public class Validator extends ValidatorHandler implements DeferredTagHandler {
 		ValueExpression id = getValueExpression(context, this, "validatorId", String.class);
 		ValueExpression disabled = getValueExpression(context, this, "disabled", Boolean.class);
 		ValueExpression message = getValueExpression(context, this, "message", String.class);
-		javax.faces.validator.Validator validator = createInstance(context.getFacesContext(), context, binding, id);
+		javax.faces.validator.Validator<Object> validator = createInstance(context.getFacesContext(), context, binding, id);
 		DeferredAttributes attributes = collectDeferredAttributes(context, this, validator);
 		((EditableValueHolder) parent).addValidator(new DeferredValidator(validator, binding, id, disabled, message, attributes));
 	}
@@ -139,13 +148,9 @@ public class Validator extends ValidatorHandler implements DeferredTagHandler {
 
 	// Helpers --------------------------------------------------------------------------------------------------------
 
-	private static javax.faces.validator.Validator createInstance(final FacesContext facesContext, ELContext elContext, ValueExpression binding, ValueExpression id) {
-		return DeferredTagHandlerHelper.createInstance(elContext, binding, id, new Callback.ReturningWithArgument<javax.faces.validator.Validator, String>() {
-			@Override
-			public javax.faces.validator.Validator invoke(String validatorId) {
-				return facesContext.getApplication().createValidator(validatorId);
-			}
-		}, "validator");
+	@SuppressWarnings("unchecked")
+	private static javax.faces.validator.Validator<Object> createInstance(FacesContext facesContext, ELContext elContext, ValueExpression binding, ValueExpression id) {
+		return DeferredTagHandlerHelper.createInstance(elContext, binding, id, facesContext.getApplication()::createValidator, "validator");
 	}
 
 	// Nested classes -------------------------------------------------------------------------------------------------
@@ -155,17 +160,17 @@ public class Validator extends ValidatorHandler implements DeferredTagHandler {
 	 *
 	 * @author Bauke Scholtz
 	 */
-	protected static class DeferredValidator implements javax.faces.validator.Validator, Serializable {
+	protected static class DeferredValidator implements javax.faces.validator.Validator<Object>, Serializable {
 		private static final long serialVersionUID = 1L;
 
-		private transient javax.faces.validator.Validator validator;
+		private transient javax.faces.validator.Validator<Object> validator;
 		private final ValueExpression binding;
 		private final ValueExpression id;
 		private final ValueExpression disabled;
 		private final ValueExpression message;
 		private final DeferredAttributes attributes;
 
-		public DeferredValidator(javax.faces.validator.Validator validator, ValueExpression binding, ValueExpression id, ValueExpression disabled, ValueExpression message, DeferredAttributes attributes) {
+		public DeferredValidator(javax.faces.validator.Validator<Object> validator, ValueExpression binding, ValueExpression id, ValueExpression disabled, ValueExpression message, DeferredAttributes attributes) {
 			this.validator = validator;
 			this.binding = binding;
 			this.id = id;
@@ -176,14 +181,9 @@ public class Validator extends ValidatorHandler implements DeferredTagHandler {
 
 		@Override
 		public void validate(FacesContext context, UIComponent component, Object value) {
-			ELContext el = context.getELContext();
-
-			if (disabled == null || Boolean.FALSE.equals(disabled.getValue(el))) {
-				javax.faces.validator.Validator validator = getValidator(context);
-				attributes.invokeSetters(el, validator);
-
+			if (disabled == null || Boolean.FALSE.equals(disabled.getValue(context.getELContext()))) {
 				try {
-					validator.validate(context, component, value);
+					getValidator(context).validate(context, component, value);
 				}
 				catch (ValidatorException e) {
 					rethrowValidatorException(context, component, message, e);
@@ -191,11 +191,12 @@ public class Validator extends ValidatorHandler implements DeferredTagHandler {
 			}
 		}
 
-		private javax.faces.validator.Validator getValidator(FacesContext context) {
+		private javax.faces.validator.Validator<Object> getValidator(FacesContext context) {
 			if (validator == null) {
 				validator = Validator.createInstance(context, context.getELContext(), binding, id);
 			}
 
+			attributes.invokeSetters(context.getELContext(), validator);
 			return validator;
 		}
 

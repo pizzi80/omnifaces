@@ -48,6 +48,7 @@ public class RemappedResource extends ResourceWrapper implements Externalizable 
 	/**
 	 * Do not use this constructor. It's merely there for {@link Externalizable}.
 	 */
+	@SuppressWarnings("deprecation")
 	public RemappedResource() {
 		// Keep default c'tor alive for Externalizable.
 	}
@@ -58,6 +59,8 @@ public class RemappedResource extends ResourceWrapper implements Externalizable 
 	 * @param requestPath The remapped request path.
 	 */
 	public RemappedResource(Resource resource, String requestPath) {
+		super(resource);
+
 		if (resource instanceof Serializable) {
 			serializableResource = (Serializable) resource;
 		}
@@ -73,6 +76,7 @@ public class RemappedResource extends ResourceWrapper implements Externalizable 
 	 * @param requestPath The remapped request path.
 	 */
 	public RemappedResource(String resourceName, String libraryName, String requestPath) {
+		super(null);
 		this.resourceName = resourceName;
 		this.libraryName = libraryName;
 		this.requestPath = requestPath;

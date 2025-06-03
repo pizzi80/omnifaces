@@ -16,8 +16,8 @@
 <faces-config 
 	xmlns="http://xmlns.jcp.org/xml/ns/javaee"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_2.xsd"
-	version="2.2"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_3.xsd"
+	version="2.3"
 >
 	<name>omnifaces</name>
 
@@ -29,10 +29,12 @@
 
 	<application>
 		<view-handler>org.omnifaces.viewhandler.OmniViewHandler</view-handler>
+		<resource-handler>org.omnifaces.facesviews.FacesViewsResourceHandler</resource-handler>
 		<resource-handler>org.omnifaces.resourcehandler.GraphicResourceHandler</resource-handler>
 		<resource-handler>org.omnifaces.resourcehandler.OmniVersionResourceHandler</resource-handler>
+		<resource-handler>org.omnifaces.resourcehandler.PWAResourceHandler</resource-handler>
 		<system-event-listener>
-			<system-event-listener-class>org.omnifaces.facesviews.FacesViewsViewHandlerInstaller</system-event-listener-class>
+			<system-event-listener-class>org.omnifaces.ApplicationProcessor</system-event-listener-class>
 			<system-event-class>javax.faces.event.PostConstructApplicationEvent</system-event-class>
 		</system-event-listener>
 		<system-event-listener>
@@ -54,29 +56,4 @@
 		<external-context-factory>org.omnifaces.context.OmniExternalContextFactory</external-context-factory>
 		<partial-view-context-factory>org.omnifaces.context.OmniPartialViewContextFactory</partial-view-context-factory>
 	</factory>
-
-	<managed-bean eager="true">
-		<description>
-			<![CDATA[
-				This makes an instance of <code>java.util.Date</code> as startup datetime available by 
-				<code>#{startup}</code>.
-			]]>
-		</description>
-		<managed-bean-name>startup</managed-bean-name>
-		<managed-bean-class>java.util.Date</managed-bean-class>
-		<managed-bean-scope>application</managed-bean-scope>
-	</managed-bean>
-
-	<managed-bean>
-		<description>
-			<![CDATA[
-				This makes an instance of <code>java.util.Date</code> as current datetime available by
-				<code>#{now}</code>.
-			]]>
-		</description>
-		<managed-bean-name>now</managed-bean-name>
-		<managed-bean-class>java.util.Date</managed-bean-class>
-		<managed-bean-scope>request</managed-bean-scope>
-	</managed-bean>
-
 </faces-config>

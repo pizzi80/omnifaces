@@ -13,10 +13,17 @@
 package org.omnifaces.util;
 
 import static java.util.logging.Level.FINE;
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
+import static java.util.stream.Collectors.toList;
+import static org.omnifaces.util.Reflection.toClassOrNull;
 
 import java.lang.annotation.Annotation;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.ContextNotActiveException;
 import javax.enterprise.context.spi.AlterableContext;
@@ -74,6 +81,18 @@ public final class Beans {
 
 	private static final Logger logger = Logger.getLogger(Beans.class.getName());
 
+	private static final List<Class<?>> PROXY_INTERFACES = Stream.of(
+		toClassOrNull("org.jboss.weld.proxy.WeldConstruct"),
+		toClassOrNull("org.apache.webbeans.proxy.OwbNormalScopeProxy"),
+        toClassOrNull("io.quarkus.arc.ClientProxy"),
+        toClassOrNull("io.quarkus.arc.Subclass")
+	).filter(Objects::nonNull).collect(toList());
+
+	// Both Weld and OWB generate proxy class names as "BeanClassName[...]$$[...]Proxy[...]" with a "$$" and "Proxy" in it.
+	// Hopefully unknown CDI proxy implementations follow the same de-facto standard.
+	private static final Pattern PATTERN_GENERATED_PROXY_CLASS_NAME = Pattern.compile("(.+)(\\$\\$(.*)Proxy|Proxy(.*)\\$\\$)(.*)", CASE_INSENSITIVE);
+
+
 	// Constructors ---------------------------------------------------------------------------------------------------
 
 	private Beans() {
@@ -115,6 +134,21 @@ public final class Beans {
 	 */
 	public static <T> Bean<T> resolve(Class<T> beanClass, Annotation... qualifiers) {
 		return BeansLocal.resolve(getManager(), beanClass, qualifiers);
+	}
+
+	/**
+	 * Returns the CDI managed bean representation of exactly the given bean class, optionally with the given qualifiers.
+	 * This will ignore any subclasses.
+	 * @param <T> The generic CDI managed bean type.
+	 * @param beanClass The CDI managed bean class.
+	 * @param qualifiers The CDI managed bean qualifiers, if any.
+	 * @return The CDI managed bean representation of the given bean class, or <code>null</code> if there is none.
+	 * @see BeanManager#getBeans(java.lang.reflect.Type, Annotation...)
+	 * @see BeanManager#resolve(java.util.Set)
+	 * @since 3.1
+	 */
+	public static <T> Bean<T> resolveExact(Class<T> beanClass, Annotation... qualifiers) {
+		return BeansLocal.resolveExact(getManager(), beanClass, qualifiers);
 	}
 
 	/**
@@ -193,6 +227,77 @@ public final class Beans {
 	 */
 	public static <T> T getInstance(Bean<T> bean, boolean create) {
 		return BeansLocal.getInstance(getManager(), bean, create);
+	}
+
+	/**
+	 * Returns the CDI managed bean instance (actual) associated with the given bean name and creates one if one doesn't
+	 * exist and <code>create</code> argument is <code>true</code>, otherwise don't create one and return
+	 * <code>null</code> if there's no current instance.
+	 * @param <T> The expected return type.
+	 * @param name The CDI managed bean name.
+	 * @param create Whether to create create CDI managed bean instance if one doesn't exist.
+	 * @return The CDI managed bean instance (actual) associated with the given bean name, or <code>null</code> if there
+	 * is none and/or the <code>create</code> argument is <code>false</code>.
+	 * @since 3.14
+	 * @see BeanManager#getBeans(String)
+	 * @see BeanManager#resolve(java.util.Set)
+	 * @see BeanManager#getContext(Class)
+	 * @see BeanManager#createCreationalContext(javax.enterprise.context.spi.Contextual)
+	 * @see Context#get(javax.enterprise.context.spi.Contextual, javax.enterprise.context.spi.CreationalContext)
+	 */
+	public static <T> T getInstance(String name, boolean create) {
+		return BeansLocal.getInstance(getManager(), name, create);
+	}
+
+	/**
+	 * Returns the CDI managed bean instance (actual) associated with the given bean name and creates one if one doesn't
+	 * exist.
+	 * @param <T> The expected return type.
+	 * @param name The CDI managed bean name.
+	 * @return The CDI managed bean instance (actual) associated with the given bean name, or <code>null</code> if there
+	 * is none.
+	 * @since 3.14
+	 * @see BeanManager#getBeans(String)
+	 * @see BeanManager#resolve(java.util.Set)
+	 * @see BeanManager#getContext(Class)
+	 * @see BeanManager#createCreationalContext(javax.enterprise.context.spi.Contextual)
+	 * @see Context#get(javax.enterprise.context.spi.Contextual, javax.enterprise.context.spi.CreationalContext)
+	 */
+	public static <T> T getInstance(String name) {
+		return BeansLocal.getInstance(getManager(), name);
+	}
+
+	/**
+	 * Returns <code>true</code> if given object or class is actually a CDI proxy.
+	 * @param <T> The generic CDI managed bean type.
+	 * @param object The object to be checked.
+	 * @return <code>true</code> if given object or class is actually a CDI proxy.
+	 * @since 3.8
+	 */
+	public static <T> boolean isProxy(T object) {
+		if (object == null) {
+			return false;
+		}
+
+		Class<?> beanClass = object instanceof Class ? (Class<?>) object : object.getClass();
+
+		if (PROXY_INTERFACES.stream().anyMatch(proxyInterface -> proxyInterface.isAssignableFrom(beanClass))) {
+		    return true;
+		}
+
+		// Fall back for unknown CDI proxy implementations.
+		return PATTERN_GENERATED_PROXY_CLASS_NAME.matcher(beanClass.getSimpleName()).matches();
+	}
+
+	/**
+	 * Returns the actual instance or class of the given object or class if it is actually a CDI proxy as per {@link Beans#isProxy(Object)}.
+	 * @param <T> The generic CDI managed bean type.
+	 * @param object The object or class to be unwrapped.
+	 * @return The actual instance or class of the given object or class if it is actually a CDI proxy as per {@link Beans#isProxy(Object)}.
+	 * @since 3.8
+	 */
+	public static <T> T unwrapIfNecessary(T object) {
+		return BeansLocal.unwrapIfNecessary(getManager(), object);
 	}
 
 	/**

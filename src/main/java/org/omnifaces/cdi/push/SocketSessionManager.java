@@ -14,7 +14,7 @@ package org.omnifaces.cdi.push;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptySet;
-import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINEST;
 import static java.util.logging.Level.WARNING;
 import static javax.websocket.CloseReason.CloseCodes.NORMAL_CLOSURE;
 import static org.omnifaces.cdi.push.SocketEndpoint.PARAM_CHANNEL;
@@ -25,6 +25,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -58,14 +59,15 @@ public class SocketSessionManager {
 	private static final Logger logger = Logger.getLogger(SocketSessionManager.class.getName());
 
 	private static final CloseReason REASON_EXPIRED = new CloseReason(NORMAL_CLOSURE, "Expired");
-	private static final AnnotationLiteral<Opened> SESSION_OPENED = new AnnotationLiteral<Opened>() {
-		private static final long serialVersionUID = 1L;
-	};
-	private static final AnnotationLiteral<Closed> SESSION_CLOSED = new AnnotationLiteral<Closed>() {
-		private static final long serialVersionUID = 1L;
-	};
+	private static final long TOMCAT_WEB_SOCKET_RETRY_TIMEOUT = 10; // Milliseconds.
+	private static final long TOMCAT_WEB_SOCKET_MAX_RETRIES = 100; // So, that's retrying for about 1 second.
 	private static final String WARNING_TOMCAT_WEB_SOCKET_BOMBED =
-		"Tomcat cannot handle concurrent push messages. A push message has been sent only after %s retries."
+		"Tomcat cannot handle concurrent push messages."
+			+ " A push message has been sent only after %s retries of " + TOMCAT_WEB_SOCKET_RETRY_TIMEOUT + "ms apart."
+			+ " Consider rate limiting sending push messages. For example, once every 500ms.";
+	private static final String ERROR_TOMCAT_WEB_SOCKET_BOMBED =
+		"Tomcat cannot handle concurrent push messages."
+			+ " A push message could NOT be sent after %s retries of " + TOMCAT_WEB_SOCKET_RETRY_TIMEOUT + "ms apart."
 			+ " Consider rate limiting sending push messages. For example, once every 500ms.";
 
 	private static SocketSessionManager instance;
@@ -85,7 +87,7 @@ public class SocketSessionManager {
 	 */
 	protected void register(String channelId) {
 		if (!socketSessions.containsKey(channelId)) {
-			socketSessions.putIfAbsent(channelId, new ConcurrentLinkedQueue<Session>());
+			socketSessions.putIfAbsent(channelId, new ConcurrentLinkedQueue<>());
 		}
 	}
 
@@ -117,7 +119,7 @@ public class SocketSessionManager {
 				session.getUserProperties().put("user", user);
 			}
 
-			fireEvent(session, null, SESSION_OPENED);
+			fireEvent(session, null, Opened.LITERAL);
 			return true;
 		}
 
@@ -139,7 +141,9 @@ public class SocketSessionManager {
 			Set<Future<Void>> results = new HashSet<>(sessions.size());
 
 			for (Session session : sessions) {
-				send(session, message, results, 0);
+				if (session.isOpen()) {
+					results.add(send(session, message, true));
+				}
 			}
 
 			return results;
@@ -148,26 +152,57 @@ public class SocketSessionManager {
 		return emptySet();
 	}
 
-	private void send(Session session, String text, Set<Future<Void>> results, int retries) {
-		if (session.isOpen()) {
-			try {
-				results.add(session.getAsyncRemote().sendText(text));
-
-				if (retries > 0 && logger.isLoggable(WARNING)) {
-					logger.log(WARNING, format(WARNING_TOMCAT_WEB_SOCKET_BOMBED, retries));
-				}
-			}
-			catch (IllegalStateException e) {
-				if (Hacks.isTomcatWebSocketBombed(session, e)) {
-					synchronized (session) {
-						send(session, text, results, retries + 1);
-					}
+	private Future<Void> send(Session session, String text, boolean retrySendTomcatWebSocket) {
+		try {
+			return session.getAsyncRemote().sendText(text);
+		}
+		catch (IllegalStateException e) {
+			if (Hacks.isTomcatWebSocketBombed(session, e)) {
+				if (retrySendTomcatWebSocket) {
+					return CompletableFuture.supplyAsync(() -> retrySendTomcatWebSocket(session, text));
 				}
 				else {
-					throw e;
+					return null;
+				}
+			}
+			else {
+				throw e;
+			}
+		}
+	}
+
+	private Void retrySendTomcatWebSocket(Session session, String text) {
+		int retries = 0;
+		Exception cause = null;
+
+		try {
+			while (++retries < TOMCAT_WEB_SOCKET_MAX_RETRIES) {
+				Thread.sleep(TOMCAT_WEB_SOCKET_RETRY_TIMEOUT);
+
+				if (!session.isOpen()) {
+					throw new IllegalStateException("Too bad, session is now closed");
+				}
+
+				Future<Void> result = send(session, text, false);
+
+				if (result != null) {
+					if (logger.isLoggable(WARNING)) {
+						logger.log(WARNING, format(WARNING_TOMCAT_WEB_SOCKET_BOMBED, retries));
+					}
+
+					return result.get();
 				}
 			}
 		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			cause = e;
+		}
+		catch (Exception e) {
+			cause = e;
+		}
+
+		throw new UnsupportedOperationException(format(ERROR_TOMCAT_WEB_SOCKET_BOMBED, retries), cause);
 	}
 
 	/**
@@ -179,7 +214,7 @@ public class SocketSessionManager {
 		Collection<Session> sessions = socketSessions.get(getChannelId(session));
 
 		if (sessions != null && sessions.remove(session)) {
-			fireEvent(session, reason, SESSION_CLOSED);
+			fireEvent(session, reason, Closed.LITERAL);
 		}
 	}
 
@@ -209,7 +244,7 @@ public class SocketSessionManager {
 				session.close(REASON_EXPIRED);
 			}
 			catch (IOException ignore) {
-				logger.log(FINE, "Ignoring thrown exception; there is nothing more we could do here.", ignore);
+				logger.log(FINEST, "Ignoring thrown exception; there is nothing more we could do here.", ignore);
 			}
 		}
 	}
@@ -239,7 +274,7 @@ public class SocketSessionManager {
 
 	private static void fireEvent(Session session, CloseReason reason, AnnotationLiteral<?> qualifier) {
 		Serializable user = (Serializable) session.getUserProperties().get("user");
-		Beans.fireEvent(new SocketEvent(getChannel(session), user, (reason != null) ? reason.getCloseCode() : null), qualifier);
+		Beans.fireEvent(new SocketEvent(getChannel(session), user, null, (reason != null) ? reason.getCloseCode() : null), qualifier);
 	}
 
 }

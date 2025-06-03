@@ -205,8 +205,8 @@
  * If a <code>&lt;welcome-file&gt;</code> is defined in <code>web.xml</code> that's scanned by FacesViews
  * <strong>AND</strong> <code>REDIRECT_TO_EXTENSIONLESS</code> is used (which is the default, see below), it's necessary
  * to define an extensionless welcome file to prevent a request to <code>/</code> being redirected to
- * <code>/[welcome file]</code>. E.g. without this <code>http://example.com</code> will redirect to say
- * <code>http://example.com/index</code>.
+ * <code>/[welcome file]</code>. E.g. without this <code>https://example.com</code> will redirect to say
+ * <code>https://example.com/index</code>.
  *
  * <p>
  * For example:
@@ -338,44 +338,16 @@
  * </td>
  * </tr>
  *
+ * <tr>
+ * <td class="colFirst"><code>{@value org.omnifaces.facesviews.FacesViews#FACES_VIEWS_LOWERCASED_REQUEST_URI_PARAM_NAME}</code></td>
+ * <td>Used to set whether the request URI should only match the lowercased form of the file name.
+ * By default, a scanned view of for example <code>/TitleCasedFileName.xhtml</code> will listen to a request URI of <code>/TitleCasedFileName</code>,
+ * but when this setting is set to true, then it will instead listen to a lowercased request URI of <code>/titlecasedfilename</code>.
+ * <br>Default value: <code>false</code> (the request URI must exactly match the letter case of the file name)
+ * </td>
+ * </tr>
+ *
  * </table>
- *
- * <h3>Servlet 2.5 compatibility</h3>
- *
- * <p>
- * Since OmniFaces 2.0, Servlet 2.5 compatibility has been dropped. Servlet 2.5 users are advised to either upgrade to
- * Servlet 3.0+, or keep using OmniFaces 1.x.
- *
- *
- * <h3>OmniFaces 1.3 compatibility</h3>
- *
- * <p>
- * In OmniFaces 1.4, a major overhaul was done for FacesViews and several things are done differently from how they were
- * done in 1.3
- *
- * <p>
- * Most notably is that the FacesServlet dispatch changed from forwarding to continuing the chain, the FacesViews filter
- * moved from being the first in the chain to being the last, links are always rendered as their extensionless variant
- * independent of the request using an extension or not, and when a request with an extension is used anyway (e.g. by
- * typing it directly into the address bar) it's now redirected to the extensionless variant.
- *
- * <p>
- * By putting the following settings in <code>web.xml</code> a behavior that most closely resembles 1.3 can be obtained:
- *
- * <pre>
- *   &lt;context-param&gt;
- *       &lt;param-name&gt;org.omnifaces.FACES_VIEWS_DISPATCH_METHOD&lt;/param-name&gt;
- *       &lt;param-value&gt;FORWARD&lt;/param-value&gt;
- *   &lt;/context-param&gt;
- *   &lt;context-param&gt;
- *       &lt;param-name&gt;org.omnifaces.FACES_VIEWS_SCANNED_VIEWS_ALWAYS_EXTENSIONLESS&lt;/param-name&gt;
- *       &lt;param-value&gt;false&lt;/param-value&gt;
- *   &lt;/context-param&gt;
- *   &lt;context-param&gt;
- *       &lt;param-name&gt;org.omnifaces.FACES_VIEWS_EXTENSION_ACTION&lt;/param-name&gt;
- *       &lt;param-value&gt;PROCEED&lt;/param-value&gt;
- *   &lt;/context-param&gt;
- * </pre>
  *
  *
  * @author Arjan Tijms

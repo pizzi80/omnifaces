@@ -23,6 +23,7 @@ import javax.el.ValueExpression;
 import javax.faces.component.UIComponent;
 import javax.faces.component.ValueHolder;
 import javax.faces.context.FacesContext;
+import javax.faces.convert.FacesConverter;
 import javax.faces.view.facelets.ComponentHandler;
 import javax.faces.view.facelets.ConverterConfig;
 import javax.faces.view.facelets.ConverterHandler;
@@ -30,10 +31,10 @@ import javax.faces.view.facelets.FaceletContext;
 import javax.faces.view.facelets.TagAttribute;
 import javax.faces.view.facelets.TagHandlerDelegate;
 
+import org.omnifaces.cdi.converter.ConverterManager;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredAttributes;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredTagHandler;
 import org.omnifaces.taghandler.DeferredTagHandlerHelper.DeferredTagHandlerDelegate;
-import org.omnifaces.util.Callback;
 
 /**
  * <p>
@@ -55,9 +56,17 @@ import org.omnifaces.util.Callback;
  * </pre>
  * <p>
  * The converter ID of all standard JSF converters can be found in
- * <a href="http://docs.oracle.com/javaee/7/api/javax/faces/convert/package-summary.html">their javadocs</a>.
+ * <a href="https://jakarta.ee/specifications/platform/8/apidocs/javax/faces/convert/package-summary.html">their javadocs</a>.
  * First go to the javadoc of the class of interest, then go to <code>CONVERTER_ID</code> in its field summary
  * and finally click the Constant Field Values link to see the value.
+ *
+ * <h3>JSF 2.3 compatibility</h3>
+ * <p>
+ * The <code>&lt;o:converter&gt;</code> is currently not compatible with converters which are managed via JSF 2.3's
+ * new <code>managed=true</code> attribute set on the {@link FacesConverter} annotation, at least not when using
+ * Mojarra. Internally, the converters are wrapped in another instance which doesn't have the needed setter methods
+ * specified. In order to get them to work with <code>&lt;o:converter&gt;</code>, the <code>managed=true</code>
+ * attribute needs to be removed, so that OmniFaces {@link ConverterManager} will automatically manage them.
  *
  * @author Bauke Scholtz
  * @see DeferredTagHandlerHelper
@@ -103,7 +112,7 @@ public class Converter extends ConverterHandler implements DeferredTagHandler {
 
 		ValueExpression binding = getValueExpression(context, this, "binding", Object.class);
 		ValueExpression id = getValueExpression(context, this, "converterId", String.class);
-		javax.faces.convert.Converter converter = createInstance(context.getFacesContext(), context, binding, id);
+		javax.faces.convert.Converter<Object> converter = createInstance(context.getFacesContext(), context, binding, id);
 		DeferredAttributes attributes = collectDeferredAttributes(context, this, converter);
 		((ValueHolder) parent).setConverter(new DeferredConverter(converter, binding, id, attributes));
 	}
@@ -125,13 +134,9 @@ public class Converter extends ConverterHandler implements DeferredTagHandler {
 
 	// Helpers --------------------------------------------------------------------------------------------------------
 
-	private static javax.faces.convert.Converter createInstance(final FacesContext facesContext, ELContext elContext, ValueExpression binding, ValueExpression id) {
-		return DeferredTagHandlerHelper.createInstance(elContext, binding, id, new Callback.ReturningWithArgument<javax.faces.convert.Converter, String>() {
-			@Override
-			public javax.faces.convert.Converter invoke(String converterId) {
-				return facesContext.getApplication().createConverter(converterId);
-			}
-		}, "converter");
+	@SuppressWarnings("unchecked")
+	private static javax.faces.convert.Converter<Object> createInstance(FacesContext facesContext, ELContext elContext, ValueExpression binding, ValueExpression id) {
+		return DeferredTagHandlerHelper.createInstance(elContext, binding, id, facesContext.getApplication()::createConverter, "converter");
 	}
 
 	// Nested classes -------------------------------------------------------------------------------------------------
@@ -141,15 +146,15 @@ public class Converter extends ConverterHandler implements DeferredTagHandler {
 	 *
 	 * @author Bauke Scholtz
 	 */
-	protected static class DeferredConverter implements javax.faces.convert.Converter, Serializable {
+	protected static class DeferredConverter implements javax.faces.convert.Converter<Object>, Serializable {
 		private static final long serialVersionUID = 1L;
 
-		private transient javax.faces.convert.Converter converter;
+		private transient javax.faces.convert.Converter<Object> converter;
 		private final ValueExpression binding;
 		private final ValueExpression id;
 		private final DeferredAttributes attributes;
 
-		public DeferredConverter(javax.faces.convert.Converter converter, ValueExpression binding, ValueExpression id, DeferredAttributes attributes) {
+		public DeferredConverter(javax.faces.convert.Converter<Object> converter, ValueExpression binding, ValueExpression id, DeferredAttributes attributes) {
 			this.converter = converter;
 			this.binding = binding;
 			this.id = id;
@@ -158,23 +163,20 @@ public class Converter extends ConverterHandler implements DeferredTagHandler {
 
 		@Override
 		public Object getAsObject(FacesContext context, UIComponent component, String value) {
-			javax.faces.convert.Converter converter = getConverter(context);
-			attributes.invokeSetters(context.getELContext(), converter);
-			return converter.getAsObject(context, component, value);
+			return getConverter(context).getAsObject(context, component, value);
 		}
 
 		@Override
 		public String getAsString(FacesContext context, UIComponent component, Object value) {
-			javax.faces.convert.Converter converter = getConverter(context);
-			attributes.invokeSetters(context.getELContext(), converter);
-			return converter.getAsString(context, component, value);
+			return getConverter(context).getAsString(context, component, value);
 		}
 
-		private javax.faces.convert.Converter getConverter(FacesContext context) {
+		private javax.faces.convert.Converter<Object> getConverter(FacesContext context) {
 			if (converter == null) {
 				converter = Converter.createInstance(context, context.getELContext(), binding, id);
 			}
 
+			attributes.invokeSetters(context.getELContext(), converter);
 			return converter;
 		}
 	}

@@ -42,7 +42,7 @@ import org.omnifaces.util.Servlets;
 
 /**
  * <p>
- * The well known "<a href="http://balusc.omnifaces.org/2009/02/fileservlet-supporting-resume-and.html">BalusC FileServlet</a>",
+ * The well known "<a href="https://balusc.omnifaces.org/2009/02/fileservlet-supporting-resume-and.html">BalusC FileServlet</a>",
  * as an abstract template, slightly refactored, rewritten and modernized with a.o. fast NIO stuff instead of legacy
  * RandomAccessFile. GZIP support is stripped off as that can be done application wide via {@link GzipResponseFilter}.
  * <p>
@@ -106,8 +106,8 @@ import org.omnifaces.util.Servlets;
  *
  * <p><strong>See also</strong>:
  * <ul>
- * <li><a href="http://stackoverflow.com/q/13588149/157882">How to stream audio/video files such as MP3, MP4, AVI, etc using a Servlet</a>
- * <li><a href="http://stackoverflow.com/a/29991447/157882">Abstract template for a static resource servlet</a>
+ * <li><a href="https://stackoverflow.com/q/13588149/157882">How to stream audio/video files such as MP3, MP4, AVI, etc using a Servlet</a>
+ * <li><a href="https://stackoverflow.com/a/29991447/157882">Abstract template for a static resource servlet</a>
  * </ul>
  *
  * @author Bauke Scholtz
@@ -123,7 +123,7 @@ public abstract class FileServlet extends HttpServlet {
 	private static final Long DEFAULT_EXPIRE_TIME_IN_SECONDS = TimeUnit.DAYS.toSeconds(30);
 	private static final long ONE_SECOND_IN_MILLIS = TimeUnit.SECONDS.toMillis(1);
 	private static final String ETAG = "W/\"%s-%s\"";
-	private static final Pattern RANGE_PATTERN = Pattern.compile("^bytes=[0-9]*-[0-9]*(,[0-9]*-[0-9]*)*$");
+	private static final Pattern RANGE_PATTERN = Pattern.compile("^bytes=[0-9]*-[0-9]*(,[0-9]*-[0-9]*)*+$");
 	private static final String MULTIPART_BOUNDARY = UUID.randomUUID().toString();
 
 	// Actions --------------------------------------------------------------------------------------------------------
@@ -202,7 +202,7 @@ public abstract class FileServlet extends HttpServlet {
 	 * @throws IllegalArgumentException When the request is mangled in such way that it's not recognizable as a valid
 	 * file request. The servlet will then return a HTTP 400 error.
 	 */
-	protected abstract File getFile(HttpServletRequest request) throws IllegalArgumentException;
+	protected abstract File getFile(HttpServletRequest request);
 
 	/**
 	 * Handles the case when the file is not found.
@@ -327,7 +327,7 @@ public abstract class FileServlet extends HttpServlet {
 				}
 			}
 			catch (IllegalArgumentException ifRangeHeaderIsInvalid) {
-				logger.log(FINE, "If-Range header is invalid. Let's just return full file then.", ifRangeHeaderIsInvalid);
+				logger.log(FINE, "If-Range header is invalid. Just return full file then.", ifRangeHeaderIsInvalid);
 				return ranges;
 			}
 		}
@@ -449,7 +449,7 @@ public abstract class FileServlet extends HttpServlet {
 	 * Returns true if the given accept header accepts the given value.
 	 */
 	private static boolean accepts(String acceptHeader, String toAccept) {
-		String[] acceptValues = acceptHeader.split("\\s*(,|;)\\s*");
+		String[] acceptValues = acceptHeader.split("\\s*[,;]\\s*");
 		Arrays.sort(acceptValues);
 		return Arrays.binarySearch(acceptValues, toAccept) > -1
 			|| Arrays.binarySearch(acceptValues, toAccept.replaceAll("/.*$", "/*")) > -1

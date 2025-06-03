@@ -14,19 +14,23 @@ package org.omnifaces.util;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
-import static java.util.logging.Level.FINE;
-import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
+import static java.util.Optional.ofNullable;
+import static java.util.logging.Level.FINEST;
+import static javax.faces.component.UIViewRoot.METADATA_FACET_NAME;
+import static javax.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
+import static org.omnifaces.exceptionhandler.ViewExpiredExceptionHandler.FLASH_ATTRIBUTE_VIEW_EXPIRED;
 import static org.omnifaces.util.Beans.getReference;
+import static org.omnifaces.util.Components.findComponentsInChildren;
 import static org.omnifaces.util.Reflection.instance;
 import static org.omnifaces.util.Reflection.toClassOrNull;
+import static org.omnifaces.util.Servlets.addParamToMapIfNecessary;
 import static org.omnifaces.util.Servlets.formatContentDispositionHeader;
+import static org.omnifaces.util.Servlets.isSecure;
 import static org.omnifaces.util.Servlets.prepareRedirectURL;
 import static org.omnifaces.util.Servlets.toQueryString;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.encodeURL;
-import static org.omnifaces.util.Utils.isAnyEmpty;
 import static org.omnifaces.util.Utils.isEmpty;
-import static org.omnifaces.util.Utils.isOneOf;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -34,9 +38,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Array;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,15 +56,19 @@ import java.util.Map.Entry;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import javax.el.ELContext;
 import javax.el.ELResolver;
 import javax.el.ValueExpression;
 import javax.faces.FacesException;
+import javax.faces.FacesWrapper;
 import javax.faces.FactoryFinder;
 import javax.faces.application.Application;
 import javax.faces.application.ProjectStage;
+import javax.faces.application.Resource;
 import javax.faces.application.ViewHandler;
 import javax.faces.component.UIViewParameter;
 import javax.faces.component.UIViewRoot;
@@ -86,7 +96,10 @@ import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 
 import org.omnifaces.component.ParamHolder;
+import org.omnifaces.component.input.HashParam;
+import org.omnifaces.component.input.ScriptParam;
 import org.omnifaces.config.FacesConfigXml;
+import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
  * <p>
@@ -140,11 +153,10 @@ public final class FacesLocal {
 	private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
 	private static final int DEFAULT_SENDFILE_BUFFER_SIZE = 10240;
 	private static final String ERROR_NO_VIEW = "There is no view.";
-	private static final String[] FACELET_CONTEXT_KEYS = {
-		FaceletContext.FACELET_CONTEXT_KEY, // Compiletime constant, may fail when compiled against EE6 and run on EE7.
-		"com.sun.faces.facelets.FACELET_CONTEXT", // JSF 2.0/2.1.
-		"javax.faces.FACELET_CONTEXT" // JSF 2.2.
-	};
+
+	// Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
+
+	private static String faceletsSuffix;
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -152,7 +164,42 @@ public final class FacesLocal {
 		// Hide constructor.
 	}
 
+	// Lazy init ------------------------------------------------------------------------------------------------------
+
+	private static String getFaceletsSuffix(FacesContext context) {
+		if (faceletsSuffix == null) {
+			faceletsSuffix = coalesce(getInitParameter(context, ViewHandler.FACELETS_SUFFIX_PARAM_NAME), ViewHandler.DEFAULT_FACELETS_SUFFIX);
+		}
+
+		return faceletsSuffix;
+	}
+
 	// JSF general ----------------------------------------------------------------------------------------------------
+
+	/**
+	 * @see Faces#getPackage()
+	 */
+	@SuppressWarnings("unchecked")
+	public static Package getPackage(FacesContext context) {
+		if (context != null) {
+			while (context instanceof FacesWrapper) {
+				context = ((FacesWrapper<FacesContext>) context).getWrapped();
+			}
+
+			return context.getClass().getPackage();
+		}
+		else {
+			return FacesContext.class.getPackage();
+		}
+	}
+
+	/**
+	 * @see Faces#getImplInfo()
+	 */
+	public static String getImplInfo(FacesContext context) {
+		Package facesPackage = getPackage(context);
+		return facesPackage.getImplementationTitle() + " " + facesPackage.getImplementationVersion();
+	}
 
 	/**
 	 * @see Faces#getServerInfo()
@@ -197,7 +244,8 @@ public final class FacesLocal {
 
 		if (externalContext.getRequestPathInfo() == null) {
 			String path = externalContext.getRequestServletPath();
-			return path.substring(path.lastIndexOf('.'));
+			int suffixPos = path.lastIndexOf('.');
+			return suffixPos > -1 ? path.substring(suffixPos) : getFaceletsSuffix(context);
 		}
 		else {
 			return externalContext.getRequestServletPath();
@@ -258,6 +306,21 @@ public final class FacesLocal {
 		return (T) context.getAttributes().get(name);
 	}
 
+
+	/**
+	 * @see Faces#getContextAttribute(String, Supplier)
+	 */
+	public static <T> T getContextAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getContextAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setContextAttribute(context, name, value);
+		}
+
+		return value;
+	}
+
 	/**
 	 * @see Faces#setContextAttribute(String, Object)
 	 */
@@ -268,15 +331,16 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createConverter(Object)
 	 */
-	public static Converter createConverter(FacesContext context, Object identifier) {
+	@SuppressWarnings("unchecked")
+	public static <T> Converter<T> createConverter(FacesContext context, Object identifier) {
 		if (identifier instanceof String) {
 			return createConverter(context, (String) identifier);
 		}
 		else if (identifier instanceof Class) {
-			return createConverter(context, (Class<?>) identifier);
+			return createConverter(context, (Class<T>) identifier);
 		}
 		else if (identifier instanceof Converter) {
-			return (Converter) identifier;
+			return (Converter<T>) identifier;
 		}
 		else {
 			return null;
@@ -286,8 +350,9 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createConverter(String)
 	 */
-	public static Converter createConverter(FacesContext context, String identifier) {
-		Converter converter = context.getApplication().createConverter(identifier);
+	@SuppressWarnings("unchecked")
+	public static <T> Converter<T> createConverter(FacesContext context, String identifier) {
+		Converter<T> converter = context.getApplication().createConverter(identifier);
 
 		if (converter == null) {
 			converter = createConverter(context, toClassOrNull(identifier));
@@ -299,15 +364,16 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createConverter(Class)
 	 */
-	public static Converter createConverter(FacesContext context, Class<?> identifier) {
+	@SuppressWarnings("unchecked")
+	public static <T> Converter<T> createConverter(FacesContext context, Class<?> identifier) {
 		if (Converter.class.isAssignableFrom(identifier)) {
 			FacesConverter annotation = identifier.getAnnotation(FacesConverter.class);
 
 			if (annotation != null) {
-				return (Converter) getReference(identifier, annotation);
+				return (Converter<T>) getReference(identifier, annotation);
 			}
 			else {
-				return (Converter) instance(identifier);
+				return (Converter<T>) instance(identifier);
 			}
 		}
 		else {
@@ -318,15 +384,16 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createValidator(Object)
 	 */
-	public static Validator createValidator(FacesContext context, Object identifier) {
+	@SuppressWarnings("unchecked")
+	public static <T> Validator<T> createValidator(FacesContext context, Object identifier) {
 		if (identifier instanceof String) {
 			return createValidator(context, (String) identifier);
 		}
 		else if (identifier instanceof Class) {
-			return createValidator(context, (Class<?>) identifier);
+			return createValidator(context, (Class<T>) identifier);
 		}
 		else if (identifier instanceof Validator) {
-			return (Validator) identifier;
+			return (Validator<T>) identifier;
 		}
 		else {
 			return null;
@@ -336,8 +403,9 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createValidator(String)
 	 */
-	public static Validator createValidator(FacesContext context, String identifier) {
-		Validator validator = context.getApplication().createValidator(identifier);
+	@SuppressWarnings("unchecked")
+	public static <T> Validator<T> createValidator(FacesContext context, String identifier) {
+		Validator<T> validator = context.getApplication().createValidator(identifier);
 
 		if (validator == null) {
 			validator = createValidator(context, toClassOrNull(identifier));
@@ -349,21 +417,42 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#createValidator(Class)
 	 */
-	@SuppressWarnings("all")
-	public static Validator createValidator(FacesContext context, Class<?> identifier) {
+	@SuppressWarnings({ "unchecked", "unused" })
+	public static <T> Validator<T> createValidator(FacesContext context, Class<?> identifier) {
 		if (Validator.class.isAssignableFrom(identifier)) {
 			FacesValidator annotation = identifier.getAnnotation(FacesValidator.class);
 
 			if (annotation != null) {
-				return (Validator) getReference(identifier, annotation);
+				return (Validator<T>) getReference(identifier, annotation);
 			}
 			else {
-				return (Validator) instance(identifier);
+				return (Validator<T>) instance(identifier);
 			}
 		}
 		else {
 			return null;
 		}
+	}
+
+	/**
+	 * @see Faces#createResource(String)
+	 */
+	public static Resource createResource(FacesContext context, String resourceName) {
+		return context.getApplication().getResourceHandler().createResource(resourceName);
+	}
+
+	/**
+	 * @see Faces#createResource(String, String)
+	 */
+	public static Resource createResource(FacesContext context, String libraryName, String resourceName) {
+		return context.getApplication().getResourceHandler().createResource(resourceName, libraryName);
+	}
+
+	/**
+	 * @see Faces#createResource(ResourceIdentifier)
+	 */
+	public static Resource createResource(FacesContext context, ResourceIdentifier resourceIdentifier) {
+		return context.getApplication().getResourceHandler().createResource(resourceIdentifier.getName(), resourceIdentifier.getLibrary());
 	}
 
 	/**
@@ -387,7 +476,7 @@ public final class FacesLocal {
 	 */
 	public static String getViewId(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? viewRoot.getViewId() : null;
+		return viewRoot != null ? viewRoot.getViewId() : null;
 	}
 
 	/**
@@ -396,7 +485,8 @@ public final class FacesLocal {
 	public static String getViewIdWithParameters(FacesContext context) {
 		String viewId = coalesce(getViewId(context), "");
 		String viewParameters = toQueryString(getViewParameterMap(context));
-		return (viewParameters == null) ? viewId : (viewId + "?" + viewParameters);
+		String hashParameters = getHashQueryString(context);
+		return (viewParameters == null ? viewId : viewId + "?" + viewParameters) + (hashParameters == null ? "" : "#" + hashParameters);
 	}
 
 	/**
@@ -404,7 +494,7 @@ public final class FacesLocal {
 	 */
 	public static String getViewName(FacesContext context) {
 		String viewId = getViewId(context);
-		return (viewId != null) ? viewId.substring(viewId.lastIndexOf('/') + 1).split("\\.")[0] : null;
+		return viewId != null ? viewId.substring(viewId.lastIndexOf('/') + 1).split("\\.")[0] : null;
 	}
 
 	/**
@@ -418,8 +508,30 @@ public final class FacesLocal {
 	 * @see Faces#getRenderKit()
 	 */
 	public static RenderKit getRenderKit(FacesContext context) {
+		String renderKitId = null;
 		UIViewRoot view = context.getViewRoot();
-		String renderKitId = (view != null) ? view.getRenderKitId() : context.getApplication().getViewHandler().calculateRenderKitId(context);
+
+		if (view != null) {
+			renderKitId = view.getRenderKitId();
+		}
+
+		if (renderKitId == null) {
+			Application application = context.getApplication();
+			ViewHandler viewHandler = application.getViewHandler();
+
+			if (viewHandler != null) {
+				renderKitId = viewHandler.calculateRenderKitId(context);
+			}
+
+			if (renderKitId == null) {
+				renderKitId = application.getDefaultRenderKitId();
+
+				if (renderKitId == null) {
+					renderKitId = RenderKitFactory.HTML_BASIC_RENDER_KIT;
+				}
+			}
+		}
+
 		return ((RenderKitFactory) FactoryFinder.getFactory(FactoryFinder.RENDER_KIT_FACTORY)).getRenderKit(context, renderKitId);
 	}
 
@@ -447,7 +559,7 @@ public final class FacesLocal {
 	 */
 	public static Collection<UIViewParameter> getViewParameters(FacesContext context) {
 		UIViewRoot viewRoot = context.getViewRoot();
-		return (viewRoot != null) ? ViewMetadata.getViewParameters(viewRoot) : Collections.<UIViewParameter>emptyList();
+		return viewRoot != null ? ViewMetadata.getViewParameters(viewRoot) : Collections.<UIViewParameter>emptyList();
 	}
 
 	/**
@@ -476,6 +588,58 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#getHashParameters()
+	 */
+	public static Collection<HashParam> getHashParameters(FacesContext context) {
+		UIViewRoot viewRoot = context.getViewRoot();
+		return viewRoot != null ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), HashParam.class) : Collections.<HashParam>emptyList();
+	}
+
+	/**
+	 * @see Faces#getHashParameterMap()
+	 */
+	public static Map<String, List<String>> getHashParameterMap(FacesContext context) {
+		Collection<HashParam> hashParameters = getHashParameters(context);
+
+		if (hashParameters.isEmpty()) {
+			return new LinkedHashMap<>(0);
+		}
+
+		Map<String, List<String>> parameterMap = new LinkedHashMap<>(hashParameters.size());
+
+		for (HashParam hashParameter : hashParameters) {
+			if (isEmpty(hashParameter.getName())) {
+				continue;
+			}
+
+			String value = hashParameter.getRenderedValue(context);
+
+			if (!isEmpty(value)) {
+				// <o:hashParam> doesn't support multiple values anyway, so having multiple <o:hashParam> on the
+				// same request parameter shouldn't end up in repeated parameters in action URL.
+				parameterMap.put(hashParameter.getName(), asList(value));
+			}
+		}
+
+		return parameterMap;
+	}
+
+	/**
+	 * See {@link Faces#getHashQueryString()}
+	 */
+	public static String getHashQueryString(FacesContext context) {
+		return toQueryString(getHashParameterMap(context));
+	}
+
+	/**
+	 * @see Faces#getScriptParameters()
+	 */
+	public static Collection<ScriptParam> getScriptParameters(FacesContext context) {
+		UIViewRoot viewRoot = context.getViewRoot();
+		return viewRoot != null ? findComponentsInChildren(viewRoot.getFacet(METADATA_FACET_NAME), ScriptParam.class) : Collections.<ScriptParam>emptyList();
+	}
+
+	/**
 	 * @see Faces#getMetadataAttributes(String)
 	 */
 	public static Map<String, Object> getMetadataAttributes(FacesContext context, String viewId) {
@@ -483,7 +647,7 @@ public final class FacesLocal {
 		ViewDeclarationLanguage vdl = viewHandler.getViewDeclarationLanguage(context, viewId);
 		ViewMetadata metadata = vdl.getViewMetadata(context, viewId);
 
-		return (metadata != null)
+		return metadata != null
 			? metadata.createMetadataView(context).getAttributes()
 			: Collections.<String, Object>emptyMap();
 	}
@@ -615,7 +779,7 @@ public final class FacesLocal {
 	 * @see Faces#getResourceBundles()
 	 */
 	public static Map<String, ResourceBundle> getResourceBundles(FacesContext context) {
-		Map<String, String> resourceBundles = FacesConfigXml.INSTANCE.getResourceBundles();
+		Map<String, String> resourceBundles = FacesConfigXml.instance().getResourceBundles();
 		Map<String, ResourceBundle> map = new HashMap<>(resourceBundles.size());
 
 		for (String var : resourceBundles.keySet()) {
@@ -634,7 +798,7 @@ public final class FacesLocal {
 				return bundle.getString(key);
 			}
 			catch (MissingResourceException ignore) {
-				logger.log(FINE, "Ignoring thrown exception; there is a fallback anyway.", ignore);
+				logger.log(FINEST, "Ignoring thrown exception; there is a fallback anyway.", ignore);
 			}
 		}
 
@@ -686,7 +850,7 @@ public final class FacesLocal {
 	 * @see Faces#getBookmarkableURL(Collection, boolean)
 	 */
 	public static String getBookmarkableURL
-		(FacesContext context, Collection<? extends ParamHolder> params, boolean includeViewParams)
+		(FacesContext context, Collection<? extends ParamHolder<?>> params, boolean includeViewParams)
 	{
 		String viewId = getViewId(context);
 
@@ -701,32 +865,17 @@ public final class FacesLocal {
 	 * @see Faces#getBookmarkableURL(String, Collection, boolean)
 	 */
 	public static String getBookmarkableURL
-		(FacesContext context, String viewId, Collection<? extends ParamHolder> params, boolean includeViewParams)
+		(FacesContext context, String viewId, Collection<? extends ParamHolder<?>> params, boolean includeViewParams)
 	{
 		Map<String, List<String>> map = new HashMap<>();
 
 		if (params != null) {
-			for (ParamHolder param : params) {
+			for (ParamHolder<?> param : params) {
 				addParamToMapIfNecessary(map, param.getName(), param.getValue());
 			}
 		}
 
 		return context.getApplication().getViewHandler().getBookmarkableURL(context, viewId, map, includeViewParams);
-	}
-
-	private static void addParamToMapIfNecessary(Map<String, List<String>> map, String name, Object value) {
-		if (isAnyEmpty(name, value)) {
-			return;
-		}
-
-		List<String> values = map.get(name);
-
-		if (values == null) {
-			values = new ArrayList<>(1);
-			map.put(name, values);
-		}
-
-		values.add(value.toString());
 	}
 
 	// Facelets -------------------------------------------------------------------------------------------------------
@@ -735,14 +884,10 @@ public final class FacesLocal {
 	 * @see Faces#getFaceletContext()
 	 */
 	public static FaceletContext getFaceletContext(FacesContext context) {
-		Map<Object, Object> contextAttributes = context.getAttributes();
+		FaceletContext faceletContext = getContextAttribute(context, FACELET_CONTEXT_KEY);
 
-		for (String key : FACELET_CONTEXT_KEYS) {
-			FaceletContext faceletContext = (FaceletContext) contextAttributes.get(key);
-
-			if (faceletContext != null) {
-				return faceletContext;
-			}
+		if (faceletContext != null) {
+			return faceletContext;
 		}
 
 		throw new IllegalStateException(ERROR_NO_VIEW);
@@ -802,6 +947,13 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#getMutableRequestParameterMap()
+	 */
+	public static Map<String, List<String>> getMutableRequestParameterMap(FacesContext context) {
+		return Servlets.getMutableRequestParameterMap(getRequest(context));
+	}
+
+	/**
 	 * @see Faces#getRequestParameter(String)
 	 */
 	public static String getRequestParameter(FacesContext context, String name) {
@@ -813,19 +965,21 @@ public final class FacesLocal {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T getRequestParameter(FacesContext context, String name, Class<T> type) {
-		String value = getRequestParameter(context, name);
+		return getRequestParameter(context, name, value -> (T) ofNullable(createConverter(context, type)).map(c -> c.getAsObject(context, context.getViewRoot(), value)).orElse(value));
+	}
 
-		if (value == null) {
-			return null;
-		}
+	/**
+	 * @see Faces#getRequestParameter(String, Function)
+	 */
+	public static <T> T getRequestParameter(FacesContext context, String name, Function<String, T> converter) {
+		return getRequestParameter(context, name, converter, () -> null);
+	}
 
-		Converter converter = createConverter(context, type);
-
-		if (converter == null) {
-			return (T) value;
-		}
-
-		return (T) converter.getAsObject(context, context.getViewRoot(), value);
+	/**
+	 * @see Faces#getRequestParameter(String, Function, Supplier)
+	 */
+	public static <T> T getRequestParameter(FacesContext context, String name, Function<String, T> converter, Supplier<T> defaultValue) {
+		return ofNullable(getRequestParameter(context, name)).filter(value -> !isEmpty(value)).map(converter).orElseGet(defaultValue);
 	}
 
 	/**
@@ -853,7 +1007,7 @@ public final class FacesLocal {
 			return null;
 		}
 
-		Converter converter = createConverter(context, type);
+		Converter<T> converter = createConverter(context, type);
 
 		if (converter == null) {
 			return (T[]) values;
@@ -917,6 +1071,13 @@ public final class FacesLocal {
 	 */
 	public static Map<String, String> getRequestHeaderMap(FacesContext context) {
 		return context.getExternalContext().getRequestHeaderMap();
+	}
+
+	/**
+	 * @see Faces#getMutableRequestHeaderMap()
+	 */
+	public static Map<String, List<String>> getMutableRequestHeaderMap(FacesContext context) {
+		return Servlets.getMutableRequestHeaderMap(getRequest(context));
 	}
 
 	/**
@@ -1025,40 +1186,31 @@ public final class FacesLocal {
 	}
 
 	/**
-	 * @see Faces#getForwardRequestURI()
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestURI(FacesContext)}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestURI(FacesContext context) {
-		return Servlets.getForwardRequestURI(getRequest(context));
-	}
-
-	/**
-	 * @see Faces#getForwardRequestQueryString()
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestQueryString(FacesContext)}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestQueryString(FacesContext context) {
-		return Servlets.getForwardRequestQueryString(getRequest(context));
-	}
-
-	/**
-	 * @see Faces#getForwardRequestURIWithQueryString()
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestURIWithQueryString(FacesContext)}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestURIWithQueryString(FacesContext context) {
-		return Servlets.getForwardRequestURIWithQueryString(getRequest(context));
-	}
-
-	/**
 	 * @see Faces#getRemoteAddr()
 	 */
 	public static String getRemoteAddr(FacesContext context) {
 		return Servlets.getRemoteAddr(getRequest(context));
+	}
+
+	/**
+	 * @see Faces#getUserAgent()
+	 */
+	public static String getUserAgent(FacesContext context) {
+		return Servlets.getUserAgent(getRequest(context));
+	}
+
+	/**
+	 * @see Faces#getReferrer()
+	 */
+	public static String getReferrer(FacesContext context) {
+		return Servlets.getReferrer(getRequest(context));
+	}
+
+	/**
+	 * @see Faces#isRequestSecure()
+	 */
+	public static boolean isRequestSecure(FacesContext context) {
+		return Servlets.isSecure(getRequest(context));
 	}
 
 	// HTTP response --------------------------------------------------------------------------------------------------
@@ -1094,43 +1246,53 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#redirect(String, Object...)
 	 */
-	public static void redirect(FacesContext context, String url, Object... paramValues) throws IOException {
+	public static void redirect(FacesContext context, String url, Object... paramValues) {
 		ExternalContext externalContext = context.getExternalContext();
 		externalContext.getFlash().setRedirect(true); // MyFaces also requires this for a redirect in current request (which is incorrect).
-		externalContext.redirect(prepareRedirectURL(getRequest(context), url, paramValues));
+		externalContext.getFlash().keep(FLASH_ATTRIBUTE_VIEW_EXPIRED);
+
+		try {
+			externalContext.redirect(prepareRedirectURL(getRequest(context), url, paramValues));
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	/**
 	 * @see Faces#redirectPermanent(String, Object...)
 	 */
 	public static void redirectPermanent(FacesContext context, String url, Object... paramValues) {
-		ExternalContext externalContext = context.getExternalContext();
-		externalContext.getFlash().setRedirect(true); // MyFaces also requires this for a redirect in current request (which is incorrect).
-		externalContext.setResponseStatus(SC_MOVED_PERMANENTLY);
-		externalContext.setResponseHeader("Location", prepareRedirectURL(getRequest(context), url, paramValues));
-		externalContext.setResponseHeader("Connection", "close");
+		context.getExternalContext().getFlash().setRedirect(true); // MyFaces also requires this for a redirect in current request (which is incorrect).
+		Servlets.redirectPermanent(getResponse(context), prepareRedirectURL(getRequest(context), url, paramValues));
 		context.responseComplete();
 	}
 
 	/**
 	 * @see Faces#refresh()
 	 */
-	public static void refresh(FacesContext context) throws IOException {
+	public static void refresh(FacesContext context) {
 		redirect(context, getRequestURI(context));
 	}
 
 	/**
 	 * @see Faces#refreshWithQueryString()
 	 */
-	public static void refreshWithQueryString(FacesContext context) throws IOException {
+	public static void refreshWithQueryString(FacesContext context) {
 		redirect(context, getRequestURIWithQueryString(context));
 	}
 
 	/**
 	 * @see Faces#responseSendError(int, String)
 	 */
-	public static void responseSendError(FacesContext context, int status, String message) throws IOException {
-		context.getExternalContext().responseSendError(status, message);
+	public static void responseSendError(FacesContext context, int status, String message) {
+		try {
+			context.getExternalContext().responseSendError(status, message);
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+
 		context.responseComplete();
 
 		// Below is a workaround for disappearing FacesContext in WildFly/Undertow. It disappears because Undertow
@@ -1185,8 +1347,13 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#authenticate()
 	 */
-	public static boolean authenticate(FacesContext context) throws ServletException, IOException {
-		return getRequest(context).authenticate(getResponse(context));
+	public static boolean authenticate(FacesContext context) throws ServletException {
+		try {
+			return getRequest(context).authenticate(getResponse(context));
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	/**
@@ -1217,32 +1384,39 @@ public final class FacesLocal {
 	 */
 	public static String getRequestCookie(FacesContext context, String name) {
 		Cookie cookie = (Cookie) context.getExternalContext().getRequestCookieMap().get(name);
-		return (cookie != null) ? Utils.decodeURL(cookie.getValue()) : null;
+		return cookie != null ? Utils.decodeURL(cookie.getValue()) : null;
 	}
 
 	/**
 	 * @see Faces#addResponseCookie(String, String, int)
 	 */
 	public static void addResponseCookie(FacesContext context, String name, String value, int maxAge) {
-		addResponseCookie(context, name, value, getRequestHostname(context), null, maxAge);
+		addResponseCookie(context, name, value, null, null, maxAge);
 	}
 
 	/**
 	 * @see Faces#addResponseCookie(String, String, String, int)
 	 */
 	public static void addResponseCookie(FacesContext context, String name, String value, String path, int maxAge) {
-		addResponseCookie(context, name, value, getRequestHostname(context), path, maxAge);
+		addResponseCookie(context, name, value, null, path, maxAge, true);
 	}
 
 	/**
 	 * @see Faces#addResponseCookie(String, String, String, String, int)
 	 */
 	public static void addResponseCookie(FacesContext context, String name, String value, String domain, String path, int maxAge) {
+		addResponseCookie(context, name, value, domain, path, maxAge, true);
+	}
+
+	/**
+	 * @see Faces#addResponseCookie(String, String, String, String, int, boolean)
+	 */
+	public static void addResponseCookie(FacesContext context, String name, String value, String domain, String path, int maxAge, boolean httpOnly) {
 		ExternalContext externalContext = context.getExternalContext();
 		Map<String, Object> properties = new HashMap<>();
 
-		if (!isOneOf(domain, null, "localhost")) { // Chrome doesn't like domain:"localhost" on cookies.
-			properties.put("domain", domain);
+		if (!"localhost".equals(domain)) { // Chrome doesn't like domain:"localhost" on cookies.
+			properties.put("domain", domain == null ? getRequestHostname(context) : domain);
 		}
 
 		if (path != null) {
@@ -1250,8 +1424,8 @@ public final class FacesLocal {
 		}
 
 		properties.put("maxAge", maxAge);
-		properties.put("httpOnly", true);
-		properties.put("secure", ((HttpServletRequest) externalContext.getRequest()).isSecure());
+		properties.put("httpOnly", httpOnly);
+		properties.put("secure", isSecure((HttpServletRequest) externalContext.getRequest()));
 		externalContext.addResponseCookie(name, encodeURL(value), properties);
 	}
 
@@ -1283,7 +1457,7 @@ public final class FacesLocal {
 	 */
 	public static String getSessionId(FacesContext context) {
 		HttpSession session = getSession(context, false);
-		return (session != null) ? session.getId() : null;
+		return session != null ? session.getId() : null;
 	}
 
 	/**
@@ -1305,7 +1479,15 @@ public final class FacesLocal {
 	 */
 	public static boolean isSessionNew(FacesContext context) {
 		HttpSession session = getSession(context, false);
-		return (session != null && session.isNew());
+		return session != null && session.isNew();
+	}
+
+	/**
+	 * @see Faces#isRequestedSessionExpired()
+	 */
+	public static boolean isRequestedSessionExpired(FacesContext context) {
+		HttpServletRequest request = getRequest(context);
+		return request.getRequestedSessionId() != null && !request.isRequestedSessionIdValid();
 	}
 
 	/**
@@ -1358,7 +1540,6 @@ public final class FacesLocal {
 	/**
 	 * @see Faces#getInitParameterMap()
 	 */
-	@SuppressWarnings("unchecked")
 	public static Map<String, String> getInitParameterMap(FacesContext context) {
 		return context.getExternalContext().getInitParameterMap();
 	}
@@ -1368,6 +1549,13 @@ public final class FacesLocal {
 	 */
 	public static String getInitParameter(FacesContext context, String name) {
 		return context.getExternalContext().getInitParameter(name);
+	}
+
+	/**
+	 * @see Faces#getInitParameterOrDefault(String, String)
+	 */
+	public static String getInitParameterOrDefault(FacesContext context, String name, String defaultValue) {
+		return context.getExternalContext().getInitParameterMap().getOrDefault(name, defaultValue);
 	}
 
 	/**
@@ -1429,6 +1617,20 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#getRequestAttribute(String, Supplier)
+	 */
+	public static <T> T getRequestAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getRequestAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setRequestAttribute(context, name, value);
+		}
+
+		return value;
+	}
+
+	/**
 	 * @see Faces#setRequestAttribute(String, Object)
 	 */
 	public static void setRequestAttribute(FacesContext context, String name, Object value) {
@@ -1458,6 +1660,20 @@ public final class FacesLocal {
 	@SuppressWarnings("unchecked")
 	public static <T> T getFlashAttribute(FacesContext context, String name) {
 		return (T) getFlash(context).get(name);
+	}
+
+	/**
+	 * @see Faces#getFlashAttribute(String, Supplier)
+	 */
+	public static <T> T getFlashAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getFlashAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setFlashAttribute(context, name, value);
+		}
+
+		return value;
 	}
 
 	/**
@@ -1493,6 +1709,20 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#getViewAttribute(String, Supplier)
+	 */
+	public static <T> T getViewAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getViewAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setViewAttribute(context, name, value);
+		}
+
+		return value;
+	}
+
+	/**
 	 * @see Faces#setViewAttribute(String, Object)
 	 */
 	public static void setViewAttribute(FacesContext context, String name, Object value) {
@@ -1522,6 +1752,20 @@ public final class FacesLocal {
 	@SuppressWarnings("unchecked")
 	public static <T> T getSessionAttribute(FacesContext context, String name) {
 		return (T) getSessionMap(context).get(name);
+	}
+
+	/**
+	 * @see Faces#getSessionAttribute(String, Supplier)
+	 */
+	public static <T> T getSessionAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getSessionAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setSessionAttribute(context, name, value);
+		}
+
+		return value;
 	}
 
 	/**
@@ -1557,6 +1801,20 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#getApplicationAttribute(String, Supplier)
+	 */
+	public static <T> T getApplicationAttribute(FacesContext context, String name, Supplier<T> computeIfAbsent) {
+		T value = getApplicationAttribute(context, name);
+
+		if (value == null) {
+			value = computeIfAbsent.get();
+			setApplicationAttribute(context, name, value);
+		}
+
+		return value;
+	}
+
+	/**
 	 * @see Faces#setApplicationAttribute(String, Object)
 	 */
 	public static void setApplicationAttribute(FacesContext context, String name, Object value) {
@@ -1581,29 +1839,44 @@ public final class FacesLocal {
 	}
 
 	/**
+	 * @see Faces#sendFile(File, String, boolean)
+	 */
+	public static void sendFile(FacesContext context, File file, String filename, boolean attachment) throws IOException {
+		sendFile(context, new FileInputStream(file), filename, file.length(), attachment);
+	}
+
+	/**
+	 * @see Faces#sendFile(Path, boolean)
+	 */
+	public static void sendFile(FacesContext context, Path path, boolean attachment) throws IOException {
+		sendFile(context, path.toFile(), attachment);
+	}
+
+	/**
+	 * @see Faces#sendFile(Path, String, boolean)
+	 */
+	public static void sendFile(FacesContext context, Path path, String filename, boolean attachment) throws IOException {
+		sendFile(context, path.toFile(), filename, attachment);
+	}
+
+	/**
 	 * @see Faces#sendFile(byte[], String, boolean)
 	 */
-	public static void sendFile(FacesContext context, byte[] content, String filename, boolean attachment)
-		throws IOException
-	{
+	public static void sendFile(FacesContext context, byte[] content, String filename, boolean attachment) {
 		sendFile(context, new ByteArrayInputStream(content), filename, content.length, attachment);
 	}
 
 	/**
 	 * @see Faces#sendFile(InputStream, String, boolean)
 	 */
-	public static void sendFile(FacesContext context, InputStream content, String filename, boolean attachment)
-		throws IOException
-	{
+	public static void sendFile(FacesContext context, InputStream content, String filename, boolean attachment) {
 		sendFile(context, content, filename, -1, attachment);
 	}
 
 	/**
 	 * @see Faces#sendFile(String, boolean, org.omnifaces.util.Callback.Output)
 	 */
-	public static void sendFile(FacesContext context, String filename, boolean attachment, Callback.Output outputCallback)
-		throws IOException
-	{
+	public static void sendFile(FacesContext context, String filename, boolean attachment, Callback.Output outputCallback) {
 		ExternalContext externalContext = context.getExternalContext();
 
 		// Prepare the response and set the necessary headers.
@@ -1612,13 +1885,16 @@ public final class FacesLocal {
 		externalContext.setResponseHeader("Content-Disposition", formatContentDispositionHeader(filename, attachment));
 
 		// Not exactly mandatory, but this fixes at least a MSIE quirk: http://support.microsoft.com/kb/316431
-		if (((HttpServletRequest) externalContext.getRequest()).isSecure()) {
+		if (isSecure((HttpServletRequest) externalContext.getRequest())) {
 			externalContext.setResponseHeader("Cache-Control", "public");
 			externalContext.setResponseHeader("Pragma", "public");
 		}
 
 		try (OutputStream output = externalContext.getResponseOutputStream()) {
 			outputCallback.writeTo(output);
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 
 		context.responseComplete();
@@ -1630,29 +1906,22 @@ public final class FacesLocal {
 	 * @param filename The file name which should appear in content disposition header.
 	 * @param contentLength The content length, or -1 if it is unknown.
 	 * @param attachment Whether the file should be provided as attachment, or just inline.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 */
-	private static void sendFile
-		(final FacesContext context, final InputStream input, String filename, final long contentLength, boolean attachment)
-			throws IOException
-	{
-		sendFile(context, filename, attachment, new Callback.Output() {
-			@Override
-			public void writeTo(OutputStream output) throws IOException {
-				ExternalContext externalContext = context.getExternalContext();
+	private static void sendFile(FacesContext context, InputStream input, String filename, long contentLength, boolean attachment) {
+		sendFile(context, filename, attachment, output -> {
+			ExternalContext externalContext = context.getExternalContext();
 
-				// If content length is known, set it. Note that setResponseContentLength() cannot be used as it takes only int.
-				if (contentLength != -1) {
-					externalContext.setResponseHeader("Content-Length", String.valueOf(contentLength));
-				}
+			// If content length is known, set it. Note that setResponseContentLength() cannot be used as it takes only int.
+			if (contentLength != -1) {
+				externalContext.setResponseHeader("Content-Length", String.valueOf(contentLength));
+			}
 
-				long size = Utils.stream(input, output);
+			long size = Utils.stream(input, output);
 
-				// This may be on time for files smaller than the default buffer size, but is otherwise ignored anyway.
-				if (contentLength == -1 && !externalContext.isResponseCommitted()) {
-					externalContext.setResponseHeader("Content-Length", String.valueOf(size));
-				}
+			// This may be on time for files smaller than the default buffer size, but is otherwise ignored anyway.
+			if (contentLength == -1 && !externalContext.isResponseCommitted()) {
+				externalContext.setResponseHeader("Content-Length", String.valueOf(size));
 			}
 		});
 	}

@@ -19,21 +19,22 @@ import static java.util.Collections.unmodifiableSet;
 import static java.util.Locale.ENGLISH;
 import static java.util.Locale.US;
 import static java.util.regex.Pattern.quote;
-import static javax.faces.view.facelets.ResourceResolver.FACELETS_RESOURCE_RESOLVER_PARAM_NAME;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 import static javax.servlet.DispatcherType.FORWARD;
 import static javax.servlet.DispatcherType.REQUEST;
 import static org.omnifaces.facesviews.ExtensionAction.REDIRECT_TO_EXTENSIONLESS;
-import static org.omnifaces.facesviews.FacesServletDispatchMethod.DO_FILTER;
 import static org.omnifaces.facesviews.PathAction.SEND_404;
-import static org.omnifaces.facesviews.ViewHandlerMode.STRIP_EXTENSION_FROM_PARENT;
-import static org.omnifaces.util.Faces.getApplicationFromFactory;
 import static org.omnifaces.util.Faces.getServletContext;
 import static org.omnifaces.util.Platform.getFacesServletMappings;
 import static org.omnifaces.util.Platform.getFacesServletRegistration;
+import static org.omnifaces.util.ResourcePaths.addLeadingSlashIfNecessary;
+import static org.omnifaces.util.ResourcePaths.addTrailingSlashIfNecessary;
 import static org.omnifaces.util.ResourcePaths.filterExtension;
 import static org.omnifaces.util.ResourcePaths.getExtension;
 import static org.omnifaces.util.ResourcePaths.isDirectory;
 import static org.omnifaces.util.ResourcePaths.isExtensionless;
+import static org.omnifaces.util.ResourcePaths.isRoot;
 import static org.omnifaces.util.ResourcePaths.stripExtension;
 import static org.omnifaces.util.ResourcePaths.stripPrefixPath;
 import static org.omnifaces.util.ResourcePaths.stripTrailingSlash;
@@ -44,7 +45,7 @@ import static org.omnifaces.util.Utils.isEmpty;
 import static org.omnifaces.util.Utils.startsWithOneOf;
 import static org.omnifaces.util.Xml.getNodeTextContents;
 
-import java.net.MalformedURLException;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -70,8 +71,10 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.omnifaces.ApplicationInitializer;
 import org.omnifaces.ApplicationListener;
+import org.omnifaces.ApplicationProcessor;
 import org.omnifaces.cdi.Param;
-import org.omnifaces.util.ResourcePaths;
+import org.omnifaces.component.output.PathParam;
+import org.omnifaces.util.Servlets;
 
 /**
  * <p>
@@ -119,7 +122,7 @@ import org.omnifaces.util.ResourcePaths;
  * &lt;/context-param&gt;
  * </pre>
  * <p>
- * On an example URL of <code>http://example.com/context/foo/bar/baz</code> when neither <code>/foo/bar/baz.xhtml</code>
+ * On an example URL of <code>https://example.com/context/foo/bar/baz</code> when neither <code>/foo/bar/baz.xhtml</code>
  * nor <code>/foo/bar.xhtml</code> exist, but <code>/foo.xhtml</code> does exist, then the request will forward to
  * <code>/foo.xhtml</code> and make the values <code>bar</code> and <code>baz</code> available as injectable path
  * parameters via <code>&#64;</code>{@link Param} in the managed bean associated with <code>/foo.xhtml</code>.
@@ -138,7 +141,7 @@ import org.omnifaces.util.ResourcePaths;
  *
  * <h3>PrettyFaces</h3>
  * <p>
- * Note that there is some overlap between this feature and <a href="http://ocpsoft.org/prettyfaces">PrettyFaces</a>.
+ * Note that there is some overlap between this feature and <a href="https://ocpsoft.org/prettyfaces">PrettyFaces</a>.
  * The difference is that FacesViews has a focus on zero- or very minimal config, where PrettyFaces has a focus on very
  * powerful mapping mechanisms, which of course need some level of configuration. As such FacesViews will only focus on
  * auto discovering views and mapping them to both <code>.xhtml</code> and to no-extension without needing to explicitly
@@ -146,17 +149,17 @@ import org.omnifaces.util.ResourcePaths;
  * <p>
  * Specifically, FacesViews will thus <em>not</em> become a general URL rewriting tool (e.g. one that maps path segments
  * to parameters, or that totally changes the name of the URL). For this the user is advised to look at the
- * aforementioned <a href="http://ocpsoft.org/prettyfaces">PrettyFaces</a>.
+ * aforementioned <a href="https://ocpsoft.org/prettyfaces">PrettyFaces</a>.
  *
  * @author Arjan Tijms
- * @see FacesViewsResolver
+ * @see FacesViewsResourceHandler
  * @see FacesViewsForwardingFilter
  * @see ExtensionAction
  * @see PathAction
  * @see UriExtensionRequestWrapper
- * @see FacesViewsViewHandlerInstaller
+ * @see ApplicationProcessor
  * @see FacesViewsViewHandler
- * @see ViewHandlerMode
+ * @see PathParam
  */
 public final class FacesViews {
 
@@ -205,30 +208,20 @@ public final class FacesViews {
 	public static final String FACES_VIEWS_PATH_ACTION_PARAM_NAME = "org.omnifaces.FACES_VIEWS_PATH_ACTION";
 
 	/**
-	 * The name of the enum context parameter that determines the method used by FacesViews to invoke the FacesServlet.
-	 * See {@link FacesServletDispatchMethod}.
-	 * @see FacesServletDispatchMethod
-	 * @deprecated Since 2.6 As this is superfluous since Servlet 3.0.
-	 * It will default to DO_FILTER and automatically use FORWARD when resource is not mapped.
-	 */
-	@Deprecated // TODO: remove in OmniFaces 3.0.
-	public static final String FACES_VIEWS_DISPATCH_METHOD_PARAM_NAME = "org.omnifaces.FACES_VIEWS_DISPATCH_METHOD";
-
-	/**
 	 * The name of the boolean context parameter via which the user can set whether the
 	 * {@link FacesViewsForwardingFilter} should match before declared filters (false) or after declared filters (true).
 	 */
 	public static final String FACES_VIEWS_FILTER_AFTER_DECLARED_FILTERS_PARAM_NAME = "org.omnifaces.FACES_VIEWS_FILTER_AFTER_DECLARED_FILTERS";
 
 	/**
-	 * The name of the enum context parameter via which the user can set whether the {@link FacesViewsViewHandler}
-	 * should strip the extension from the parent view handler's outcome or construct the URL itself and only take the
-	 * query parameters (if any) from the parent.
-	 * @see ViewHandlerMode
-	 * @deprecated Since 2.6 As this is superfluous since Servlet 3.0.
+	 * The name of the boolean context parameter via which the user can set whether the request URI should only match
+	 * the lowercased form of the file name. By default, a scanned view of for example
+	 * <code>/TitleCasedFileName.xhtml</code> will listen to a request URI of <code>/TitleCasedFileName</code>, but when
+	 * this setting is set to true, then it will instead listen to a lowercased request URI of
+	 * <code>/titlecasedfilename</code>.
+	 * @since 3.14
 	 */
-	@Deprecated // TODO: remove in OmniFaces 3.0.
-	public static final String FACES_VIEWS_VIEW_HANDLER_MODE_PARAM_NAME = "org.omnifaces.FACES_VIEWS_VIEW_HANDLER_MODE";
+	public static final String FACES_VIEWS_LOWERCASED_REQUEST_URI_PARAM_NAME = "org.omnifaces.FACES_VIEWS_LOWERCASED_REQUEST_URI";
 
 
 	// Request attributes ---------------------------------------------------------------------------------------------
@@ -294,11 +287,6 @@ public final class FacesViews {
 		// Register a Filter that forwards extensionless requests to an extension mapped request, e.g. /index to /index.xhtml
 		// The FacesServlet doesn't work well with the exact mapping that we use for extensionless URLs.
 		FilterRegistration filterRegistration = servletContext.addFilter(FacesViewsForwardingFilter.class.getName(), FacesViewsForwardingFilter.class);
-
-		// Register a Facelets resource resolver that resolves requests like /index.xhtml to /WEB-INF/faces-views/index.xhtml
-		// TODO: Migrate ResourceResolver to ResourceHandler.
-		servletContext.setInitParameter(FACELETS_RESOURCE_RESOLVER_PARAM_NAME, FacesViewsResolver.class.getName());
-
 		addForwardingFilterMappings(servletContext, collectedViews, filterRegistration);
 
 		// We now need to map the Faces Servlet to the extensions we found,
@@ -348,12 +336,6 @@ public final class FacesViews {
 		mappings.addAll(getMappedWelcomeFiles(servletContext));
 		mappings.addAll(filterExtension(getMappedResources(servletContext).keySet()));
 
-		if (getFacesServletDispatchMethod(servletContext) == DO_FILTER) {
-			// In order for the DO_FILTER method to work the FacesServlet, in addition the forward filter,
-			// has to be mapped on all extensionless resources.
-			mappings.addAll(filterExtension(getMappedResources(servletContext).keySet()));
-		}
-
 		ServletRegistration facesServletRegistration = getFacesServletRegistration(servletContext);
 
 		if (facesServletRegistration != null) {
@@ -368,13 +350,22 @@ public final class FacesViews {
 	}
 
 	/**
-	 * Register a view handler that transforms a view id with extension back to an extensionless one.
-	 * This is invoked by {@link FacesViewsViewHandlerInstaller}, because the {@link Application} has to be available.
-	 * @param servletContext The involved servlet context.
+	 * The method name has a typo. Use {@link #registerViewHandler(ServletContext, Application)} instead.
+	 * @deprecated Since 3.14
 	 */
-	public static void registerViewHander(ServletContext servletContext) {
+	@Deprecated
+	public static void registerViewHander(ServletContext servletContext, Application application) {
+		registerViewHandler(servletContext, application);
+	}
+
+	/**
+	 * Register a view handler that transforms a view id with extension back to an extensionless one.
+	 * This is invoked by {@link ApplicationProcessor}, because the {@link Application} has to be available.
+	 * @param servletContext The involved servlet context.
+	 * @param application The involved faces application.
+	 */
+	public static void registerViewHandler(ServletContext servletContext, Application application) {
 		if (isFacesViewsEnabled(servletContext) && !isEmpty(getEncounteredExtensions(servletContext))) {
-			Application application = getApplicationFromFactory();
 			application.setViewHandler(new FacesViewsViewHandler(application.getViewHandler()));
 		}
 	}
@@ -405,28 +396,32 @@ public final class FacesViews {
 			}
 		}
 
-		for (String collectedView : new HashSet<>(collectedViews.keySet())) {
-			for (String excludedPath : excludedPaths) {
-				if (collectedView.startsWith(excludedPath)) {
-					collectedViews.remove(collectedView);
-				}
-			}
-		}
+		collectedViews.keySet().removeIf(collectedView -> excludedPaths.stream().anyMatch(collectedView::startsWith));
 
 		if (!collectedViews.isEmpty()) {
-			servletContext.setAttribute(MAPPED_RESOURCES, unmodifiableMap(collectedViews));
-			Map<String, String> reverseMappedResources = new HashMap<>();
-			Set<String> multiViewsResources = new HashSet<>();
-			for (Entry<String, String> collectedView : collectedViews.entrySet()) {
-				if (ResourcePaths.isExtensionless(collectedView.getKey())) {
-					reverseMappedResources.put(collectedView.getKey(), collectedView.getValue());
-				}
-				if (collectedView.getKey().endsWith("/*")) {
-					multiViewsResources.add(collectedView.getKey().substring(0, collectedView.getKey().length() - 2));
+			if (isLowercasedRequestURI(servletContext)) {
+				for (Entry<String, String> mapping : new HashSet<>(collectedViews.entrySet())) {
+					String resourceName = mapping.getKey();
+					String lowercasedResourceName = resourceName.toLowerCase();
+
+					if (!resourceName.equals(lowercasedResourceName)) {
+						collectedViews.put(lowercasedResourceName, mapping.getValue());
+
+						if (isExtensionless(resourceName)) {
+							collectedViews.remove(resourceName);
+						}
+						else {
+							mapping.setValue(null);
+						}
+					}
 				}
 			}
-			servletContext.setAttribute(REVERSE_MAPPED_RESOURCES, unmodifiableMap(reverseMappedResources));
-			servletContext.setAttribute(MULTIVIEWS_RESOURCES, unmodifiableSet(multiViewsResources));
+
+			servletContext.setAttribute(MAPPED_RESOURCES, unmodifiableMap(collectedViews));
+			servletContext.setAttribute(REVERSE_MAPPED_RESOURCES, unmodifiableMap(collectedViews.entrySet().stream()
+				.filter(e -> isExtensionless(e.getKey())).collect(toMap(Entry::getValue, Entry::getKey, (l, r) -> l))));
+			servletContext.setAttribute(MULTIVIEWS_RESOURCES, unmodifiableSet(collectedViews.keySet().stream()
+				.filter(k -> k.endsWith("/*")).map(v -> v.substring(0, v.length() - 2)).collect(toSet())));
 			servletContext.setAttribute(EXCLUDED_PATHS, unmodifiableSet(excludedPaths));
 
 			if (collectExtensions) {
@@ -441,9 +436,9 @@ public final class FacesViews {
 		URL webXml;
 
 		try {
-			webXml = servletContext.getResource("/WEB-INF/web.xml");
+			webXml = Servlets.getWebXmlURL(servletContext);
 		}
-		catch (MalformedURLException e) {
+		catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
 
@@ -451,11 +446,7 @@ public final class FacesViews {
 
 		for (String welcomeFile : getNodeTextContents(webXml, "welcome-file-list/welcome-file")) {
 			if (isExtensionless(welcomeFile)) {
-				if (!welcomeFile.startsWith("/")) {
-					welcomeFile = "/" + welcomeFile;
-				}
-
-				mappedWelcomeFiles.add(stripTrailingSlash(welcomeFile));
+				mappedWelcomeFiles.add(addLeadingSlashIfNecessary(stripTrailingSlash(welcomeFile)));
 			}
 		}
 
@@ -520,7 +511,7 @@ public final class FacesViews {
 			for (String[] rootPathAndExtension : getRootPathsAndExtensions(servletContext)) {
 				String rootPath = rootPathAndExtension[0];
 
-				if (!"/".equals(rootPath) && !isExcludePath(rootPath) && !startsWithOneOf(rootPath, RESTRICTED_DIRECTORIES)) {
+				if (!isRoot(rootPath) && !isExcludePath(rootPath) && !startsWithOneOf(rootPath, RESTRICTED_DIRECTORIES)) {
 					publicRootPaths.add(rootPath);
 				}
 			}
@@ -604,18 +595,8 @@ public final class FacesViews {
 	}
 
 	private static String normalizeRootPath(String rootPath) {
-		String normalizedPath = rootPath;
 		boolean excludePath = isExcludePath(rootPath);
-
-		if (!normalizedPath.substring(excludePath ? 1 : 0).startsWith("/")) {
-			normalizedPath = "/" + (excludePath ? "!" : "") + normalizedPath;
-		}
-
-		if (!normalizedPath.endsWith("/")) {
-			normalizedPath = normalizedPath + "/";
-		}
-
-		return normalizedPath;
+		return addTrailingSlashIfNecessary((excludePath ? "!" : "") + addLeadingSlashIfNecessary(rootPath.substring(excludePath ? 1 : 0)));
 	}
 
 	private static boolean isExcludePath(String rootPath) {
@@ -623,7 +604,7 @@ public final class FacesViews {
 	}
 
 	private static boolean canScanDirectory(String rootPath, String directory) {
-		if (!"/".equals(rootPath)) {
+		if (!isRoot(rootPath)) {
 			// If a user has explicitly asked for scanning anything other than /, every sub directory of it can be scanned.
 			return true;
 		}
@@ -639,12 +620,10 @@ public final class FacesViews {
 	}
 
 	private static boolean isMultiViewsResource(ServletContext servletContext, String resource) {
-		Set<String> multiviewsPaths = getApplicationAttribute(servletContext, MULTIVIEWS_PATHS);
-
-		if (multiviewsPaths != null) {
+		if (isMultiViewsEnabled(servletContext)) {
 			String path = resource + "/";
 
-			for (String multiviewsPath : multiviewsPaths) {
+			for (String multiviewsPath : getMultiViewsPaths(servletContext)) {
 				if (path.startsWith(multiviewsPath)) {
 					return true;
 				}
@@ -669,10 +648,6 @@ public final class FacesViews {
 		return getEnumInitParameter(servletContext, FACES_VIEWS_PATH_ACTION_PARAM_NAME, PathAction.class, SEND_404);
 	}
 
-	static FacesServletDispatchMethod getFacesServletDispatchMethod(ServletContext servletContext) {
-		return getEnumInitParameter(servletContext, FACES_VIEWS_DISPATCH_METHOD_PARAM_NAME, FacesServletDispatchMethod.class, DO_FILTER);
-	}
-
 	static boolean isResourceInPublicPath(ServletContext servletContext, String resource) {
 		for (String path : getPublicRootPaths(servletContext)) {
 			if (resource.startsWith(path)) {
@@ -686,7 +661,7 @@ public final class FacesViews {
 	/**
 	 * Obtains the full request URL from the given request and the given resource complete with the query string,
 	 * but with the extension (if any) cut out.
-	 * E.g. <code>http://localhost/foo/bar.xhtml?kaz=1</code> becomes <code>http://localhost/foo/bar?kaz=1</code>
+	 * E.g. <code>https://example.com/foo/bar.xhtml?kaz=1</code> becomes <code>https://example.com/foo/bar?kaz=1</code>
 	 */
 	static String getExtensionlessURLWithQuery(HttpServletRequest request, String resource) {
 		String queryString = (request.getQueryString() == null) ? "" : ("?" + request.getQueryString());
@@ -718,8 +693,8 @@ public final class FacesViews {
 		return isEmpty(alwaysExtensionless) || parseBoolean(alwaysExtensionless);
 	}
 
-	static ViewHandlerMode getViewHandlerMode(ServletContext servletContext) {
-		return getEnumInitParameter(servletContext, FACES_VIEWS_VIEW_HANDLER_MODE_PARAM_NAME, ViewHandlerMode.class, STRIP_EXTENSION_FROM_PARENT);
+	static boolean isLowercasedRequestURI(ServletContext servletContext) {
+		return parseBoolean(servletContext.getInitParameter(FACES_VIEWS_LOWERCASED_REQUEST_URI_PARAM_NAME));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -742,7 +717,7 @@ public final class FacesViews {
 	}
 
 
-	// Helpers for FacesViewsResolver ---------------------------------------------------------------------------------
+	// Helpers for FacesViewsResourceHandler --------------------------------------------------------------------------
 
 	static String getMappedPath(String path) {
 		Map<String, String> mappedResources = getMappedResources(getServletContext());
@@ -848,32 +823,38 @@ public final class FacesViews {
 		return isMultiViewsEnabled(request.getServletContext(), resource);
 	}
 
-	private static boolean isMultiViewsEnabled(ServletContext servletContext, String resource) {
+	/**
+	 * Returns whether MultiViews feature is enabled on the given resource.
+	 * @param servletContext The involved servlet context.
+	 * @param resource The resource.
+	 * @return Whether MultiViews feature is enabled on the given resource.
+	 * @since 3.6
+	 */
+	public static boolean isMultiViewsEnabled(ServletContext servletContext, String resource) {
 		if (!isMultiViewsEnabled(servletContext)) {
 			return false;
 		}
 
+		String extensionlessResource = stripExtension(resource);
 		Set<String> excludedPaths = getExcludedPaths(servletContext);
 
 		if (!isEmpty(excludedPaths)) {
-			String path = resource + "/";
+			String path = extensionlessResource + "/";
 
-			for (String excludedPath : excludedPaths) {
-				if (path.startsWith(excludedPath)) {
-					return false;
-				}
+			if (excludedPaths.stream().anyMatch(path::startsWith)) {
+				return false;
 			}
 		}
 
 		Set<String> multiViewsResources = getMultiViewsResources(servletContext);
 
-		if (multiViewsResources != null && multiViewsResources.contains(resource)) {
+		if (multiViewsResources != null && multiViewsResources.contains(extensionlessResource)) {
 			return true;
 		}
 
 		Map<String, String> mappedResources = getMappedResources(servletContext);
 
-		if (mappedResources != null && mappedResources.containsKey(resource)) {
+		if (mappedResources != null && mappedResources.containsKey(extensionlessResource)) {
 			return false;
 		}
 
@@ -890,7 +871,7 @@ public final class FacesViews {
 	public static String stripWelcomeFilePrefix(ServletContext servletContext, String resource) {
 		for (String mappedWelcomeFile : getMappedWelcomeFiles(servletContext)) {
 			if (resource.endsWith(mappedWelcomeFile)) {
-				return resource.substring(0, resource.length() - mappedWelcomeFile.length()) + "/";
+				return addTrailingSlashIfNecessary(resource.substring(0, resource.length() - mappedWelcomeFile.length()));
 			}
 		}
 

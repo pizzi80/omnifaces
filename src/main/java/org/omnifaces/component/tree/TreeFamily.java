@@ -39,7 +39,7 @@ public abstract class TreeFamily extends UIComponentBase {
 	 * The base constructor sets the renderer type to <code>null</code> as the components of the Tree family does not
 	 * render anything by themselves.
 	 */
-	public TreeFamily() {
+	protected TreeFamily() {
 		setRendererType(null);
 	}
 
@@ -104,7 +104,7 @@ public abstract class TreeFamily extends UIComponentBase {
 	 * Validate the component hierarchy. This should only be called when project stage is <code>Development</code>.
 	 * @throws IllegalStateException When component hierarchy is wrong.
 	 */
-	protected abstract void validateHierarchy() throws IllegalStateException;
+	protected abstract void validateHierarchy();
 
 	/**
 	 * Process the component according to the rules of the given phase ID.

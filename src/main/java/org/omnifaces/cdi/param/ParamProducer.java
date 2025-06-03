@@ -14,9 +14,12 @@ package org.omnifaces.cdi.param;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
+import static javax.faces.component.UIInput.EMPTY_STRING_AS_NULL_PARAM_NAME;
 import static javax.faces.validator.BeanValidator.DISABLE_DEFAULT_BEAN_VALIDATOR_PARAM_NAME;
 import static org.omnifaces.util.Beans.getQualifier;
-import static org.omnifaces.util.Components.setLabel;
+import static org.omnifaces.util.Components.LABEL_ATTRIBUTE;
+import static org.omnifaces.util.Components.VALUE_ATTRIBUTE;
+import static org.omnifaces.util.Components.createValueExpression;
 import static org.omnifaces.util.Faces.createConverter;
 import static org.omnifaces.util.Faces.createValidator;
 import static org.omnifaces.util.Faces.evaluateExpressionGet;
@@ -26,16 +29,17 @@ import static org.omnifaces.util.FacesLocal.getMessageBundle;
 import static org.omnifaces.util.FacesLocal.getRequestParameterValues;
 import static org.omnifaces.util.FacesLocal.getRequestPathInfo;
 import static org.omnifaces.util.Messages.createError;
-import static org.omnifaces.util.Platform.isBeanValidationAvailable;
-import static org.omnifaces.util.Platform.validateBeanProperty;
 import static org.omnifaces.util.Reflection.setPropertiesWithCoercion;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.containsByClassName;
 import static org.omnifaces.util.Utils.getDefaultValue;
 import static org.omnifaces.util.Utils.isEmpty;
+import static org.omnifaces.util.Validators.isBeanValidationAvailable;
+import static org.omnifaces.util.Validators.validateBeanProperty;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -44,9 +48,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 
+import javax.el.ValueExpression;
 import javax.enterprise.context.Dependent;
 import javax.enterprise.inject.Produces;
+import javax.enterprise.inject.spi.AnnotatedParameter;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.faces.application.Application;
 import javax.faces.application.FacesMessage;
@@ -60,6 +68,7 @@ import javax.faces.validator.RequiredValidator;
 import javax.faces.validator.Validator;
 import javax.faces.validator.ValidatorException;
 import javax.inject.Inject;
+import javax.validation.ConstraintViolation;
 
 import org.omnifaces.cdi.Param;
 
@@ -70,6 +79,7 @@ import org.omnifaces.cdi.Param;
  * @author Arjan Tijms
  */
 @Dependent
+@SuppressWarnings({"rawtypes", "unchecked"}) // For now.
 public class ParamProducer {
 
 	private static final String DEFAULT_REQUIRED_MESSAGE = "{0}: Value is required";
@@ -85,31 +95,75 @@ public class ParamProducer {
 	public <V> ParamValue<V> produce(InjectionPoint injectionPoint) {
 		Param param = getQualifier(injectionPoint, Param.class);
 		String name = getName(param, injectionPoint);
-		int pathIndex = param.pathIndex();
 		String label = getLabel(param, injectionPoint);
+		Type type = getType(injectionPoint);
+
+		FacesContext context = FacesContext.getCurrentInstance();
+		String[] submittedValues = param.pathIndex() > -1 ? getPathParameter(context, param.pathIndex()) : getSubmittedValues(context, name);
+		Class<?> sourceType = getSourceType(type);
+		Class<V> targetType = getTargetType(type);
+		ParamValue<V> paramValue = new ParamValue<>(param, name, label, sourceType, submittedValues, targetType);
+		Object[] convertedValues = getConvertedValues(context, paramValue);
+		V value = coerceValues(sourceType, convertedValues);
+		paramValue.setValue(validateValues(context, paramValue, convertedValues, value, injectionPoint) ? value : null);
+
+		return paramValue;
+	}
+
+	private static String getName(Param requestParameter, InjectionPoint injectionPoint) {
+		String name = requestParameter.name();
+
+		if (isEmpty(name)) {
+			if (injectionPoint.getAnnotated() instanceof AnnotatedParameter) {
+				AnnotatedParameter<?> annotatedParameter = (AnnotatedParameter<?>) injectionPoint.getAnnotated();
+				Parameter javaParameter = annotatedParameter.getJavaParameter();
+
+				if (javaParameter.isNamePresent()) {
+					return javaParameter.getName();
+				}
+			}
+
+			name = injectionPoint.getMember().getName();
+		}
+		else {
+			name = evaluateExpressionAsString(name);
+		}
+
+		return name;
+	}
+
+	private static String getLabel(Param requestParameter, InjectionPoint injectionPoint) {
+		String label = requestParameter.label();
+
+		if (isEmpty(label)) {
+			label = getName(requestParameter, injectionPoint);
+		}
+		else {
+			label = evaluateExpressionAsString(label);
+		}
+
+		return label;
+	}
+
+	private static Type getType(InjectionPoint injectionPoint) {
 		Type type = injectionPoint.getType();
 
 		if (type instanceof ParameterizedType && ParamValue.class.isAssignableFrom((Class<?>) ((ParameterizedType) type).getRawType())) {
 			type = ((ParameterizedType) type).getActualTypeArguments()[0];
 		}
 
-		FacesContext context = FacesContext.getCurrentInstance();
-		String[] submittedValues = pathIndex > -1 ? getPathParameter(context, pathIndex) : getRequestParameterValues(context, name);
-		Object[] convertedValues = getConvertedValues(context, param, label, submittedValues, type);
-		V paramValue = coerceValues(type, convertedValues);
-
-		if (!validateValues(context, param, label, submittedValues, convertedValues, paramValue, injectionPoint)) {
-			paramValue = null;
-		}
-
-		return new ParamValue<>(submittedValues, param, type, paramValue);
+		return type;
 	}
 
 	private static String[] getPathParameter(FacesContext context, int pathIndex) {
 		String pathInfo = getRequestPathInfo(context);
 
-		if (pathInfo != null) {
-			String[] pathParts = pathInfo.substring(1).split("/");
+		if (!isEmpty(pathInfo)) {
+			if (pathInfo.charAt(0) == '/') {
+				pathInfo = pathInfo.substring(1);
+			}
+
+			String[] pathParts = pathInfo.split("/");
 
 			if (pathIndex < pathParts.length) {
 				return new String[] { pathParts[pathIndex] };
@@ -119,40 +173,46 @@ public class ParamProducer {
 		return null;
 	}
 
-	static Object[] getConvertedValues(FacesContext context, Param param, String label, String[] submittedValues, Type type) {
-		if (submittedValues == null) {
+	private static String[] getSubmittedValues(FacesContext context, String name) {
+		String[] requestParameterValues = getRequestParameterValues(context, name);
+
+		if (requestParameterValues == null) {
 			return null;
 		}
 
-		Object[] convertedValues = new Object[submittedValues.length];
-		UIComponent component = context.getViewRoot();
-		Object originalLabel = component.getAttributes().get("label");
-		boolean valid = true;
+		String[] submittedValues = new String[requestParameterValues.length];
 
-		try {
-			setLabel(component, label);
-			Converter converter = getConverter(param, getTargetType(type));
+		for (int i = 0; i < requestParameterValues.length; i++) {
+			String requestParameterValue = requestParameterValues[i];
 
-			for (int i = 0; i < submittedValues.length; i++) {
-				String submittedValue = submittedValues[i];
-
-				if (submittedValue != null && interpretEmptyStringSubmittedValuesAsNull(context) && submittedValue.isEmpty()) {
-					submittedValue = null;
-					submittedValues[i] = null;
-				}
-
-				try {
-					convertedValues[i] = (converter != null) ? converter.getAsObject(context, component, submittedValue) : submittedValue;
-				}
-				catch (ConverterException e) {
-					valid = false;
-					addConverterMessage(context, component, label, submittedValue, e, getConverterMessage(param));
-				}
+			if (requestParameterValue != null && requestParameterValue.isEmpty() && interpretEmptyStringSubmittedValuesAsNull(context)) {
+				submittedValues[i] = null;
+			}
+			else {
+				submittedValues[i] = requestParameterValue;
 			}
 		}
-		finally {
-			setLabel(component, originalLabel);
+
+		return submittedValues;
+	}
+
+	private static boolean interpretEmptyStringSubmittedValuesAsNull(FacesContext context) {
+		if (interpretEmptyStringSubmittedValuesAsNull != null) {
+			return interpretEmptyStringSubmittedValuesAsNull;
 		}
+
+		interpretEmptyStringSubmittedValuesAsNull = parseBoolean(context.getExternalContext().getInitParameter(EMPTY_STRING_AS_NULL_PARAM_NAME));
+
+		return interpretEmptyStringSubmittedValuesAsNull;
+	}
+
+	static Object[] getConvertedValues(FacesContext context, ParamValue paramValue) {
+		if (paramValue.submittedValues == null) {
+			return null;
+		}
+
+		Object[] convertedValues = new Object[paramValue.submittedValues.length];
+		boolean valid = runWithSimulatedLabelAndValueOnViewRoot(context, paramValue, () -> invokeConverter(context, paramValue, convertedValues));
 
 		if (!valid) {
 			context.validationFailed();
@@ -162,39 +222,87 @@ public class ParamProducer {
 		return convertedValues;
 	}
 
-	private static boolean interpretEmptyStringSubmittedValuesAsNull(FacesContext context) {
-		if (interpretEmptyStringSubmittedValuesAsNull != null) {
-			return interpretEmptyStringSubmittedValuesAsNull;
+	private static boolean invokeConverter(FacesContext context, ParamValue paramValue, Object[] convertedValues) {
+		boolean valid = true;
+		Converter converter = getConverter(paramValue);
+
+		for (int i = 0; i < paramValue.submittedValues.length; i++) {
+			String submittedValue = paramValue.submittedValues[i];
+
+			try {
+				convertedValues[i] = (converter != null) ? converter.getAsObject(context, context.getViewRoot(), submittedValue) : submittedValue;
+			}
+			catch (ConverterException e) {
+				valid = false;
+				addConverterMessage(context, context.getViewRoot(), paramValue.label, submittedValue, e, getConverterMessage(paramValue.param));
+			}
 		}
 
-		interpretEmptyStringSubmittedValuesAsNull = parseBoolean(context.getExternalContext()
-			.getInitParameter("javax.faces.INTERPRET_EMPTY_STRING_SUBMITTED_VALUES_AS_NULL"));
-
-		return interpretEmptyStringSubmittedValuesAsNull;
+		return valid;
 	}
 
-	@SuppressWarnings("unchecked")
-	static <V> V coerceValues(Type type, Object... values) {
-		if (type instanceof ParameterizedType) {
-			return coerceValues(((ParameterizedType) type).getRawType(), values);
+	private static Converter getConverter(ParamValue paramValue) {
+		Object classIdentifier = paramValue.param.converterClass() == Converter.class ? paramValue.targetType : paramValue.param.converterClass();
+		Converter converter = createConverter(coalesce(evaluateExpressionGet(paramValue.param.converter()), classIdentifier));
+
+		if (converter != null) {
+			setPropertiesWithCoercion(converter, getConverterAttributes(paramValue.param));
 		}
 
-		if (!(type instanceof Class)) {
-			return null;
-		}
+		return converter;
+	}
 
-		Class<?> cls = (Class<?>) type;
+	private static boolean runWithSimulatedLabelAndValueOnViewRoot(FacesContext context, ParamValue paramValue, BooleanSupplier callback) {
+		UIComponent component = context.getViewRoot();
+		Object originalLabel = getAttribute(component, LABEL_ATTRIBUTE);
+		Object originalValue = getAttribute(component, VALUE_ATTRIBUTE);
+
+		try {
+			setAttribute(component, LABEL_ATTRIBUTE, paramValue.label);
+			setAttribute(component, VALUE_ATTRIBUTE, createValueExpression("#{param['" + paramValue.name + "']}", paramValue.targetType)); // This gives any converter the opportunity to inspect the target type.
+			return callback.getAsBoolean();
+		}
+		finally {
+			setAttribute(component, LABEL_ATTRIBUTE, originalLabel);
+			setAttribute(component, VALUE_ATTRIBUTE, originalValue);
+		}
+	}
+
+	private static Object getAttribute(UIComponent component, String name) {
+		ValueExpression valueExpression = component.getValueExpression(name);
+
+		if (valueExpression != null) {
+			return valueExpression;
+		}
+		else {
+			return component.getAttributes().get(name);
+		}
+	}
+
+	private static void setAttribute(UIComponent component, String name, Object value) {
+		if (value instanceof ValueExpression) {
+			component.setValueExpression(name, (ValueExpression) value);
+		}
+		else if (value != null) {
+			component.getAttributes().put(name, value);
+		}
+		else {
+			component.getAttributes().remove(name);
+		}
+	}
+
+	static <V> V coerceValues(Class<?> sourceType, Object... values) {
 		Object coercedValue = null;
 
 		if (values != null) {
-			if (cls.isArray()) {
-				coercedValue = Array.newInstance(cls.getComponentType(), values.length);
+			if (sourceType.isArray()) {
+				coercedValue = Array.newInstance(sourceType.getComponentType(), values.length);
 
 				for (int i = 0; i < values.length; i++) {
-					Array.set(coercedValue, i, coerceValues(cls.getComponentType(), values[i]));
+					Array.set(coercedValue, i, coerceValues(sourceType.getComponentType(), values[i]));
 				}
 			}
-			else if (List.class.isAssignableFrom(cls)) {
+			else if (List.class.isAssignableFrom(sourceType)) {
 				coercedValue = asList(values);
 			}
 			else {
@@ -203,33 +311,14 @@ public class ParamProducer {
 		}
 
 		if (coercedValue == null) {
-			coercedValue = getDefaultValue(cls);
+			coercedValue = getDefaultValue(sourceType);
 		}
 
 		return (V) coercedValue;
 	}
 
-	private static <V> boolean validateValues(FacesContext context, Param param, String label, String[] submittedValues, Object[] convertedValues, V paramValue, InjectionPoint injectionPoint) {
-		boolean valid = true;
-
-		UIComponent component = context.getViewRoot();
-		Object originalLabel = component.getAttributes().get("label");
-
-		try {
-			setLabel(component, label);
-			valid = validateRequired(context, param, label, convertedValues);
-
-			if (valid) {
-				valid = validateBean(context, param, label, paramValue, injectionPoint);
-			}
-
-			if (valid && convertedValues != null) {
-				valid = validateFaces(context, param, label, convertedValues, submittedValues);
-			}
-		}
-		finally {
-			setLabel(component, originalLabel);
-		}
+	private static <V> boolean validateValues(FacesContext context, ParamValue paramValue, Object[] convertedValues, V value, InjectionPoint injectionPoint) {
+		boolean valid = runWithSimulatedLabelAndValueOnViewRoot(context, paramValue, () -> invokeValidators(context, paramValue, convertedValues, value, injectionPoint));
 
 		if (!valid) {
 			context.validationFailed();
@@ -238,22 +327,36 @@ public class ParamProducer {
 		return valid;
 	}
 
-	private static boolean validateRequired(FacesContext context, Param param, String label, Object[] convertedValues) {
-		if (param.required() && isEmpty(convertedValues)) {
-			addRequiredMessage(context, context.getViewRoot(), label, getRequiredMessage(param));
+	private static <V> boolean invokeValidators(FacesContext context, ParamValue paramValue, Object[] convertedValues, V value, InjectionPoint injectionPoint) {
+		boolean valid = validateRequired(context, paramValue, convertedValues);
+
+		if (valid) {
+			valid = validateBean(context, paramValue, value, injectionPoint);
+		}
+
+		if (valid && convertedValues != null) {
+			valid = validateFaces(context, paramValue, convertedValues);
+		}
+
+		return valid;
+	}
+
+	private static boolean validateRequired(FacesContext context, ParamValue paramValue, Object[] convertedValues) {
+		if (paramValue.param.required() && (isEmpty(convertedValues) || asList(convertedValues).contains(null))) {
+			addRequiredMessage(context, context.getViewRoot(), paramValue.label, getRequiredMessage(paramValue.param));
 			return false;
 		}
 
 		return true;
 	}
 
-	private static <V> boolean validateBean(FacesContext context, Param param, String label, V paramValue, InjectionPoint injectionPoint) {
-		if (shouldDoBeanValidation(param, injectionPoint)) {
-			Map<String, String> violations = doBeanValidation(paramValue, injectionPoint);
+	private static <V> boolean validateBean(FacesContext context, ParamValue paramValue, V value, InjectionPoint injectionPoint) {
+		if (shouldDoBeanValidation(paramValue.param, injectionPoint)) {
+			Set<ConstraintViolation<?>> violations = doBeanValidation(value, injectionPoint);
 
 			if (!violations.isEmpty()) {
-				for (String message : violations.values()) {
-					context.addMessage(context.getViewRoot().getClientId(context), createError(message, label));
+				for (ConstraintViolation<?> violation : violations) {
+					context.addMessage(context.getViewRoot().getClientId(context), createError(violation.getMessage(), paramValue.label));
 				}
 
 				return false;
@@ -263,10 +366,10 @@ public class ParamProducer {
 		return true;
 	}
 
-	private static boolean validateFaces(FacesContext context, Param param, String label, Object[] convertedValues, String[] submittedValues) {
+	private static boolean validateFaces(FacesContext context, ParamValue paramValue, Object[] convertedValues) {
 		boolean valid = true;
 
-		for (Validator validator : getValidators(param)) {
+		for (Validator validator : getValidators(paramValue.param)) {
 			int i = 0;
 
 			for (Object convertedValue : convertedValues) {
@@ -274,7 +377,7 @@ public class ParamProducer {
 					validator.validate(context, context.getViewRoot(), convertedValue);
 				}
 				catch (ValidatorException e) {
-					addValidatorMessages(context, context.getViewRoot(), label, submittedValues[i], e, getValidatorMessage(param));
+					addValidatorMessages(context, context.getViewRoot(), paramValue.label, paramValue.submittedValues[i], e, getValidatorMessage(paramValue.param));
 					valid = false;
 				}
 
@@ -285,19 +388,16 @@ public class ParamProducer {
 		return valid;
 	}
 
-	private static Converter getConverter(Param requestParameter, Class<?> targetType) {
-		Class<?> classIdentifier = requestParameter.converterClass() == Converter.class ? targetType : requestParameter.converterClass();
-		Converter converter = createConverter(coalesce(evaluateExpressionGet(requestParameter.converter()), classIdentifier));
-
-		if (converter != null) {
-			setPropertiesWithCoercion(converter, getConverterAttributes(requestParameter));
+	static Class<?> getSourceType(Type type) {
+		if (type instanceof ParameterizedType) {
+			return (Class<?>) ((ParameterizedType) type).getRawType();
 		}
-
-		return converter;
+		else {
+			return (Class<?>) type;
+		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private static <V> Class<V> getTargetType(Type type) {
+	static <V> Class<V> getTargetType(Type type) {
 		if (type instanceof Class && ((Class<?>) type).isArray()) {
 			return (Class<V>) ((Class<?>) type).getComponentType();
 		}
@@ -307,32 +407,6 @@ public class ParamProducer {
 		else {
 			return (Class<V>) type;
 		}
-	}
-
-	private static String getName(Param requestParameter, InjectionPoint injectionPoint) {
-
-		String name = requestParameter.name();
-
-		if (isEmpty(name)) {
-			name = injectionPoint.getMember().getName();
-		} else {
-			name = evaluateExpressionAsString(name);
-		}
-
-		return name;
-	}
-
-	private static String getLabel(Param requestParameter, InjectionPoint injectionPoint) {
-
-		String label = requestParameter.label();
-
-		if (isEmpty(label)) {
-			label = getName(requestParameter, injectionPoint);
-		} else {
-			label = evaluateExpressionAsString(label);
-		}
-
-		return label;
 	}
 
 	private static String getValidatorMessage(Param requestParameter) {
@@ -348,7 +422,6 @@ public class ParamProducer {
 	}
 
 	private static String evaluateExpressionAsString(String expression) {
-
 		if (isEmpty(expression)) {
 			return expression;
 		}
@@ -383,8 +456,7 @@ public class ParamProducer {
 		return isBeanValidationAvailable();
 	}
 
-	private static <V> Map<String, String> doBeanValidation(V paramValue, InjectionPoint injectionPoint) {
-
+	private static <V> Set<ConstraintViolation<?>> doBeanValidation(V value, InjectionPoint injectionPoint) {
 		Class<?> base = injectionPoint.getBean().getBeanClass();
 		String property = injectionPoint.getMember().getName();
 		Type type = injectionPoint.getType();
@@ -392,12 +464,12 @@ public class ParamProducer {
 		// Check if the target property in which we are injecting in our special holder/wrapper type
 		// ParamValue or not. If it's the latter, pre-wrap our value (otherwise types for bean validation
 		// would not match)
-		Object valueToValidate = paramValue;
+		Object valueToValidate = value;
 
 		if (type instanceof ParameterizedType) {
 			Type propertyRawType = ((ParameterizedType) type).getRawType();
 			if (propertyRawType.equals(ParamValue.class)) {
-				valueToValidate = new ParamValue<>(null, null, null, paramValue);
+				valueToValidate = new ParamValue<>(value);
 			}
 		}
 
@@ -405,11 +477,11 @@ public class ParamProducer {
 	}
 
 	private static List<Validator> getValidators(Param requestParameter) {
-
 		List<Validator> validators = new ArrayList<>();
 
 		for (String validatorIdentifier : requestParameter.validators()) {
-			Validator validator = createValidator(evaluateExpressionGet(validatorIdentifier));
+			Object evaluatedValidatorIdentifier = evaluateExpressionGet(validatorIdentifier);
+			Validator validator = createValidator(evaluatedValidatorIdentifier);
 
 			if (validator != null) {
 				validators.add(validator);
@@ -425,8 +497,8 @@ public class ParamProducer {
 		}
 
 		// Process the default validators
-
 		Application application = getApplication();
+
 		for (Entry<String, String> validatorEntry :	application.getDefaultValidatorInfo().entrySet()) {
 
 			String validatorID = validatorEntry.getKey();
@@ -442,6 +514,7 @@ public class ParamProducer {
 		// Set the attributes on all instantiated validators. We don't distinguish here
 		// which attribute should go to which validator.
 		Map<String, Object> validatorAttributes = getValidatorAttributes(requestParameter);
+
 		for (Validator validator : validators) {
 			setPropertiesWithCoercion(validator, validatorAttributes);
 		}
@@ -450,7 +523,6 @@ public class ParamProducer {
 	}
 
 	private static Map<String, Object> getConverterAttributes(Param requestParameter) {
-
 		Map<String, Object> attributeMap = new HashMap<>();
 
 		Attribute[] attributes = requestParameter.converterAttributes();
@@ -462,7 +534,6 @@ public class ParamProducer {
 	}
 
 	private static Map<String, Object> getValidatorAttributes(Param requestParameter) {
-
 		Map<String, Object> attributeMap = new HashMap<>();
 
 		Attribute[] attributes = requestParameter.validatorAttributes();
@@ -478,8 +549,10 @@ public class ParamProducer {
 
 		if (!isEmpty(converterMessage)) {
 			message = createError(converterMessage, submittedValue, label);
-		} else {
+		}
+		else {
 			message = ce.getFacesMessage();
+
 			if (message == null) {
 				// If the converter didn't add a FacesMessage, set a generic one.
 				message = createError("Conversion failed for {0} because: {1}", submittedValue, ce.getMessage());
@@ -495,11 +568,13 @@ public class ParamProducer {
 
 		if (!isEmpty(requiredMessage)) {
 			message = createError(requiredMessage, null, label);
-		} else {
+		}
+		else {
 			// (Ab)use RequiredValidator to get the same message that all required attributes are using.
 			try {
 				new RequiredValidator().validate(context, component, null);
-			} catch (ValidatorException ve) {
+			}
+			catch (ValidatorException ve) {
 				message = ve.getFacesMessage();
 			}
 
@@ -515,12 +590,12 @@ public class ParamProducer {
 	}
 
 	private static void addValidatorMessages(FacesContext context, UIComponent component, String label, String submittedValue, ValidatorException ve, String validatorMessage) {
-
 		String clientId = component.getClientId(context);
 
 		if (!isEmpty(validatorMessage)) {
 			context.addMessage(clientId, createError(validatorMessage, submittedValue, label));
-		} else {
+		}
+		else {
 			for (FacesMessage facesMessage : getFacesMessages(ve)) {
 				context.addMessage(clientId, facesMessage);
 			}
@@ -529,9 +604,11 @@ public class ParamProducer {
 
 	private static List<FacesMessage> getFacesMessages(ValidatorException ve) {
 		List<FacesMessage> facesMessages = new ArrayList<>();
+
 		if (ve.getFacesMessages() != null) {
 			facesMessages.addAll(ve.getFacesMessages());
-		} else if (ve.getFacesMessage() != null) {
+		}
+		else if (ve.getFacesMessage() != null) {
 			facesMessages.add(ve.getFacesMessage());
 		}
 

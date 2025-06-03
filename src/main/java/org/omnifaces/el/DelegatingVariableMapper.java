@@ -19,6 +19,8 @@ import java.util.Objects;
 import javax.el.ValueExpression;
 import javax.el.VariableMapper;
 
+import org.omnifaces.util.Hacks;
+
 /**
  *
  * @author Arjan Tijms.
@@ -69,7 +71,22 @@ public class DelegatingVariableMapper extends VariableMapper {
 	}
 
 	public ValueExpression setWrappedVariable(String name, ValueExpression expression) {
-		return wrapped.setVariable(name, expression);
+		ValueExpression previous = wrapped.setVariable(name, expression);
+
+		if (expression == null) {
+			clearWrappedVariableMapperIfNecessary(wrapped, name);
+		}
+
+		return previous;
+	}
+
+	private static void clearWrappedVariableMapperIfNecessary(VariableMapper mapper, String name) {
+		VariableMapper wrapped = Hacks.findWrappedVariableMapper(mapper);
+
+		if (wrapped != null) {
+			wrapped.setVariable(name, null);
+			clearWrappedVariableMapperIfNecessary(wrapped, name);
+		}
 	}
 
 }

@@ -13,6 +13,7 @@
 package org.omnifaces.converter;
 
 import static java.util.regex.Pattern.quote;
+import static org.omnifaces.util.Components.VALUE_ATTRIBUTE;
 import static org.omnifaces.util.Faces.createConverter;
 import static org.omnifaces.util.Reflection.instance;
 import static org.omnifaces.util.Utils.coalesce;
@@ -70,7 +71,8 @@ import org.omnifaces.util.Faces;
  * @since 2.6
  */
 @FacesConverter("omnifaces.ToCollectionConverter")
-public class ToCollectionConverter extends TrimConverter {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public class ToCollectionConverter implements Converter<Collection> {
 
 	private static final String DEFAULT_DELIMITER = ",";
 	private static final String DEFAULT_SET_TYPE = "java.util.LinkedHashSet";
@@ -81,14 +83,14 @@ public class ToCollectionConverter extends TrimConverter {
 	private Object itemConverter;
 
 	@Override
-	public Object getAsObject(FacesContext context, UIComponent component, String submittedValue) {
+	public Collection getAsObject(FacesContext context, UIComponent component, String submittedValue) {
 		if (isEmpty(submittedValue)) {
 			return null;
 		}
 
 		String type = collectionType;
 		Converter converter = createConverter(itemConverter);
-		ValueExpression valueExpression = component.getValueExpression("value");
+		ValueExpression valueExpression = component.getValueExpression(VALUE_ATTRIBUTE);
 
 		if (valueExpression != null) {
 			Method getter = ExpressionInspector.getMethodReference(context.getELContext(), valueExpression).getMethod();
@@ -115,7 +117,7 @@ public class ToCollectionConverter extends TrimConverter {
 		Collection<Object> collection = instance(coalesce(type, DEFAULT_COLLECTION_TYPE));
 
 		for (String item : submittedValue.split(quote(coalesce(delimiter, DEFAULT_DELIMITER)))) {
-			String trimmed = (String) super.getAsObject(context, component, item);
+			String trimmed = item.trim();
 			collection.add(converter == null ? trimmed : converter.getAsObject(context, component, trimmed));
 		}
 
@@ -123,7 +125,7 @@ public class ToCollectionConverter extends TrimConverter {
 	}
 
 	@Override
-	public String getAsString(FacesContext context, UIComponent component, Object modelValue) {
+	public String getAsString(FacesContext context, UIComponent component, Collection modelValue) {
 		if (isEmpty(modelValue)) {
 			return "";
 		}
@@ -146,7 +148,7 @@ public class ToCollectionConverter extends TrimConverter {
 				converter = application.createConverter(forClass);
 			}
 
-			builder.append(converter == null ? super.getAsString(context, component, item) : converter.getAsString(context, component, item));
+			builder.append(converter == null ? coalesce(item, "") : converter.getAsString(context, component, item));
 		}
 
 		return builder.toString();

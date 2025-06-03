@@ -18,6 +18,10 @@
  */
 OmniFaces.Util = (function(window, document) {
 
+	// "Constant" fields ----------------------------------------------------------------------------------------------
+
+	var ERROR_MISSING_FORM = "OmniFaces: Cannot find a JSF form in the document. Please add one.";
+
 	// Private static fields ------------------------------------------------------------------------------------------
 
 	var self = {};
@@ -95,16 +99,69 @@ OmniFaces.Util = (function(window, document) {
 	self.resolveFunction = function(fn) {
 		return (typeof fn !== "function") && (fn = window[fn] || function(){}), fn;
 	}
+	
+	/**
+	 * Get the first JSF form containing view state param from the current document.
+	 * @return {HTMLFormElement} The first JSF form of the current document.
+	 */
+	self.getFacesForm = function() {
+		for (var i = 0; i < document.forms.length; i++) {
+			if (document.forms[i][OmniFaces.VIEW_STATE_PARAM]) {
+				return document.forms[i];
+			}
+		}
+
+		if ((!window.jsf || jsf.getProjectStage() == "Development") && window.console && console.error) {
+			console.error(ERROR_MISSING_FORM);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Update a parameter in given query string in application/x-www-url-encoded format.
+	 * @param {string} query The query string.
+	 * @param {string} name The name of the parameter to update. If it doesn't exist, then it will be added.
+	 * @param {string} value The value of the parameter to update. If it is falsey, then it will be removed.
+	 */
+	self.updateParameter = function(query, name, value) {
+		var re = new RegExp("(^|[?&#])" + name + "=.*?([&#]|$)", "i");
+
+		if (value) {
+			var parameter = name + "=" + encodeURIComponent(value);
+
+			if (!query) {
+				query = parameter;
+			}
+			else if (query.match(re)) {
+				query = query.replace(re, "$1" + parameter + "$2");
+			}
+			else {
+				query += "&" + parameter;
+			}
+		}
+		else {
+			query = query.replace(re, "$2");
+		}
+
+		if (query.charAt(0) == "&") {
+			query = query.substring(1);
+		}
+		
+		return query;
+	}
 
 	/**
 	 * Load a script.
 	 * @param {string} url Required; The URL of the script.
+	 * @param {string} crossorigin Optional; The crossorigin of the script. Defaults to "anonymous".
+	 * @param {string} integrity Optional; The integrity of the script. Defaults to "".
 	 * @param {function} begin Optional; Function to invoke before deferred script is loaded.
 	 * @param {function} success Optional; Function to invoke after deferred script is successfully loaded.
 	 * @param {function} error Optional; Function to invoke when loading of deferred script failed.
 	 * @param {function} complete Optional; Function to invoke after deferred script is loaded, regardless of its success/error outcome.
 	 */
-	self.loadScript = function(url, begin, success, error, complete) {
+	self.loadScript = function(url, crossorigin, integrity, begin, success, error, complete) {
 		var beginFunction = self.resolveFunction(begin);
 		var successFunction = self.resolveFunction(success);
 		var errorFunction = self.resolveFunction(error);
@@ -115,7 +172,8 @@ OmniFaces.Util = (function(window, document) {
 
 		script.async = true;
 		script.src = url;
-		script.setAttribute("crossorigin", "anonymous");
+		script.setAttribute("crossorigin", crossorigin || "anonymous");
+		script.setAttribute("integrity", integrity || "");
 
 		script.onerror = function() {
 			errorFunction();

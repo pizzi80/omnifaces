@@ -31,6 +31,7 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.servlet.ServletContext;
 
+import org.omnifaces.util.BeansLocal;
 import org.omnifaces.util.Utils;
 
 /**
@@ -132,7 +133,7 @@ public class EagerBeansRepository {
 		}
 
 		for (Bean<?> bean : beans) {
-			beanManager.getReference(bean, bean.getBeanClass(), beanManager.createCreationalContext(bean)).toString();
+			BeansLocal.getInstance(beanManager, bean, true).toString();
 		}
 
 		return true;
@@ -175,25 +176,11 @@ public class EagerBeansRepository {
 		}
 
 		private List<Bean<?>> getByViewId(String viewId) {
-			List<Bean<?>> beans = byViewId.get(viewId);
-
-			if (beans == null) {
-				beans = new ArrayList<>();
-				byViewId.put(viewId, beans);
-			}
-
-			return beans;
+			return byViewId.computeIfAbsent(viewId, k -> new ArrayList<>());
 		}
 
 		private List<Bean<?>> getByRequestURI(String requestURI) {
-			List<Bean<?>> beans = byRequestURI.get(requestURI);
-
-			if (beans == null) {
-				beans = new ArrayList<>();
-				byRequestURI.put(requestURI, beans);
-			}
-
-			return beans;
+			return byRequestURI.computeIfAbsent(requestURI, k -> new ArrayList<>());
 		}
 
 		public boolean isEmpty() {

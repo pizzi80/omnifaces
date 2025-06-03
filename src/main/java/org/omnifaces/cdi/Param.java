@@ -29,6 +29,7 @@ import javax.faces.convert.Converter;
 import javax.faces.validator.BeanValidator;
 import javax.faces.validator.RequiredValidator;
 import javax.faces.validator.Validator;
+import javax.inject.Inject;
 import javax.inject.Qualifier;
 
 import org.omnifaces.cdi.param.Attribute;
@@ -54,7 +55,7 @@ import org.omnifaces.util.Utils;
  * <p>
  * The example below injects the request parameter with name <code>foo</code>.
  * <pre>
- * &#64;Inject &#64;Param
+ * &#64;Param
  * private String foo;
  * </pre>
  * <p>
@@ -62,16 +63,25 @@ import org.omnifaces.util.Utils;
  * The name can be optionally specified via the <code>name</code> attribute. The example below injects the request
  * parameter with name <code>foo</code> into a variable named <code>bar</code>.
  * <pre>
- * &#64;Inject &#64;Param(name="foo")
+ * &#64;Param(name="foo")
  * private String bar;
  * </pre>
  * <p>
- * The <code>name</code> attribute is only mandatory when using constructor injection as there is no information about
- * constructor parameter names. The example below injects the request parameter with name <code>foo</code> as a
- * constructor parameter.
+ * The <code>name</code> attribute is only mandatory when using constructor injection in OmniFaces 3.5 or older as there
+ * is no information about constructor parameter names. The example below injects the request parameter with name
+ * <code>foo</code> as a constructor parameter.
  * <pre>
  * &#64;Inject
  * public Bean(&#64;Param(name="foo") String foo) {
+ *     // ...
+ * }
+ * </pre>
+ * <p>
+ * Since OmniFaces 3.6 it is not necessary anymore if the parameter has a name according to the class file as per
+ * <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Parameter.html#isNamePresent--"><code>Parameter#isNamePresent()</code></a>.
+ * <pre>
+ * &#64;Inject
+ * public Bean(&#64;Param String foo) {
  *     // ...
  * }
  * </pre>
@@ -81,10 +91,10 @@ import org.omnifaces.util.Utils;
  * Multi-valued parameters are also supported by specifying a {@link List} or array type. The support was added in
  * OmniFaces 2.4.
  * <pre>
- * &#64;Inject &#64;Param(name="foo")
+ * &#64;Param(name="foo")
  * private List&lt;String&gt; foos;
  *
- * &#64;Inject &#64;Param(name="bar")
+ * &#64;Param(name="bar")
  * private String[] bars;
  * </pre>
  *
@@ -92,10 +102,10 @@ import org.omnifaces.util.Utils;
  * <p>
  * Path parameters can be injected by specifying the <code>pathIndex</code> attribute representing the zero-based index
  * of the path parameter. The support was added in OmniFaces 2.5. On an example request
- * <code>http://example.com/mypage/firstname.lastname</code>, which is mapped to <code>/mypage.xhtml</code>, the below
+ * <code>https://example.com/mypage/firstname.lastname</code>, which is mapped to <code>/mypage.xhtml</code>, the below
  * example injects the path parameter <code>firstname.lastname</code>.
  * <pre>
- * &#64;Inject &#64;Param(pathIndex=0)
+ * &#64;Param(pathIndex=0)
  * private String user;
  * </pre>
  * <p>
@@ -107,27 +117,27 @@ import org.omnifaces.util.Utils;
  * or for which there's already a converter registered via <code>forClass</code>, can be injected without explicitly
  * specifying a converter.
  * <pre>
- * &#64;Inject &#64;Param
+ * &#64;Param
  * private Long id;
  * </pre>
  * <p>
  * Other types do need a converter. The following is an example of the injection of request parameter <code>user</code>
- * following a request such as <code>http://example.com/mypage?user=42</code>:
+ * following a request such as <code>https://example.com/mypage?user=42</code>:
  * <pre>
- * &#64;Inject &#64;Param(converter="userConverter", validator="priviledgedUser")
+ * &#64;Param(converter="userConverter", validator="priviledgedUser")
  * private User user;
  * </pre>
  * <p>
  * This also works on multi-valued parameters.
  * <pre>
- * &#64;Inject &#64;Param(name="user", converter="userConverter")
+ * &#64;Param(name="user", converter="userConverter")
  * private List&lt;User&gt; users;
  * </pre>
  * <p>
  * This also works on path parameters. The following is an example of the injection of path parameter <code>user</code>
- * following a request such as <code>http://example.com/mypage/42</code>:
+ * following a request such as <code>https://example.com/mypage/42</code>:
  * <pre>
- * &#64;Inject &#64;Param(pathIndex=0, converter="userConverter", validator="priviledgedUser")
+ * &#64;Param(pathIndex=0, converter="userConverter", validator="priviledgedUser")
  * private User user;
  * </pre>
  * <p>
@@ -137,6 +147,28 @@ import org.omnifaces.util.Utils;
  * <li>An EL expression returning the converter/validator ID string like so <code>converter="#{bean.converterId}"</code>.
  * <li>An EL expression returning the concrete converter/validator instance like so <code>converter="#{converterBean}"</code>.
  * </ul>
+ * <p>
+ * Instead of <code>converter</code> or <code>validator</code> you can also use <code>converterClass</code> or
+ * <code>validatorClass</code>:
+ * <pre>
+ * &#64;Param(converterClass=UserConverter.class, validatorClass=PriviledgedUser.class)
+ * private User user;
+ * </pre>
+ * <p>
+ * Note that this is <strong>ignored</strong> when <code>converter</code> or <code>validator</code> is also specified.
+ * <p>
+ * In case you want to specify converter or validator attributes, then you can use <code>converterAttributes</code> or
+ * <code>validatorAttributes</code> respectively. They accept an array of {@link Attribute} arguments whose value
+ * can be a string literal or an EL expression such as <code>value = "#{bean.property}"</code>.
+ * <pre>
+ * &#64;Param(
+ *     converterClass = DateTimeConverter.class,
+ *     converterAttributes = { &#64;Attribute(name = "pattern", value = "yyyyMMdd") },
+ *     converterMessage = "{1}: \"{0}\" is not the date format we had in mind! Please use the format yyyyMMdd.")
+ * private Date date;
+ * </pre>
+ * <p>
+ * Yes, you can use <code>converterMessage</code> and <code>validatorMessage</code> to customize the error message.
  * <p>
  * In case the converted parameter value is not serializable, while the managed bean is serializable, you could inject
  * it into a field of type {@link ParamValue}, with <code>V</code> the actual type of the converted parameter.
@@ -151,18 +183,37 @@ import org.omnifaces.util.Utils;
  * value. In both cases, the conversion and validation messages (if any) will be set in the JSF context then, and
  * {@link FacesContext#isValidationFailed()} will return <code>true</code>.
  *
+ * <h2>Historical note</h2>
+ * <p>
+ * Before OmniFaces 3.6, the <code>&#64;</code>{@link Param} which is not of type {@link ParamValue} also required
+ * <code>&#64;</code>{@link Inject} as in:
+ * <pre>
+ * &#64;Inject &#64;Param
+ * private String foo;
+ * </pre>
+ * <p>
+ * But this is not needed anymore since OmniFaces 3.6. This has the following advantages:
+ * <ul>
+ * <li>Less code
+ * <li>Not anymore confusing <em>"No bean is eligible for injection to the injection point [JSR-365 §5.2.2]"</em>
+ * warnings in IDEs like Eclipse (caused by the dynamic/generic type of the injection point).
+ * </ul>
+ * These will not anymore use the {@link DynamicParamValueProducer}. Instead the injection is "manually" done while
+ * creating the bean.
+ *
  * @since 1.6
  * @author Arjan Tijms
+ * @author Bauke Scholtz
  * @see ParamValue
  * @see Attribute
  * @see ParamExtension
  * @see ParamProducer
  * @see DynamicParamValueProducer
- *
  */
 @Qualifier
 @Retention(RUNTIME)
 @Target({ METHOD, FIELD, PARAMETER })
+@SuppressWarnings("rawtypes")
 public @interface Param {
 
 	/**

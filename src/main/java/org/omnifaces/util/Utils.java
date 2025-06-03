@@ -15,8 +15,9 @@ package org.omnifaces.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINEST;
 import static java.util.regex.Pattern.quote;
+import static org.omnifaces.util.FacesLocal.getRequestDomainURL;
 import static org.omnifaces.util.Reflection.toClassOrNull;
 import static org.omnifaces.util.Servlets.getSubmittedFileName;
 
@@ -29,9 +30,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
@@ -43,7 +49,21 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -55,16 +75,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
+import javax.faces.application.Resource;
+import javax.faces.context.FacesContext;
 import javax.servlet.http.Part;
-import javax.xml.bind.DatatypeConverter;
 
 /**
  * <p>
@@ -92,7 +117,6 @@ public final class Utils {
 	private static final String PATTERN_RFC1123_DATE = "EEE, dd MMM yyyy HH:mm:ss zzz";
 	private static final TimeZone TIMEZONE_GMT = TimeZone.getTimeZone("GMT");
 	private static final Pattern PATTERN_ISO639_ISO3166_LOCALE = Pattern.compile("[a-z]{2,3}(_[A-Z]{2})?");
-	private static final int BASE64_SEGMENT_LENGTH = 4;
 	private static final int UNICODE_3_BYTES = 0xfff;
 	private static final int UNICODE_2_BYTES = 0xff;
 	private static final int UNICODE_1_BYTE = 0xf;
@@ -101,6 +125,8 @@ public final class Utils {
 	private static final Map<Class<?>, Object> PRIMITIVE_DEFAULTS = collectPrimitiveDefaults();
 	private static final Map<Class<?>, Class<?>> PRIMITIVE_TYPES = collectPrimitiveTypes();
 	private static final String ERROR_UNSUPPORTED_ENCODING = "UTF-8 is apparently not supported on this platform.";
+	private static final String ERROR_UNSUPPORTED_DATE = "Only java.util.Date, java.util.Calendar and java.time.Temporal are supported.";
+	private static final String ERROR_UNSUPPORTED_TIMEZONE = "Only java.lang.String, java.util.TimeZone and java.time.ZoneId are supported.";
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -245,7 +271,7 @@ public final class Utils {
 			return Long.valueOf(string) != null;
 		}
 		catch (Exception ignore) {
-			logger.log(FINE, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
 			return false;
 		}
 	}
@@ -263,7 +289,7 @@ public final class Utils {
 			return Double.valueOf(string) != null;
 		}
 		catch (Exception ignore) {
-			logger.log(FINE, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
 			return false;
 		}
 	}
@@ -315,6 +341,23 @@ public final class Utils {
 	public static boolean startsWithOneOf(String string, String... prefixes) {
 		for (String prefix : prefixes) {
 			if (string.startsWith(prefix)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns <code>true</code> if the given string ends with one of the given suffixes.
+	 * @param string The object to be checked if it ends with one of the given suffixes.
+	 * @param suffixes The argument list of suffixes to be checked
+	 * @return <code>true</code> if the given string ends with one of the given suffixes.
+	 * @since 3.1
+	 */
+	public static boolean endsWithOneOf(String string, String... suffixes) {
+		for (String suffix : suffixes) {
+			if (string.endsWith(suffix)) {
 				return true;
 			}
 		}
@@ -486,9 +529,11 @@ public final class Utils {
 	}
 
 	/**
-	 * Returns <code>true</code> if the given object is serializable.
+	 * Returns <code>true</code> if the given object is guaranteed to be serializable. This does that by checking
+	 * whether {@link ObjectOutputStream#writeObject(Object)} on the given object doesn't throw an exception
+	 * rather than checking if the given object is an instance of {@link Serializable}.
 	 * @param object The object to be tested.
-	 * @return <code>true</code> if the given object is serializable.
+	 * @return <code>true</code> if the given object is guaranteed to be serializable.
 	 * @since 2.4
 	 */
 	public static boolean isSerializable(Object object) {
@@ -497,7 +542,7 @@ public final class Utils {
 			return true;
 		}
 		catch (IOException ignore) {
-			logger.log(FINE, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; the sole intent is to return false instead.", ignore);
 			return false;
 		}
 	}
@@ -680,6 +725,100 @@ public final class Utils {
 		return false;
 	}
 
+	/**
+	 * Returns a stream of given object. Supported types are:
+	 * <ul>
+	 * <li>{@link Iterable}
+	 * <li>{@link Map} (returns a stream of entryset)
+	 * <li><code>int[]</code>
+	 * <li><code>long[]</code>
+	 * <li><code>double[]</code>
+	 * <li><code>Object[]</code>
+	 * <li>{@link Stream}
+	 * </ul>
+	 * Anything else is returned as a single-element stream. Null is returned as an empty stream.
+	 *
+	 * @param <T> The expected stream type.
+	 * @param object Any object to get a stream for.
+	 * @return A stream of given object.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @since 3.0
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> Stream<T> stream(Object object) {
+		if (object == null) {
+			return Stream.empty();
+		}
+		if (object instanceof Iterable) {
+			return (Stream<T>) StreamSupport.stream(((Iterable<?>) object).spliterator(), false);
+		}
+		else if (object instanceof Map) {
+			return (Stream<T>) ((Map<?, ?>) object).entrySet().stream();
+		}
+		else if (object instanceof int[]) {
+			return (Stream<T>) Arrays.stream((int[]) object).boxed();
+		}
+		else if (object instanceof long[]) {
+			return (Stream<T>) Arrays.stream((long[]) object).boxed();
+		}
+		else if (object instanceof double[]) {
+			return (Stream<T>) Arrays.stream((double[]) object).boxed();
+		}
+		else if (object instanceof Object[]) {
+			return (Stream<T>) Arrays.stream((Object[]) object);
+		}
+		else if (object instanceof Stream) {
+			return (Stream<T>) object;
+		}
+		else {
+			return (Stream<T>) Stream.of(object);
+		}
+	}
+
+	/**
+	 * Returns a stream of given iterable.
+	 * @param <E> The generic iterable element type.
+	 * @param iterable Any iterable to get a stream for.
+	 * @return A stream of given iterable.
+	 * @since 3.0
+	 */
+	public static <E> Stream<E> stream(Iterable<E> iterable) {
+		return iterable == null ? Stream.empty() : StreamSupport.stream(iterable.spliterator(), false);
+	}
+
+	/**
+	 * Returns a stream of given map.
+	 * @param <K> The generic map key type.
+	 * @param <V> The generic map value type.
+	 * @param map Any map to get a stream for.
+	 * @return A stream of given map.
+	 * @since 3.0
+	 */
+	public static <K, V> Stream<Entry<K, V>> stream(Map<K, V> map) {
+		return map == null ? Stream.empty() : map.entrySet().stream();
+	}
+
+	/**
+	 * Returns a stream of given array.
+	 * @param <T> The generic array item type.
+	 * @param array Any array to get a stream for.
+	 * @return A stream of given array.
+	 * @since 3.0
+	 */
+	public static <T> Stream<T> stream(T[] array) {
+		return array == null ? Stream.empty() : Arrays.stream(array);
+	}
+
+	/**
+	 * Performs an action for each element of given object which is streamed using {@link Utils#stream(Object)}.
+	 * @param object Any streamable object.
+	 * @param action A non-interfering action to perform on each element.
+	 * @since 3.0
+	 */
+	public static void forEach(Object object, Consumer<? super Object> action) {
+		stream(object).forEach(action);
+	}
+
 	// Dates ----------------------------------------------------------------------------------------------------------
 
 	/**
@@ -705,6 +844,220 @@ public final class Utils {
 	public static Date parseRFC1123(String string) throws ParseException {
 		SimpleDateFormat sdf = new SimpleDateFormat(PATTERN_RFC1123_DATE, Locale.US);
 		return sdf.parse(string);
+	}
+
+	/**
+	 * Obtain {@link ZoneId} from <code>D</code>.
+	 * When <code>D</code> is {@code null} or {@link Date}, then return {@link ZoneId#systemDefault()}.
+	 * When <code>D</code> is {@link Calendar}, then return {@link TimeZone#toZoneId()} of {@link Calendar#getTimeZone()}
+	 * When <code>D</code> is {@link Temporal} and supports {@link ChronoField#OFFSET_SECONDS}, then return {@link ZoneId#from(java.time.temporal.TemporalAccessor)}.
+	 * When <code>D</code> is {@link Temporal} and supports {@link ChronoField#CLOCK_HOUR_OF_DAY}, then return {@link ZoneId#systemDefault()}.
+	 * When <code>D</code> is {@link Temporal} and supports neither, then return {@link ZoneOffset#UTC}.
+	 * @param <D> The date type, can be {@code null}, {@link Date}, {@link Calendar} or {@link Temporal}.
+	 * @throws IllegalArgumentException When date is not {@link Date}, {@link Calendar} or {@link Temporal}.
+	 * @since 3.6
+	 */
+	public static <D> ZoneId getZoneId(D date) {
+		if (date == null || date instanceof Date) {
+			return ZoneId.systemDefault();
+		}
+		else if (date instanceof Calendar) {
+			return ((Calendar) date).getTimeZone().toZoneId();
+		}
+		else if (date instanceof Temporal) {
+			Temporal temporal = (Temporal) date;
+
+			if (temporal.isSupported(ChronoField.OFFSET_SECONDS)) {
+				return ZoneId.from((Temporal) date);
+			}
+			else if (temporal.isSupported(ChronoField.CLOCK_HOUR_OF_DAY)) {
+				return ZoneId.systemDefault();
+			}
+			else {
+				return ZoneOffset.UTC;
+			}
+		}
+		else {
+			throw new IllegalArgumentException(ERROR_UNSUPPORTED_DATE);
+		}
+	}
+
+	/**
+	 * Convert <code>Z</code> to {@link ZoneId}.
+	 * When <code>Z</code> is {@code null}, then return {@link ZoneId#systemDefault()}.
+	 * When <code>Z</code> is {@link ZoneId}, then return it.
+	 * When <code>Z</code> is {@link TimeZone}, then return {@link TimeZone#toZoneId()}.
+	 * When <code>Z</code> is {@link String}, then return {@link ZoneId#of(String)}.
+	 * @param <Z> The timezone type, can be {@code null}, {@link String}, {@link TimeZone} or {@link ZoneId}.
+	 * @throws IllegalArgumentException When <code>Z</code> is not {@code null}, {@link ZoneId}, {@link TimeZone} or {@link String}.
+	 * @since 3.6
+	 */
+	public static <Z> ZoneId toZoneId(Z timezone) {
+		if (timezone == null) {
+			return ZoneId.systemDefault();
+		}
+		else if (timezone instanceof ZoneId) {
+			return (ZoneId) timezone;
+		}
+		else if (timezone instanceof TimeZone) {
+			return ((TimeZone) timezone).toZoneId();
+		}
+		else if (timezone instanceof String) {
+			return ZoneId.of((String) timezone);
+		}
+		else {
+			throw new IllegalArgumentException(ERROR_UNSUPPORTED_TIMEZONE);
+		}
+	}
+
+	/**
+	 * Convert <code>D</code> to {@link ZonedDateTime}.
+	 * This method is guaranteed repeatable when combined with {@link #fromZonedDateTime(ZonedDateTime, Class)}.
+	 * @param <D> The date type, can be {@link Date}, {@link Calendar} or {@link Temporal}.
+	 * @throws IllegalArgumentException When date is not {@link Date}, {@link Calendar} or {@link Temporal}.
+	 * @since 3.6
+	 */
+	public static <D> ZonedDateTime toZonedDateTime(D date) {
+		if (date == null) {
+			return null;
+		}
+
+		ZoneId zone = getZoneId(date);
+
+		if (date instanceof java.util.Date) {
+			return ZonedDateTime.ofInstant(Instant.ofEpochMilli(((java.util.Date) date).getTime()), zone);
+		}
+		else if (date instanceof Calendar) {
+			return ((Calendar) date).toInstant().atZone(zone);
+		}
+		else if (date instanceof Instant) {
+			return ((Instant) date).atZone(zone);
+		}
+		else if (date instanceof ZonedDateTime) {
+			return (ZonedDateTime) date;
+		}
+		else if (date instanceof OffsetDateTime) {
+			return ((OffsetDateTime) date).toZonedDateTime();
+		}
+		else if (date instanceof LocalDateTime) {
+			return ((LocalDateTime) date).atZone(zone);
+		}
+		else if (date instanceof LocalDate) {
+			return ((LocalDate) date).atStartOfDay(zone);
+		}
+		else if (date instanceof OffsetTime) {
+			return ((OffsetTime) date).atDate(LocalDate.now()).toZonedDateTime();
+		}
+		else if (date instanceof LocalTime) {
+			return (((LocalTime) date).atDate(LocalDate.now())).atZone(zone);
+		}
+		else if (date instanceof Temporal) {
+			return fromTemporalToZonedDateTime((Temporal) date, zone);
+		}
+		else {
+			throw new IllegalArgumentException(ERROR_UNSUPPORTED_DATE);
+		}
+	}
+
+	private static ZonedDateTime fromTemporalToZonedDateTime(Temporal temporal, ZoneId zone) {
+		if (temporal.isSupported(ChronoField.INSTANT_SECONDS)) {
+			long epoch = temporal.getLong(ChronoField.INSTANT_SECONDS);
+			long nano = temporal.getLong(ChronoField.NANO_OF_SECOND);
+			return ZonedDateTime.ofInstant(Instant.ofEpochSecond(epoch, nano), zone);
+		}
+
+		int year = temporal.isSupported(ChronoField.YEAR) ? temporal.get(ChronoField.YEAR) : 1;
+		int month = temporal.isSupported(ChronoField.MONTH_OF_YEAR) ? temporal.get(ChronoField.MONTH_OF_YEAR) : 1;
+		int day = temporal.isSupported(ChronoField.DAY_OF_MONTH) ? temporal.get(ChronoField.DAY_OF_MONTH) : 1;
+		int hour = temporal.isSupported(ChronoField.HOUR_OF_DAY) ? temporal.get(ChronoField.HOUR_OF_DAY) : 0;
+		int minute = temporal.isSupported(ChronoField.MINUTE_OF_HOUR) ? temporal.get(ChronoField.MINUTE_OF_HOUR) : 0;
+		int second = temporal.isSupported(ChronoField.SECOND_OF_MINUTE) ? temporal.get(ChronoField.SECOND_OF_MINUTE) : 0;
+		int nano = temporal.isSupported(ChronoField.NANO_OF_SECOND) ? temporal.get(ChronoField.NANO_OF_SECOND) : 0;
+		return ZonedDateTime.of(year, month, day, hour, minute, second, nano, zone);
+	}
+
+	/**
+	 * Convert {@link ZonedDateTime} to <code>D</code>.
+	 * This method is guaranteed repeatable when combined with {@link #toZonedDateTime(Object)}.
+	 * @param <D> The date type, can be {@link Date}, {@link Calendar} or {@link Temporal} or any of its subclasses.
+	 * @throws NullPointerException When type is <code>null</code>.
+	 * @throws IllegalArgumentException When type is not {@link Date}, {@link Calendar} or {@link Temporal} or any of its subclasses.
+	 * @since 3.6
+	 */
+	@SuppressWarnings("unchecked")
+	public static <D> D fromZonedDateTime(ZonedDateTime zonedDateTime, Class<?> type) {
+		if (zonedDateTime == null) {
+			return null;
+		}
+		else if (java.sql.Timestamp.class.isAssignableFrom(type)) {
+			return (D) new java.sql.Timestamp(zonedDateTime.toInstant().toEpochMilli());
+		}
+		else if (java.sql.Date.class.isAssignableFrom(type)) {
+			return (D) new java.sql.Date(zonedDateTime.toInstant().toEpochMilli());
+		}
+		else if (java.sql.Time.class.isAssignableFrom(type)) {
+			return (D) new java.sql.Time(zonedDateTime.toInstant().toEpochMilli());
+		}
+		else if (java.util.Date.class.isAssignableFrom(type)) {
+			return (D) java.util.Date.from(zonedDateTime.toInstant());
+		}
+		else if (Calendar.class.isAssignableFrom(type)) {
+			Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone(zonedDateTime.getZone()));
+			calendar.setTime(java.util.Date.from(zonedDateTime.toInstant()));
+			return (D) calendar;
+		}
+		else if (type == Instant.class) {
+			return (D) zonedDateTime.toInstant();
+		}
+		else if (type == ZonedDateTime.class) {
+			return (D) zonedDateTime;
+		}
+		else if (type == OffsetDateTime.class) {
+			return (D) zonedDateTime.toOffsetDateTime();
+		}
+		else if (type == LocalDateTime.class) {
+			return (D) zonedDateTime.toLocalDateTime();
+		}
+		else if (type == LocalDate.class) {
+			return (D) zonedDateTime.toLocalDate();
+		}
+		else if (type == OffsetTime.class) {
+			return (D) zonedDateTime.toOffsetDateTime().toOffsetTime();
+		}
+		else if (type == LocalTime.class) {
+			return (D) zonedDateTime.toLocalDateTime().toLocalTime();
+		}
+		else if (Temporal.class.isAssignableFrom(type)) {
+			return fromZonedDateTimeToTemporal(zonedDateTime, type);
+		}
+		else {
+			throw new IllegalArgumentException(ERROR_UNSUPPORTED_DATE);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T extends Temporal> T fromZonedDateTimeToTemporal(ZonedDateTime zonedDateTime, Class<?> type) {
+		// Basically finds public static method in T which takes 1 argument of Temporal.class and returns T.
+		// This matches Temporal#from(TemporalAccessor) methods of all known Temporal subclasses listed above.
+		// There might be custom implementations supporting this as well although this is undocumented.
+		// We just try our best :)
+		Optional<Method> converter = stream(type.getMethods()).filter(method
+			-> Modifier.isPublic(method.getModifiers()) && Modifier.isStatic(method.getModifiers())
+			&& method.getParameterCount() == 1 && method.getParameterTypes()[0].isAssignableFrom(Temporal.class)
+			&& type.isAssignableFrom(method.getReturnType())
+		).findFirst();
+
+		try {
+			if (converter.isPresent()) {
+				return (T) converter.get().invoke(null, zonedDateTime);
+			}
+			else {
+				throw new NoSuchMethodException();
+			}
+		}
+		catch (Exception e) {
+			throw new IllegalArgumentException(ERROR_UNSUPPORTED_DATE, e);
+		}
 	}
 
 	// Locale ---------------------------------------------------------------------------------------------------------
@@ -763,8 +1116,7 @@ public final class Utils {
 			InputStream raw = new ByteArrayInputStream(string.getBytes(UTF_8));
 			ByteArrayOutputStream deflated = new ByteArrayOutputStream();
 			stream(raw, new DeflaterOutputStream(deflated, new Deflater(Deflater.BEST_COMPRESSION)));
-			String base64 = DatatypeConverter.printBase64Binary(deflated.toByteArray());
-			return base64.replace('+', '-').replace('/', '_').replace("=", "");
+			return Base64.getUrlEncoder().withoutPadding().encodeToString(deflated.toByteArray());
 		}
 		catch (IOException e) {
 			// This will occur when ZLIB and/or UTF-8 are not supported, but this is not to be expected these days.
@@ -786,8 +1138,7 @@ public final class Utils {
 		}
 
 		try {
-			String base64 = string.replace('-', '+').replace('_', '/') + "===".substring(0, string.length() % BASE64_SEGMENT_LENGTH);
-			InputStream deflated = new ByteArrayInputStream(DatatypeConverter.parseBase64Binary(base64));
+			InputStream deflated = new ByteArrayInputStream(Base64.getUrlDecoder().decode(string));
 			return new String(toByteArray(new InflaterInputStream(deflated)), UTF_8);
 		}
 		catch (UnsupportedEncodingException e) {
@@ -863,6 +1214,50 @@ public final class Utils {
 			.replace("%29", ")")
 			.replace("%7E", "~");
 	}
+
+	/**
+	 * Format given URL with given query string. If given URL is empty, assume <code>/</code> as URL. If given query
+	 * string is empty, return URL right away. If given URL contains a <code>?</code>, prepend query string with
+	 * <code>&amp;</code>, else with <code>?</code>. Finally append query string to URL and return it.
+	 * @param url URL to be formatted with given query string.
+	 * @param queryString Query string to be appended to given URL.
+	 * @return Formatted URL with query string.
+	 * @since 3.0
+	 */
+	public static String formatURLWithQueryString(String url, String queryString) {
+		String normalizedURL = url.isEmpty() ? "/" : url;
+
+		if (isEmpty(queryString)) {
+			return normalizedURL;
+		}
+
+		return normalizedURL + (normalizedURL.contains("?") ? "&" : "?") + queryString;
+	}
+
+	/**
+	 * Returns {@code true} when given URL contains a query string parameter with given name.
+	 * @param url URL to be checked.
+	 * @param parameterName Parameter name to be checked.
+	 * @return {@code true} when given URL contains a query string parameter with given name.
+	 * @since 3.14.5
+	 */
+    public static boolean containsQueryStringParameter(String url, String parameterName) {
+        String[] pathAndQueryString = url.split(quote("?"));
+
+        if (pathAndQueryString.length > 1) {
+            String[] parameters = pathAndQueryString[1].split(quote("&"));
+
+            for (String parameter : parameters) {
+                String[] nameAndValue = parameter.split(quote("="));
+
+                if (nameAndValue.length > 0 && parameterName.equals(decodeURL(nameAndValue[0]))) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
 	// Escaping/unescaping --------------------------------------------------------------------------------------------
 
@@ -952,6 +1347,32 @@ public final class Utils {
 			default:
 				builder.append(c);
 				break;
+		}
+	}
+
+	// Resources ------------------------------------------------------------------------------------------------------
+
+	/**
+	 * Returns connection to given resource, taking into account possibly buggy component libraries.
+	 * @param context The involved faces context.
+	 * @param resource The resource to obtain connection from.
+	 * @return Connection to given resource.
+	 * @since 3.6
+	 */
+	public static URLConnection openConnection(FacesContext context, Resource resource) {
+		try {
+			return resource.getURL().openConnection();
+		}
+		catch (Exception richFacesDoesNotSupportThis) {
+			logger.log(FINEST, "Ignoring thrown exception; this can only be caused by a buggy component library.", richFacesDoesNotSupportThis);
+
+			try {
+				return new URL(getRequestDomainURL(context) + resource.getRequestPath()).openConnection();
+			}
+			catch (IOException ignore) {
+				logger.log(FINEST, "Ignoring thrown exception; cannot handle it at this point, it would be thrown during getInputStream() anyway.", ignore);
+				return null;
+			}
 		}
 	}
 

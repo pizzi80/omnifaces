@@ -18,8 +18,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -27,6 +29,8 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import javax.el.ELContext;
 import javax.el.ELResolver;
@@ -38,6 +42,8 @@ import javax.faces.application.Application;
 import javax.faces.application.ApplicationFactory;
 import javax.faces.application.NavigationHandler;
 import javax.faces.application.ProjectStage;
+import javax.faces.application.Resource;
+import javax.faces.application.ResourceHandler;
 import javax.faces.application.ViewHandler;
 import javax.faces.component.UIViewParameter;
 import javax.faces.component.UIViewRoot;
@@ -66,9 +72,14 @@ import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 
 import org.omnifaces.component.ParamHolder;
+import org.omnifaces.component.input.HashParam;
+import org.omnifaces.component.input.ScriptParam;
 import org.omnifaces.config.FacesConfigXml;
 import org.omnifaces.el.FacesELResolver;
 import org.omnifaces.facesviews.FacesViews;
+import org.omnifaces.filter.MutableRequestFilter;
+import org.omnifaces.filter.MutableRequestFilter.MutableRequest;
+import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
  * <p>
@@ -118,20 +129,20 @@ import org.omnifaces.facesviews.FacesViews;
  * </pre>
  * <pre>
  * // Invalidate the session and send a redirect.
- * public void logout() throws IOException {
+ * public void logout() {
  *     Faces.invalidateSession();
  *     Faces.redirect("login.xhtml"); // Can by the way also be done by return "login?faces-redirect=true" if in action method.
  * }
  * </pre>
  * <pre>
  * // Provide a file as attachment.
- * public void download() throws IOException {
+ * public void download() {
  *     Faces.sendFile(new File("/path/to/file.ext"), true);
  * }
  * </pre>
  * <pre>
  * // Provide a file as attachment via output stream callback.
- * public void download() throws IOException {
+ * public void download() {
  *     Faces.sendFile("file.txt", true, output -&gt; {
  *         try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, StandardCharsets.UTF_8))) {
  *             writer.println("Hello world");
@@ -244,6 +255,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The current external context.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getExternalContext()
 	 */
 	public static ExternalContext getExternalContext() {
@@ -257,6 +269,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The faces application singleton.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getApplication()
 	 */
 	public static Application getApplication() {
@@ -276,6 +289,17 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the package of the currently loaded JSF implementation.
+	 * <p>
+	 * This is also available in EL as <code>#{faces['package']}</code>.
+	 * @return The package of the currently loaded JSF implementation.
+	 * @since 3.14
+	 */
+	public static Package getPackage() {
+		return FacesLocal.getPackage(getContext());
+	}
+
+	/**
 	 * Returns the implementation information of currently loaded JSF implementation. E.g. "Mojarra 2.1.7-FCS".
 	 * <p>
 	 * This is also available in EL as <code>#{faces.implInfo}</code>.
@@ -284,8 +308,7 @@ public final class Faces {
 	 * @see Package#getImplementationVersion()
 	 */
 	public static String getImplInfo() {
-		Package jsfPackage = FacesContext.class.getPackage();
-		return jsfPackage.getImplementationTitle() + " " + jsfPackage.getImplementationVersion();
+		return FacesLocal.getImplInfo(getContext());
 	}
 
 	/**
@@ -293,6 +316,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.serverInfo}</code>.
 	 * @return The server information of currently running application server implementation.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ServletContext#getServerInfo()
 	 */
 	public static String getServerInfo() {
@@ -303,6 +327,7 @@ public final class Faces {
 	 * Returns the project stage. This will return the <code>javax.faces.PROJECT_STAGE</code> context parameter in
 	 * <code>web.xml</code>.
 	 * @return The project stage.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getProjectStage()
 	 * @since 2.6
 	 */
@@ -316,6 +341,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.development}</code>.
 	 * @return <code>true</code> if we're in development stage, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getProjectStage()
 	 */
 	public static boolean isDevelopment() {
@@ -328,6 +354,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.systemTest}</code>.
 	 * @return <code>true</code> if we're in system test stage, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getProjectStage()
 	 * @since 2.6
 	 */
@@ -341,6 +368,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.production}</code>.
 	 * @return <code>true</code> if we're in production stage, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getProjectStage()
 	 * @since 2.6
 	 */
@@ -352,9 +380,11 @@ public final class Faces {
 	 * Determines and returns the faces servlet mapping used in the current request. If JSF is prefix mapped (e.g.
 	 * <code>/faces/*</code>), then this returns the whole path, with a leading slash (e.g. <code>/faces</code>). If JSF
 	 * is suffix mapped (e.g. <code>*.xhtml</code>), then this returns the whole extension (e.g. <code>.xhtml</code>).
+	 * If there is no extension, then this falls back to {@link ViewHandler#DEFAULT_SUFFIX_PARAM_NAME}.
 	 * <p>
 	 * This is also available in EL as <code>#{faces.mapping}</code>.
 	 * @return The faces servlet mapping (without the wildcard).
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see #getRequestPathInfo()
 	 * @see #getRequestServletPath()
 	 */
@@ -364,10 +394,10 @@ public final class Faces {
 
 	/**
 	 * Returns whether the faces servlet mapping used in the current request is a prefix mapping.
-	 * @return <code>true</code> if the faces servlet mapping used in the current request is a prefix mapping, otherwise
-	 * <code>false</code>.
 	 * <p>
 	 * This is also available in EL as <code>#{faces.prefixMapping}</code>.
+	 * @return <code>true</code> if the faces servlet mapping used in the current request is a prefix mapping, otherwise
+	 * <code>false</code>.
 	 * @see #getMapping()
 	 * @see #isPrefixMapping(String)
 	 */
@@ -385,12 +415,13 @@ public final class Faces {
 	 * @throws NullPointerException When mapping is <code>null</code>.
 	 */
 	public static boolean isPrefixMapping(String mapping) {
-		return (mapping.charAt(0) == '/');
+		return mapping.charAt(0) == '/';
 	}
 
 	/**
 	 * Returns the current phase ID.
 	 * @return The current phase ID.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getCurrentPhaseId()
 	 */
 	public static PhaseId getCurrentPhaseId() {
@@ -401,6 +432,7 @@ public final class Faces {
 	 * Signals JSF that the validations phase of the current request has failed. This can be invoked in any other
 	 * phase than the validations phase. The value can be read by {@link #isValidationFailed()} in Java and by
 	 * <code>#{facesContext.validationFailed}</code> in EL.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#validationFailed()
 	 */
 	public static void validationFailed() {
@@ -413,6 +445,7 @@ public final class Faces {
 	 * This is also available in EL as <code>#{faces.validationFailed}</code>.
 	 * @return <code>true</code> if the validations phase of the current request has failed, otherwise
 	 * <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#isValidationFailed()
 	 */
 	public static boolean isValidationFailed() {
@@ -422,6 +455,7 @@ public final class Faces {
 	/**
 	 * Returns the current EL context.
 	 * @return The current EL context.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getELContext()
 	 * @since 2.0
 	 */
@@ -434,6 +468,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param expression The EL expression to be evaluated.
 	 * @return The evaluated value of the given EL expression.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see Application#evaluateExpressionGet(FacesContext, String, Class)
 	 */
@@ -445,6 +480,7 @@ public final class Faces {
 	 * Programmatically evaluate the given EL expression and set the given value.
 	 * @param expression The EL expression to be evaluated.
 	 * @param value The value to be set in the property behind the given EL expression.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getExpressionFactory()
 	 * @see ExpressionFactory#createValueExpression(ELContext, String, Class)
 	 * @see ValueExpression#setValue(ELContext, Object)
@@ -460,6 +496,7 @@ public final class Faces {
 	 * @param base The base object whose property value is to be returned, or null to resolve a top-level variable.
 	 * @param property The property or variable to be resolved on the given base.
 	 * @return The resolved value of the given property on the given base object.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see Application#getELResolver()
 	 * @see ELResolver#getValue(ELContext, Object, Object)
@@ -474,6 +511,7 @@ public final class Faces {
 	 * @param base The base object whose property value is to be set, or null to set a top-level variable.
 	 * @param property The property or variable to be set on the given base.
 	 * @param value The value to be set in the property on the given base.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getELResolver()
 	 * @see ELResolver#setValue(ELContext, Object, Object, Object)
 	 * @since 2.1
@@ -487,6 +525,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The Faces context attribute name.
 	 * @return The Faces context attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see FacesContext#getAttributes()
 	 * @since 1.3
@@ -496,9 +535,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the Faces context attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The Faces context attribute name.
+	 * @param computeIfAbsent The computed Faces context attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The Faces context attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getRequestMap()
+	 * @since 3.1
+	 */
+	public static <T> T getContextAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getContextAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the Faces context attribute value associated with the given name.
 	 * @param name The Faces context attribute name.
 	 * @param value The Faces context attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getAttributes()
 	 * @since 1.3
 	 */
@@ -512,13 +567,15 @@ public final class Faces {
 	 * class, then delegate to {@link #createConverter(Class)}. If the given identifier is a concrete converter
 	 * instance, then return it directly.
 	 * If no converter instance can be associated, then return null.
+	 * @param <T> The expected converter type.
 	 * @param identifier The Faces converter object identifier. This can be a string representing the converter ID, or a
 	 * class representing the target type, or a class representing the converter class, or even the converter instance
 	 * itself.
 	 * @return A Faces converter associated with given object identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Converter createConverter(Object identifier) {
+	public static <T> Converter<T> createConverter(Object identifier) {
 		return FacesLocal.createConverter(getContext(), identifier);
 	}
 
@@ -527,11 +584,13 @@ public final class Faces {
 	 * converter ID in {@link Application#createConverter(String)}. If that didn't return anything, then try to interpret
 	 * the string identifier as class name and delegate to {@link #createConverter(Class)}.
 	 * If no converter instance can be associated, then return null.
+	 * @param <T> The expected converter type.
 	 * @param identifier The Faces converter string identifier.
 	 * @return A Faces converter associated with given string identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Converter createConverter(String identifier) {
+	public static <T> Converter<T> createConverter(String identifier) {
 		return FacesLocal.createConverter(getContext(), identifier);
 	}
 
@@ -541,11 +600,13 @@ public final class Faces {
 	 * the given identifier is assignable to Converter.class, and the {@link FacesConverter} annotation is present,
 	 * then instantiate it using CDI, else instantiate it using default constructor.
 	 * If no converter instance can be associated, then return null.
+	 * @param <T> The expected converter type.
 	 * @param identifier The Faces converter class identifier.
 	 * @return A Faces converter associated with given class identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Converter createConverter(Class<?> identifier) {
+	public static <T> Converter<T> createConverter(Class<?> identifier) {
 		return FacesLocal.createConverter(getContext(), identifier);
 	}
 
@@ -555,12 +616,14 @@ public final class Faces {
 	 * class, then delegate to {@link #createValidator(Class)}. If the given identifier is a concrete validator
 	 * instance, then return it directly.
 	 * If no validator instance can be associated, then return null.
+	 * @param <T> The expected validator type.
 	 * @param identifier The Faces validator object identifier. This can be a string representing the validator ID, or a
 	 * class representing the validator class, or even the validator instance itself.
 	 * @return A Faces validator associated with given object identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Validator createValidator(Object identifier) {
+	public static <T> Validator<T> createValidator(Object identifier) {
 		return FacesLocal.createValidator(getContext(), identifier);
 	}
 
@@ -569,11 +632,13 @@ public final class Faces {
 	 * validator ID in {@link Application#createValidator(String)}. If that didn't return anything, then try to
 	 * interpret the string identifier as class name and delegate to {@link #createValidator(Class)}.
 	 * If no validator instance can be associated, then return null.
+	 * @param <T> The expected validator type.
 	 * @param identifier The Faces validator string identifier.
 	 * @return A Faces validator associated with given string identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Validator createValidator(String identifier) {
+	public static <T> Validator<T> createValidator(String identifier) {
 		return FacesLocal.createValidator(getContext(), identifier);
 	}
 
@@ -582,17 +647,60 @@ public final class Faces {
 	 * assignable to Validator.class, and the {@link FacesValidator} annotation is present, then instantiate it using
 	 * CDI, else instantiate it using default constructor.
 	 * If no validator instance can be associated, then return null.
+	 * @param <T> The expected validator type.
 	 * @param identifier The Faces validator class identifier.
 	 * @return A Faces validator associated with given class identifier.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.5
 	 */
-	public static Validator createValidator(Class<?> identifier) {
+	public static <T> Validator<T> createValidator(Class<?> identifier) {
 		return FacesLocal.createValidator(getContext(), identifier);
+	}
+
+	/**
+	 * Creates and returns a Faces resource associated with given resource name.
+	 * If no resource can be allocated, then return null.
+	 * @param resourceName The resource name.
+	 * @return A Faces resource associated with given resource name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see ResourceHandler#createResource(String)
+	 * @since 3.6
+	 */
+	public static Resource createResource(String resourceName) {
+		return FacesLocal.createResource(getContext(), resourceName);
+	}
+
+	/**
+	 * Creates and returns a Faces resource associated with given library name and resource name.
+	 * If no resource can be allocated, then return null.
+	 * @param libraryName The library name.
+	 * @param resourceName The resource name.
+	 * @return A Faces resource associated with given library name and resource name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see ResourceHandler#createResource(String, String)
+	 * @since 3.6
+	 */
+	public static Resource createResource(String libraryName, String resourceName) {
+		return FacesLocal.createResource(getContext(), libraryName, resourceName);
+	}
+
+	/**
+	 * Creates and returns a Faces resource associated with given resource identifier.
+	 * If no resource can be allocated, then return null.
+	 * @param resourceIdentifier The resource identifier.
+	 * @return A Faces resource associated with given resource identifier.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see ResourceHandler#createResource(String, String)
+	 * @since 3.6
+	 */
+	public static Resource createResource(ResourceIdentifier resourceIdentifier) {
+		return FacesLocal.createResource(getContext(), resourceIdentifier);
 	}
 
 	/**
 	 * Returns The {@link Lifecycle} associated with current Faces application.
 	 * @return The {@link Lifecycle} associated with current Faces application.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see LifecycleFactory#getLifecycle(String)
 	 * @since 2.5
 	 */
@@ -605,6 +713,7 @@ public final class Faces {
 	/**
 	 * Returns the current view root.
 	 * @return The current view root.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getViewRoot()
 	 */
 	public static UIViewRoot getViewRoot() {
@@ -615,6 +724,7 @@ public final class Faces {
 	 * Sets the current view root to the given view ID. The view ID must start with a leading slash. If an invalid view
 	 * ID is given, then the response will simply result in a 404.
 	 * @param viewId The ID of the view which needs to be set as the current view root.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewHandler#createView(FacesContext, String)
 	 * @see FacesContext#setViewRoot(UIViewRoot)
 	 * @since 1.1
@@ -628,6 +738,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.viewId}</code>, although <code>#{view.viewId}</code> could be used.
 	 * @return The ID of the current view root, or <code>null</code> if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getViewId()
 	 */
 	public static String getViewId() {
@@ -635,12 +746,14 @@ public final class Faces {
 	}
 
 	/**
-	 * Returns the ID of the current view root with view parameters.
+	 * Returns the ID of the current view root with view and hash parameters.
 	 * <p>
 	 * This is also available in EL as <code>#{faces.viewIdWithParameters}</code>.
-	 * @return The ID of the current view root with view parameters.
+	 * @return The ID of the current view root with view and hash parameters.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getViewId()
 	 * @see ViewMetadata#getViewParameters(UIViewRoot)
+	 * @see Faces#getHashParameters()
 	 * @since 2.5
 	 */
 	public static String getViewIdWithParameters() {
@@ -653,6 +766,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.viewName}</code>.
 	 * @return The base name of the current view, without extension, or <code>null</code> if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getViewId()
 	 * @since 2.3
 	 */
@@ -667,6 +781,7 @@ public final class Faces {
 	 * the current faces context.
 	 *
 	 * @return The {@link ViewDeclarationLanguage} associated with the "current" view ID.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 1.8
 	 */
 	public static ViewDeclarationLanguage getViewDeclarationLanguage() {
@@ -681,6 +796,7 @@ public final class Faces {
 	 * with the requested view.
 	 *
 	 * @return The {@link RenderKit} associated with the "current" view ID or view handler.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.2
 	 * @see UIViewRoot#getRenderKitId()
 	 * @see ViewHandler#calculateRenderKitId(FacesContext)
@@ -698,6 +814,7 @@ public final class Faces {
 	 * </ul>
 	 * @param path The path to be normalized as a valid view ID based on the current mapping.
 	 * @return The path as a valid view ID.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see #getMapping()
 	 * @see #isPrefixMapping(String)
 	 */
@@ -708,6 +825,7 @@ public final class Faces {
 	/**
 	 * Returns the view parameters of the current view, or an empty collection if there is no view.
 	 * @return The view parameters of the current view, or an empty collection if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewMetadata#getViewParameters(UIViewRoot)
 	 */
 	public static Collection<UIViewParameter> getViewParameters() {
@@ -718,6 +836,7 @@ public final class Faces {
 	 * Returns the view parameters of the current view as a parameter map, or an empty map if there is no view. This is
 	 * ready for usage in among others {@link ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)}.
 	 * @return The view parameters of the current view as a parameter map, or an empty map if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewMetadata#getViewParameters(UIViewRoot)
 	 */
 	public static Map<String, List<String>> getViewParameterMap() {
@@ -725,9 +844,56 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the hash parameters of the current view, or an empty collection if there is no view.
+	 * @return The hash parameters of the current view, or an empty collection if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HashParam
+	 * @since 3.2
+	 */
+	public static Collection<HashParam> getHashParameters() {
+		return FacesLocal.getHashParameters(getContext());
+	}
+
+	/**
+	 * Returns the hash parameters of the current view as a parameter map, or an empty map if there is no view.
+	 * @return The hash parameters of the current view as a parameter map, or an empty map if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HashParam
+	 * @since 3.2
+	 */
+	public static Map<String, List<String>> getHashParameterMap() {
+		return FacesLocal.getHashParameterMap(getContext());
+	}
+
+	/**
+	 * Returns the hash query string of the current view, or <code>null</code> if there is none.
+	 * This is the part after the <code>#</code> in the request URL as the enduser sees in browser address bar.
+	 * This works only if the hash parameters are via <code>&lt;o:hashParam&gt;</code> registered in the view.
+	 * @return The hash query string of the current view, or <code>null</code> if there is none.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HashParam
+	 * @since 3.2
+	 */
+	public static String getHashQueryString() {
+		return FacesLocal.getHashQueryString(getContext());
+	}
+
+	/**
+	 * Returns the script parameters of the current view, or an empty collection if there is no view.
+	 * @return The script parameters of the current view, or an empty collection if there is no view.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see ScriptParam
+	 * @since 3.6
+	 */
+	public static Collection<ScriptParam> getScriptParameters() {
+		return FacesLocal.getScriptParameters(getContext());
+	}
+
+	/**
 	 * Returns the metadata attribute map of the given view ID, or an empty map if there is no view metadata.
 	 * @param viewId The view ID to return the metadata attribute map for.
 	 * @return The metadata attribute map of the given view ID, or an empty map if there is no view metadata.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewDeclarationLanguage#getViewMetadata(FacesContext, String)
 	 * @since 1.4
 	 */
@@ -738,6 +904,7 @@ public final class Faces {
 	/**
 	 * Returns the metadata attribute map of the current view, or an empty map if there is no view metadata.
 	 * @return The metadata attribute map of the current view, or an empty map if there is no view metadata.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getAttributes()
 	 * @since 2.0
 	 */
@@ -752,6 +919,7 @@ public final class Faces {
 	 * @param viewId The view ID to return the metadata attribute for.
 	 * @param name The metadata attribute name.
 	 * @return The metadata attribute of the given view ID associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ViewDeclarationLanguage#getViewMetadata(FacesContext, String)
 	 * @since 1.4
@@ -766,6 +934,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The metadata attribute name.
 	 * @return The metadata attribute of the current view associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see UIViewRoot#getAttributes()
 	 * @since 1.4
@@ -779,6 +948,7 @@ public final class Faces {
 	 * client preferred locale is not null and is among supported locales, then return it. Else if the JSF default
 	 * locale is not null, then return it. Else return the system default locale.
 	 * @return The current locale.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getLocale()
 	 * @see ExternalContext#getRequestLocale()
 	 * @see Application#getDefaultLocale()
@@ -802,6 +972,7 @@ public final class Faces {
 	 * item, if any. This will return an empty list if there are no locales definied in <code>faces-config.xml</code>.
 	 * @return An unordered list of all supported locales on this application, with the default locale as the first
 	 * item, if any. If you need an ordered list, use {@link FacesConfigXml#getSupportedLocales()} instead.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getDefaultLocale()
 	 * @see Application#getSupportedLocales()
 	 */
@@ -812,6 +983,7 @@ public final class Faces {
 	/**
 	 * Set the locale of the current view, which is to be used in localizing of the response.
 	 * @param locale The locale of the current view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When there is no view (i.e. when it is <code>null</code>). This can happen if the
 	 * method is called at the wrong moment in the JSF lifecycle, e.g. before the view has been restored/created.
 	 * @see UIViewRoot#setLocale(Locale)
@@ -826,6 +998,7 @@ public final class Faces {
 	 * <code>faces-config.xml</code>. The instance is already localized via {@link Faces#getLocale()}. If there is no
 	 * <code>&lt;message-bundle&gt;</code>, then this method just returns <code>null</code>.
 	 * @return The message bundle as identified by <code>&lt;message-bundle&gt;</code> in <code>faces-config.xml</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws MissingResourceException When the <code>&lt;message-bundle&gt;</code> in <code>faces-config.xml</code>
 	 * does not refer an existing resource in the classpath.
 	 * @see Application#getMessageBundle()
@@ -844,6 +1017,7 @@ public final class Faces {
 	 * <code>faces-config.xml</code>.
 	 * @return The application resource bundle as identified by the given <code>&lt;var&gt;</code> of the
 	 * <code>&lt;resource-bundle&gt;</code> in <code>faces-config.xml</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws MissingResourceException When the <code>&lt;resource-bundle&gt;</code> as identified by the given
 	 * <code>&lt;var&gt;</code> in <code>faces-config.xml</code> does not refer an existing resource in the classpath.
 	 * @see Application#getResourceBundle(FacesContext, String)
@@ -860,6 +1034,7 @@ public final class Faces {
 	 * @return all application resource bundles registered as <code>&lt;resource-bundle&gt;</code> in
 	 * <code>faces-config.xml</code>.
 	 * <code>&lt;base-name&gt;</code> of the <code>&lt;resource-bundle&gt;</code> in <code>faces-config.xml</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws MissingResourceException When the <code>&lt;resource-bundle&gt;</code> in <code>faces-config.xml</code>
 	 * does not refer an existing resource in the classpath.
 	 * @see Application#getResourceBundle(FacesContext, String)
@@ -876,6 +1051,7 @@ public final class Faces {
 	 * @param key The bundle key.
 	 * @return a string for the given key searching declared resource bundles, order by declaration in
 	 * <code>faces-config.xml</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 2.1
 	 */
 	public static String getBundleString(String key) {
@@ -885,6 +1061,7 @@ public final class Faces {
 	/**
 	 * Perform the JSF navigation to the given outcome.
 	 * @param outcome The navigation outcome.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see Application#getNavigationHandler()
 	 * @see NavigationHandler#handleNavigation(FacesContext, String, String)
 	 */
@@ -900,6 +1077,7 @@ public final class Faces {
 	 * @param params The parameters to be URL-encoded in the query string. Can be <code>null</code>.
 	 * @param includeViewParams Whether the view parameters of the current view should be included as well.
 	 * @return The concrete domain-relative URL to the current view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When there is no view (i.e. when it is <code>null</code>). This can happen if the
 	 * method is called at the wrong moment in the JSF lifecycle, e.g. before the view has been restored/created.
 	 * @see ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)
@@ -920,6 +1098,7 @@ public final class Faces {
 	 * view should be included as well. Note thus that this does not include the view parameters which are not declared
 	 * in the target view!
 	 * @return The concrete domain-relative URL to the target view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)
 	 * @since 1.6
 	 */
@@ -935,12 +1114,13 @@ public final class Faces {
 	 * @param params The parameters to be URL-encoded in the query string. Can be <code>null</code>.
 	 * @param includeViewParams Whether the view parameters of the current view should be included as well.
 	 * @return The concrete domain-relative URL to the current view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When there is no view (i.e. when it is <code>null</code>). This can happen if the
 	 * method is called at the wrong moment in the JSF lifecycle, e.g. before the view has been restored/created.
 	 * @see ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)
 	 * @since 1.7
 	 */
-	public static String getBookmarkableURL(Collection<? extends ParamHolder> params, boolean includeViewParams) {
+	public static String getBookmarkableURL(Collection<? extends ParamHolder<?>> params, boolean includeViewParams) {
 		return FacesLocal.getBookmarkableURL(getContext(), params, includeViewParams);
 	}
 
@@ -955,10 +1135,11 @@ public final class Faces {
 	 * view should be included as well. Note thus that this does not include the view parameters which are not declared
 	 * in the target view!
 	 * @return The concrete domain-relative URL to the target view.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)
 	 * @since 1.7
 	 */
-	public static String getBookmarkableURL(String viewId, Collection<? extends ParamHolder> params, boolean includeViewParams) {
+	public static String getBookmarkableURL(String viewId, Collection<? extends ParamHolder<?>> params, boolean includeViewParams) {
 		return FacesLocal.getBookmarkableURL(getContext(), viewId, params, includeViewParams);
 	}
 
@@ -971,6 +1152,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The Facelet context.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When the Facelet context is not available.
 	 * @see FaceletContext
 	 * @since 1.1
@@ -986,6 +1168,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The Facelet attribute name.
 	 * @return The Facelet attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When the Facelet context is not available.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see FaceletContext#getAttribute(String)
@@ -1001,6 +1184,7 @@ public final class Faces {
 	 * file by e.g. an <code>&lt;ui:include&gt;</code>.
 	 * @param name The Facelet attribute name.
 	 * @param value The Facelet attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When the Facelet context is not available.
 	 * @see FaceletContext#setAttribute(String, Object)
 	 * @since 1.1
@@ -1018,6 +1202,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The HTTP servlet request.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequest()
 	 */
 	public static HttpServletRequest getRequest() {
@@ -1029,6 +1214,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.ajaxRequest}</code>.
 	 * @return <code>true</code> for an ajax request, <code>false</code> for a non-ajax (synchronous) request.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see PartialViewContext#isAjaxRequest()
 	 */
 	public static boolean isAjaxRequest() {
@@ -1042,6 +1228,7 @@ public final class Faces {
 	 * This is also available in EL as <code>#{faces.ajaxRequestWithPartialRendering}</code>.
 	 * @return <code>true</code> for an ajax request with partial rendering, <code>false</code> an ajax request with
 	 * <code>render="@all"</code> or a non-ajax (synchronous) request.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see PartialViewContext#isAjaxRequest()
 	 * @see PartialViewContext#isRenderAll()
 	 * @since 2.3
@@ -1058,6 +1245,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.postback}</code>.
 	 * @return <code>true</code> for a postback, <code>false</code> for a non-postback (GET) request.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#isPostback()
 	 */
 	public static boolean isPostback() {
@@ -1067,6 +1255,7 @@ public final class Faces {
 	/**
 	 * Returns the HTTP request parameter map.
 	 * @return The HTTP request parameter map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestParameterMap()
 	 */
 	public static Map<String, String> getRequestParameterMap() {
@@ -1074,9 +1263,22 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the mutable request parameter map. This requires installation of {@link MutableRequestFilter}.
+	 * @return The mutable request parameter map.
+	 * @throws IllegalStateException When the {@link MutableRequestFilter} is not installed or not invoked yet.
+	 * @since 3.14
+	 * @see MutableRequestFilter#getMutableRequest(HttpServletRequest)
+	 * @see MutableRequest#getMutableParameterMap()
+	 */
+	public static Map<String, List<String>> getMutableRequestParameterMap() {
+		return FacesLocal.getMutableRequestParameterMap(getContext());
+	}
+
+	/**
 	 * Returns the HTTP request parameter value associated with the given name.
 	 * @param name The HTTP request parameter name.
 	 * @return The HTTP request parameter value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestParameterMap()
 	 */
 	public static String getRequestParameter(String name) {
@@ -1084,12 +1286,14 @@ public final class Faces {
 	}
 
 	/**
-	 * Returns the HTTP request parameter value associated with the given name and implicitly convert it to given type
+	 * Returns the HTTP request parameter value associated with the given name and implicitly converted to given type
 	 * using the Faces converter registered by <code>forClass</code> on the given type.
+	 * Note that empty strings are already implicitly converted to <code>null</code>.
 	 * @param <T> The expected return type.
 	 * @param name The HTTP request parameter name.
 	 * @param type The converter <code>forClass</code> type.
-	 * @return The HTTP request parameter value associated with the given name and implicitly convert it to given type.
+	 * @return The HTTP request parameter value associated with the given name and implicitly converted to given type.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ConverterException When conversion fails.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getRequestParameterMap()
@@ -1101,8 +1305,44 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the HTTP request parameter value associated with the given name and converted using the given converter.
+	 * Note that empty strings are already implicitly converted to <code>null</code>.
+	 * @param <T> The expected return type.
+	 * @param name The HTTP request parameter name.
+	 * @param converter The converter.
+	 * @return The HTTP request parameter value associated with the given name and converted using the given converter.
+	 * @throws NullPointerException When faces context is unavailable or given converter is <code>null</code>.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getRequestParameterMap()
+	 * @since 3.10
+	 */
+	public static <T> T getRequestParameter(String name, Function<String, T> converter) {
+		return FacesLocal.getRequestParameter(getContext(), name, converter);
+	}
+
+	/**
+	 * Returns the HTTP request parameter value associated with the given name and convert it using the given converter,
+	 * or else the supplied value if absent.
+	 * Note that empty strings are already implicitly converted to <code>null</code>.
+	 * @param <T> The expected return type.
+	 * @param name The HTTP request parameter name.
+	 * @param converter The converter.
+	 * @param defaultValue The default request parameter value when absent.
+	 * @return The HTTP request parameter value associated with the given name and convert it using the given converter,
+	 * or else the supplied value if absent.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @throws NullPointerException When faces context is unavailable or given converter or supplier is <code>null</code>.
+	 * @see ExternalContext#getRequestParameterMap()
+	 * @since 3.10
+	 */
+	public static <T> T getRequestParameter(String name, Function<String, T> converter, Supplier<T> defaultValue) {
+		return FacesLocal.getRequestParameter(getContext(), name, converter, defaultValue);
+	}
+
+	/**
 	 * Returns the HTTP request parameter values map.
 	 * @return The HTTP request parameter values map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestParameterValuesMap()
 	 */
 	public static Map<String, String[]> getRequestParameterValuesMap() {
@@ -1113,6 +1353,7 @@ public final class Faces {
 	 * Returns the HTTP request parameter values associated with the given name.
 	 * @param name The HTTP request parameter name.
 	 * @return The HTTP request parameter values associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestParameterValuesMap()
 	 */
 	public static String[] getRequestParameterValues(String name) {
@@ -1126,6 +1367,7 @@ public final class Faces {
 	 * @param name The HTTP request parameter name.
 	 * @param type The converter <code>forClass</code> type.
 	 * @return The HTTP request parameter values associated with the given name and implicitly convert it to given type.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ConverterException When conversion fails.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getRequestParameterValuesMap()
@@ -1140,6 +1382,7 @@ public final class Faces {
 	 * Returns all HTTP request parts, provided that request is of type <code>multipart/form-data</code>. If there are
 	 * no parts, an empty collection is returned.
 	 * @return all HTTP request parts.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws FacesException Whenever something fails at servlet or I/O level. The caller should preferably not catch
 	 * it, but just let it go. The servletcontainer will handle it.
 	 * @see HttpServletRequest#getParts()
@@ -1153,6 +1396,7 @@ public final class Faces {
 	 * Returns the HTTP request part associated with the given name, else return null.
 	 * @param name The HTTP request part name.
 	 * @return The HTTP request part associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws FacesException Whenever something fails at servlet or I/O level. The caller should preferably not catch
 	 * it, but just let it go. The servletcontainer will handle it.
 	 * @see HttpServletRequest#getPart(String)
@@ -1167,6 +1411,7 @@ public final class Faces {
 	 * <code>multipart/form-data</code>. If there are no parts, an empty collection is returned.
 	 * @param name The HTTP request part name.
 	 * @return All HTTP request parts associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws FacesException Whenever something fails at servlet or I/O level. The caller should preferably not catch
 	 * it, but just let it go. The servletcontainer will handle it.
 	 * @see HttpServletRequest#getParts()
@@ -1179,6 +1424,7 @@ public final class Faces {
 	/**
 	 * Returns the HTTP request header map.
 	 * @return The HTTP request header map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestHeaderMap()
 	 */
 	public static Map<String, String> getRequestHeaderMap() {
@@ -1186,9 +1432,22 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the mutable request header map. This requires installation of {@link MutableRequestFilter}.
+	 * @return The mutable request header map.
+	 * @throws IllegalStateException When the {@link MutableRequestFilter} is not installed or not invoked yet.
+	 * @since 3.14
+	 * @see MutableRequestFilter#getMutableRequest(HttpServletRequest)
+	 * @see MutableRequest#getMutableHeaderMap()
+	 */
+	public static Map<String, List<String>> getMutableRequestHeaderMap() {
+		return FacesLocal.getMutableRequestHeaderMap(getContext());
+	}
+
+	/**
 	 * Returns the HTTP request header value associated with the given name.
 	 * @param name The HTTP request header name.
 	 * @return The HTTP request header value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestHeaderMap()
 	 */
 	public static String getRequestHeader(String name) {
@@ -1198,6 +1457,7 @@ public final class Faces {
 	/**
 	 * Returns the HTTP request header values map.
 	 * @return The HTTP request header values map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestHeaderValuesMap()
 	 */
 	public static Map<String, String[]> getRequestHeaderValuesMap() {
@@ -1208,6 +1468,7 @@ public final class Faces {
 	 * Returns the HTTP request header values associated with the given name.
 	 * @param name The HTTP request header name.
 	 * @return The HTTP request header values associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestHeaderValuesMap()
 	 */
 	public static String[] getRequestHeaderValues(String name) {
@@ -1220,6 +1481,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestContextPath}</code>.
 	 * @return The HTTP request context path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestContextPath()
 	 */
 	public static String getRequestContextPath() {
@@ -1233,6 +1495,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestServletPath}</code>.
 	 * @return The HTTP request servlet path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestServletPath()
 	 */
 	public static String getRequestServletPath() {
@@ -1247,6 +1510,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestPathInfo}</code>.
 	 * @return The HTTP request path info.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestPathInfo()
 	 * @see FacesViews#FACES_VIEWS_ORIGINAL_PATH_INFO
 	 */
@@ -1261,6 +1525,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestHostName}</code>.
 	 * @return The HTTP request hostname.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalArgumentException When the URL is malformed. This is however unexpected as the request would
 	 * otherwise not have hit the server at all.
 	 * @see HttpServletRequest#getRequestURL()
@@ -1276,6 +1541,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestBaseURL}</code>.
 	 * @return The HTTP request base URL.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURL()
 	 * @see HttpServletRequest#getRequestURI()
 	 * @see HttpServletRequest#getContextPath()
@@ -1289,6 +1555,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestDomainURL}</code>.
 	 * @return The HTTP request domain URL.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURL()
 	 * @see HttpServletRequest#getRequestURI()
 	 * @since 1.1
@@ -1303,6 +1570,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestURL}</code>.
 	 * @return The HTTP request URL.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURL()
 	 * @since 1.1
 	 */
@@ -1316,6 +1584,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestURI}</code>.
 	 * @return The HTTP request URI.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURI()
 	 * @since 1.1
 	 */
@@ -1329,6 +1598,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestQueryString}</code>.
 	 * @return The HTTP request query string.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getQueryString()
 	 * @since 1.1
 	 */
@@ -1342,6 +1612,7 @@ public final class Faces {
 	 * the request URL (GET) parameters and the request body (POST) parameters. This is ready for usage in among
 	 * others {@link ViewHandler#getBookmarkableURL(FacesContext, String, Map, boolean)}.
 	 * @return The HTTP request query string as parameter values map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getQueryString()
 	 * @since 1.6
 	 */
@@ -1355,6 +1626,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestURLWithQueryString}</code>.
 	 * @return The HTTP request URL with query string.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURL()
 	 * @see HttpServletRequest#getQueryString()
 	 * @since 1.5
@@ -1369,6 +1641,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.requestURIWithQueryString}</code>.
 	 * @return The HTTP request URI with query string.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestURI()
 	 * @see HttpServletRequest#getQueryString()
 	 * @since 1.6
@@ -1378,54 +1651,57 @@ public final class Faces {
 	}
 
 	/**
-	 * Returns the original HTTP request URI behind this forwarded request, if any.
-	 * This does not include the request query string.
-	 * @return The original HTTP request URI behind this forwarded request, if any.
-	 * @since 1.8
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestURI()}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestURI() {
-		return FacesLocal.getForwardRequestURI(getContext());
-	}
-
-	/**
-	 * Returns the original HTTP request query string behind this forwarded request, if any.
-	 * @return The original HTTP request query string behind this forwarded request, if any.
-	 * @since 1.8
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestQueryString()}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestQueryString() {
-		return FacesLocal.getForwardRequestQueryString(getContext());
-	}
-
-	/**
-	 * Returns the original HTTP request URI with query string behind this forwarded request, if any.
-	 * @return The original HTTP request URI with query string behind this forwarded request, if any.
-	 * @since 1.8
-	 * @deprecated Since 2.4. This is abstracted away by {@link #getRequestURIWithQueryString()}. Use it instead.
-	 * JSF has as to retrieving request URI no business of knowing if the request is forwarded/rewritten or not.
-	 */
-	@Deprecated // TODO: Remove in OmniFaces 3.0.
-	public static String getForwardRequestURIWithQueryString() {
-		return FacesLocal.getForwardRequestURIWithQueryString(getContext());
-	}
-
-	/**
 	 * Returns the Internet Protocol (IP) address of the client that sent the request. This will first check the
 	 * <code>X-Forwarded-For</code> request header and if it's present, then return its first IP address, else just
 	 * return {@link HttpServletRequest#getRemoteAddr()} unmodified.
 	 * <p>
 	 * This is also available in EL as <code>#{faces.remoteAddr}</code>.
 	 * @return The IP address of the client.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRemoteAddr()
 	 * @since 1.2
 	 */
 	public static String getRemoteAddr() {
 		return FacesLocal.getRemoteAddr(getContext());
+	}
+
+	/**
+	 * Returns the User-Agent string of the client.
+	 * <p>
+	 * This is also available in EL as <code>#{faces.userAgent}</code>.
+	 * @return The User-Agent string of the client.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HttpServletRequest#getHeader(String)
+	 * @since 3.2
+	 */
+	public static String getUserAgent() {
+		return FacesLocal.getUserAgent(getContext());
+	}
+
+	/**
+	 * Returns the referrer of the request.
+	 * <p>
+	 * This is also available in EL as <code>#{faces.referrer}</code>.
+	 * @return The referrer of the request.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HttpServletRequest#getHeader(String)
+	 * @since 3.10
+	 */
+	public static String getReferrer() {
+		return FacesLocal.getReferrer(getContext());
+	}
+
+	/**
+	 * Returns <code>true</code> if connection is secure, <code>false</code> otherwise. This method will first check if
+	 * {@link HttpServletRequest#isSecure()} returns <code>true</code>, and if not <code>true</code>, check if the
+	 * <code>X-Forwarded-Proto</code> is present and equals to <code>https</code>.
+	 * @return <code>true</code> if connection is secure, <code>false</code> otherwise.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HttpServletRequest#isSecure()
+	 * @since 3.0
+	 */
+	public static boolean isRequestSecure() {
+		return FacesLocal.isRequestSecure(getContext());
 	}
 
 	// HTTP response --------------------------------------------------------------------------------------------------
@@ -1437,6 +1713,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The HTTP servlet response.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getResponse()
 	 */
 	public static HttpServletResponse getResponse() {
@@ -1448,6 +1725,7 @@ public final class Faces {
 	 * context parameter is been set, then it's the context parameter value which will be returned. Otherwise it
 	 * returns the implementation independent default value, which is 1024 in Mojarra.
 	 * @return The HTTP response buffer size.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getResponseBufferSize()
 	 * @since 1.2
 	 */
@@ -1458,6 +1736,7 @@ public final class Faces {
 	/**
 	 * Returns the HTTP response character encoding.
 	 * @return The HTTP response character encoding.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getResponseCharacterEncoding()
 	 * @since 1.2
 	 */
@@ -1469,6 +1748,7 @@ public final class Faces {
 	 * Sets the HTTP response status code. You can use the constant field values of {@link HttpServletResponse} for
 	 * this. For example, <code>Faces.setResponseStatus(HttpServletResponse.SC_BAD_REQUEST)</code>.
 	 * @param status The HTTP status code to be set on the current response.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 1.6
 	 */
 	public static void setResponseStatus(int status) {
@@ -1491,12 +1771,11 @@ public final class Faces {
 	 * </pre>
 	 * @param url The URL to redirect the current response to.
 	 * @param paramValues The request parameter values which you'd like to put URL-encoded in the given URL.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
-	 * @throws NullPointerException When url is <code>null</code>.
+	 * @throws NullPointerException When faces context is unavailable or given url is <code>null</code>.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 * @see ExternalContext#redirect(String)
 	 */
-	public static void redirect(String url, Object... paramValues) throws IOException {
+	public static void redirect(String url, Object... paramValues) {
 		FacesLocal.redirect(getContext(), url, paramValues);
 	}
 
@@ -1519,7 +1798,7 @@ public final class Faces {
 	 * JSF ajax XML response.
 	 * @param url The URL to redirect the current response to.
 	 * @param paramValues The request parameter values which you'd like to put URL-encoded in the given URL.
-	 * @throws NullPointerException When url is <code>null</code>.
+	 * @throws NullPointerException When faces context is unavailable or given url is <code>null</code>.
 	 * @see ExternalContext#setResponseStatus(int)
 	 * @see ExternalContext#setResponseHeader(String, String)
 	 */
@@ -1530,27 +1809,27 @@ public final class Faces {
 	/**
 	 * Refresh the current page by a GET request. This basically sends a temporary (302) redirect to current request
 	 * URI, without query string.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 * @see ExternalContext#redirect(String)
 	 * @see HttpServletRequest#getRequestURI()
 	 * @since 2.2
 	 */
-	public static void refresh() throws IOException {
+	public static void refresh() {
 		FacesLocal.refresh(getContext());
 	}
 
 	/**
 	 * Refresh the current page by a GET request, maintaining the query string. This basically sends a temporary (302)
 	 * redirect to current request URI, with the current query string.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 * @see ExternalContext#redirect(String)
 	 * @see HttpServletRequest#getRequestURI()
 	 * @see HttpServletRequest#getQueryString()
 	 * @since 2.2
 	 */
-	public static void refreshWithQueryString() throws IOException {
+	public static void refreshWithQueryString() {
 		FacesLocal.refreshWithQueryString(getContext());
 	}
 
@@ -1563,11 +1842,11 @@ public final class Faces {
 	 * @param status The HTTP response status which is supposed to be in the range 4nn-5nn. You can use the constant
 	 * field values of {@link HttpServletResponse} for this.
 	 * @param message The message which is supposed to be available in the error page.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 * @see ExternalContext#responseSendError(int, String)
 	 */
-	public static void responseSendError(int status, String message) throws IOException {
+	public static void responseSendError(int status, String message) {
 		FacesLocal.responseSendError(getContext(), status, message);
 	}
 
@@ -1575,6 +1854,7 @@ public final class Faces {
 	 * Add a header with given name and value to the HTTP response.
 	 * @param name The header name.
 	 * @param value The header value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#addResponseHeader(String, String)
 	 */
 	public static void addResponseHeader(String name, String value) {
@@ -1586,6 +1866,7 @@ public final class Faces {
 	 * body has already been sent to the client. This is usually a point of no return and you can't change the response
 	 * anymore.
 	 * @return <code>true</code> if the response is already committed, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#isResponseCommitted()
 	 * @since 1.1
 	 */
@@ -1596,6 +1877,7 @@ public final class Faces {
 	/**
 	 * Resets the current response. This will clear any headers which are been set and any data which is written to
 	 * the response buffer which isn't committed yet.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws IllegalStateException When the response is already committed.
 	 * @see ExternalContext#responseReset()
 	 * @since 1.1
@@ -1607,6 +1889,7 @@ public final class Faces {
 	/**
 	 * Signals JSF that, as soon as the current phase of the lifecycle has been completed, control should be passed to
 	 * the Render Response phase, bypassing any phases that have not been executed yet.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#renderResponse()
 	 * @since 1.4
 	 */
@@ -1621,6 +1904,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.renderResponse}</code>.
 	 * @return <code>true</code> if we're currently in the render response phase.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#getCurrentPhaseId()
 	 * @since 1.4
 	 */
@@ -1631,6 +1915,7 @@ public final class Faces {
 	/**
 	 * Signals JSF that the response for this request has already been generated (such as providing a file download),
 	 * and that the lifecycle should be terminated as soon as the current phase is completed.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#responseComplete()
 	 * @since 1.4
 	 */
@@ -1641,6 +1926,7 @@ public final class Faces {
 	/**
 	 * Returns <code>true</code> if the {@link FacesContext#responseComplete()} has been called.
 	 * @return <code>true</code> if the {@link FacesContext#responseComplete()} has been called.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see FacesContext#responseComplete()
 	 * @since 1.4
 	 */
@@ -1655,6 +1941,7 @@ public final class Faces {
 	 * specific and unrelated to JSF. Refer the documentation of the servletcontainer using the keyword "realm".
 	 * @param username The login username.
 	 * @param password The login password.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ServletException When the login is invalid, or when container managed FORM based authentication is not
 	 * enabled.
 	 * @see HttpServletRequest#login(String, String)
@@ -1668,13 +1955,13 @@ public final class Faces {
 	 * and password being available as predefinied request parameters on the current request and/or a custom JASPIC
 	 * implementation.
 	 * @return <code>true</code> if the authentication was successful, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ServletException When the authentication has failed. The caller is responsible for handling it.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws UncheckedIOException When HTTP request or response is not available anymore.
 	 * @see HttpServletRequest#authenticate(HttpServletResponse)
 	 * @since 1.4
 	 */
-	public static boolean authenticate() throws ServletException, IOException {
+	public static boolean authenticate() throws ServletException {
 		return FacesLocal.authenticate(getContext());
 	}
 
@@ -1685,6 +1972,7 @@ public final class Faces {
 	 * that the user principal is still present in the response of the current request, it's therefore recommend to
 	 * send a redirect after {@link #logout()} or {@link #invalidateSession()}. You can use
 	 * {@link #redirect(String, Object...)} for this.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ServletException When the logout has failed.
 	 * @see HttpServletRequest#logout()
 	 */
@@ -1697,6 +1985,7 @@ public final class Faces {
 	 * <p>
 	 * This is also available in EL as <code>#{faces.remoteUser}</code>.
 	 * @return The name of the logged-in user for container managed FORM based authentication, if any.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRemoteUser()
 	 */
 	public static String getRemoteUser() {
@@ -1707,6 +1996,7 @@ public final class Faces {
 	 * Returns whether the currently logged-in user has the given role.
 	 * @param role The role to be checked on the currently logged-in user.
 	 * @return <code>true</code> if the currently logged-in user has the given role, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#isUserInRole(String)
 	 */
 	public static boolean isUserInRole(String role) {
@@ -1720,6 +2010,7 @@ public final class Faces {
 	 * with a charset of UTF-8.
 	 * @param name The HTTP request cookie name.
 	 * @return The value of the HTTP request cookie associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
 	 * @see ExternalContext#getRequestCookieMap()
 	 */
@@ -1739,6 +2030,7 @@ public final class Faces {
 	 * removed. Note that the name and path must be exactly the same as it was when the cookie was created. If this is
 	 * <code>-1</code> then the cookie will become a session cookie and thus live as long as the established HTTP
 	 * session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
 	 * @see ExternalContext#addResponseCookie(String, String, Map)
 	 * @since 1.8
@@ -1761,6 +2053,7 @@ public final class Faces {
 	 * removed. Note that the name and path must be exactly the same as it was when the cookie was created. If this is
 	 * <code>-1</code> then the cookie will become a session cookie and thus live as long as the established HTTP
 	 * session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
 	 * @see ExternalContext#addResponseCookie(String, String, Map)
 	 */
@@ -1777,12 +2070,14 @@ public final class Faces {
 	 * @param value The cookie value.
 	 * @param domain The cookie domain. You can use <code>.example.com</code> (with a leading period) if you'd like the
 	 * cookie to be available to all subdomains of the domain. Note that you cannot set it to a different domain.
+	 * Defaults to {@link #getRequestHostname()} when <code>null</code>.
 	 * @param path The cookie path. If this is <code>/</code>, then the cookie is available in all pages of the webapp.
 	 * If this is <code>/somespecificpath</code>, then the cookie is only available in pages under the specified path.
 	 * @param maxAge The maximum age of the cookie, in seconds. If this is <code>0</code>, then the cookie will be
 	 * removed. Note that the name and path must be exactly the same as it was when the cookie was created. If this is
 	 * <code>-1</code> then the cookie will become a session cookie and thus live as long as the established HTTP
 	 * session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
 	 * @see ExternalContext#addResponseCookie(String, String, Map)
 	 * @since 1.8
@@ -1792,10 +2087,36 @@ public final class Faces {
 	}
 
 	/**
+	 * Add a cookie with given name, value, domain, path, maxage and HttpOnly flag to the HTTP response.
+	 * The cookie value will implicitly be URL-encoded with UTF-8 so that any special characters can be stored.
+	 * The cookie will implicitly be set to secure when the current request is a HTTPS request.
+	 * @param name The cookie name.
+	 * @param value The cookie value.
+	 * @param domain The cookie domain. You can use <code>.example.com</code> (with a leading period) if you'd like the
+	 * cookie to be available to all subdomains of the domain. Note that you cannot set it to a different domain.
+	 * Defaults to {@link #getRequestHostname()} when <code>null</code>.
+	 * @param path The cookie path. If this is <code>/</code>, then the cookie is available in all pages of the webapp.
+	 * If this is <code>/somespecificpath</code>, then the cookie is only available in pages under the specified path.
+	 * @param maxAge The maximum age of the cookie, in seconds. If this is <code>0</code>, then the cookie will be
+	 * removed. Note that the name and path must be exactly the same as it was when the cookie was created. If this is
+	 * <code>-1</code> then the cookie will become a session cookie and thus live as long as the established HTTP
+	 * session.
+	 * @param httpOnly When set to true, then JavaScript is not allowed to manipulate the cookie.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UnsupportedOperationException When this platform does not support UTF-8.
+	 * @see ExternalContext#addResponseCookie(String, String, Map)
+	 * @since 3.3
+	 */
+	public static void addResponseCookie(String name, String value, String domain, String path, int maxAge, boolean httpOnly) {
+		FacesLocal.addResponseCookie(getContext(), name, value, domain, path, maxAge, httpOnly);
+	}
+
+	/**
 	 * Remove the cookie with given name and path from the HTTP response. Note that the name and path must be exactly
 	 * the same as it was when the cookie was created.
 	 * @param name The cookie name.
 	 * @param path The cookie path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#addResponseCookie(String, String, Map)
 	 */
 	public static void removeResponseCookie(String name, String path) {
@@ -1811,6 +2132,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return The HTTP session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSession(boolean)
 	 */
 	public static HttpSession getSession() {
@@ -1826,6 +2148,7 @@ public final class Faces {
 	 * task.</i>
 	 * @param create Whether or not to create a new session if one doesn't exist.
 	 * @return The HTTP session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSession(boolean)
 	 */
 	public static HttpSession getSession(boolean create) {
@@ -1836,15 +2159,17 @@ public final class Faces {
 	 * Returns a string containing the unique identifier assigned to this session. The identifier is assigned by the
 	 * servlet container and is implementation dependent.
 	 * @return The HTTP session ID.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpSession#getId()
 	 * @since 1.2
 	 */
 	public static String getSessionId() {
-		return FacesLocal. getSessionId(getContext());
+		return FacesLocal.getSessionId(getContext());
 	}
 
 	/**
 	 * Invalidates the current HTTP session. So, any subsequent HTTP request will get a new one when necessary.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#invalidateSession()
 	 */
 	public static void invalidateSession() {
@@ -1854,6 +2179,7 @@ public final class Faces {
 	/**
 	 * Returns whether the HTTP session has already been created.
 	 * @return <code>true</code> if the HTTP session has already been created, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSession(boolean)
 	 * @since 1.1
 	 */
@@ -1866,6 +2192,7 @@ public final class Faces {
 	 * <code>false</code> when there is no means of a HTTP session.
 	 * @return <code>true</code> if the HTTP session has been created for the first time in the current request,
 	 * otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSession(boolean)
 	 * @see HttpSession#isNew()
 	 * @since 1.1
@@ -1875,9 +2202,24 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns whether the requested HTTP session is expired.
+	 * <p>
+	 * This is also available in EL as <code>#{faces.requestedSessionExpired}</code>.
+	 * @return <code>true</code> if the requested HTTP session is expired, otherwise <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see HttpServletRequest#getRequestedSessionId()
+	 * @see HttpServletRequest#isRequestedSessionIdValid()
+	 * @since 3.13
+	 */
+	public static boolean isRequestedSessionExpired() {
+		return FacesLocal.isRequestedSessionExpired(getContext());
+	}
+
+	/**
 	 * Returns the time when the HTTP session was created, measured in epoch time. This implicitly creates the session
 	 * if one doesn't exist.
 	 * @return The time when the HTTP session was created.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpSession#getCreationTime()
 	 * @since 1.1
 	 */
@@ -1889,6 +2231,7 @@ public final class Faces {
 	 * Returns the time of the previous request associated with the current HTTP session, measured in epoch time. This
 	 * implicitly creates the session if one doesn't exist.
 	 * @return The time of the previous request associated with the current HTTP session.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpSession#getLastAccessedTime()
 	 * @since 1.1
 	 */
@@ -1899,6 +2242,7 @@ public final class Faces {
 	/**
 	 * Returns the HTTP session timeout in seconds. This implicitly creates the session if one doesn't exist.
 	 * @return The HTTP session timeout in seconds.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpSession#getMaxInactiveInterval()
 	 * @since 1.1
 	 */
@@ -1911,6 +2255,7 @@ public final class Faces {
 	 * Sets the HTTP session timeout in seconds. A value of 0 or less means that the session should never timeout.
 	 * This implicitly creates the session if one doesn't exist.
 	 * @param seconds The HTTP session timeout in seconds.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpSession#setMaxInactiveInterval(int)
 	 * @since 1.1
 	 */
@@ -1925,6 +2270,7 @@ public final class Faces {
 	 * example to display "Oops, you have been logged out because your session has been timed out!".
 	 * @return <code>true</code> if the HTTP session has been timed out for the current request, otherwise
 	 * <code>false</code>.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see HttpServletRequest#getRequestedSessionId()
 	 * @see HttpServletRequest#isRequestedSessionIdValid()
 	 * @since 1.1
@@ -1942,6 +2288,7 @@ public final class Faces {
 	 * submit a feature request to OmniFaces in order to add a new utility method which performs exactly this general
 	 * task.</i>
 	 * @return the servlet context.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getContext()
 	 */
 	public static ServletContext getServletContext() {
@@ -1952,6 +2299,7 @@ public final class Faces {
 	 * Returns the application initialization parameter map. This returns the parameter name-value pairs of all
 	 * <code>&lt;context-param&gt;</code> entries in in <code>web.xml</code>.
 	 * @return The application initialization parameter map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getInitParameterMap()
 	 * @since 1.1
 	 */
@@ -1966,6 +2314,7 @@ public final class Faces {
 	 * @param name The application initialization parameter name.
 	 * @return The application initialization parameter value associated with the given name, or <code>null</code> if
 	 * there is none.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getInitParameter(String)
 	 * @since 1.1
 	 */
@@ -1974,11 +2323,28 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the application initialization parameter. This returns the <code>&lt;param-value&gt;</code> of a
+	 * <code>&lt;context-param&gt;</code> in <code>web.xml</code> associated with the given
+	 * <code>&lt;param-name&gt;</code>.
+	 * @param name The application initialization parameter name.
+	 * @param defaultValue The default value if there is no application initialization parameter value associated with the given name.
+	 * @return The application initialization parameter value associated with the given name, or <code>defaultValue</code> if
+	 * there is none.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @see ExternalContext#getInitParameter(String)
+	 * @since 3.1
+	 */
+	public static String getInitParameterOrDefault(String name, String defaultValue) {
+		return FacesLocal.getInitParameterOrDefault(getContext(), name, defaultValue);
+	}
+
+	/**
 	 * Returns the mime type for the given file name. The mime type is determined based on file extension and
 	 * configureable by <code>&lt;mime-mapping&gt;</code> entries in <code>web.xml</code>. When the mime type is
 	 * unknown, then a default of <code>application/octet-stream</code> will be returned.
 	 * @param name The file name to return the mime type for.
 	 * @return The mime type for the given file name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getMimeType(String)
 	 */
 	public static String getMimeType(String name) {
@@ -1990,6 +2356,7 @@ public final class Faces {
 	 * <code>null</code>.
 	 * @param path The application resource path to return an input stream for.
 	 * @return An input stream for an application resource mapped to the specified path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws MalformedURLException When the specified path is not in correct URL form.
 	 * @see ExternalContext#getResource(String)
 	 * @since 1.2
@@ -2003,6 +2370,7 @@ public final class Faces {
 	 * return <code>null</code>.
 	 * @param path The application resource path to return an input stream for.
 	 * @return An input stream for an application resource mapped to the specified path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getResourceAsStream(String)
 	 */
 	public static InputStream getResourceAsStream(String path) {
@@ -2013,6 +2381,7 @@ public final class Faces {
 	 * Returns a set of available application resource paths matching the specified path.
 	 * @param path The partial application resource path used to return matching resource paths.
 	 * @return A set of available application resource paths matching the specified path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getResourcePaths(String)
 	 */
 	public static Set<String> getResourcePaths(String path) {
@@ -2034,6 +2403,7 @@ public final class Faces {
 	 * location to store for example uploaded files.
 	 * @param webContentPath The web content path to be converted to an absolute disk file system path.
 	 * @return The absolute disk file system path representation of the given web content path.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @since 1.2
 	 */
 	public static String getRealPath(String webContentPath) {
@@ -2045,6 +2415,7 @@ public final class Faces {
 	/**
 	 * Returns the request scope map.
 	 * @return The request scope map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestMap()
 	 */
 	public static Map<String, Object> getRequestMap() {
@@ -2056,6 +2427,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The request scope attribute name.
 	 * @return The request scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getRequestMap()
 	 */
@@ -2064,9 +2436,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the request scope attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The request scope attribute name.
+	 * @param computeIfAbsent The computed request scope attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The request scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getRequestMap()
+	 * @since 3.0
+	 */
+	public static <T> T getRequestAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getRequestAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the request scope attribute value associated with the given name.
 	 * @param name The request scope attribute name.
 	 * @param value The request scope attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getRequestMap()
 	 */
 	public static void setRequestAttribute(String name, Object value) {
@@ -2079,6 +2467,7 @@ public final class Faces {
 	 * @param name The request scope attribute name.
 	 * @return The request scope attribute value previously associated with the given name, or <code>null</code> if
 	 * there is no such attribute.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getRequestMap()
 	 * @since 1.1
@@ -2093,6 +2482,7 @@ public final class Faces {
 	 * Returns the flash scope. Note that <code>Flash</code> implements <code>Map&lt;String, Object&gt;</code>, so you
 	 * can just treat it like a <code>Map&lt;String, Object&gt;</code>.
 	 * @return The flash scope.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getFlash()
 	 */
 	public static Flash getFlash() {
@@ -2104,6 +2494,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The flash scope attribute name.
 	 * @return The flash scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getFlash()
 	 */
@@ -2112,9 +2503,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the flash scope attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The flash scope attribute name.
+	 * @param computeIfAbsent The computed flash scope attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The flash scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getFlash()
+	 * @since 3.0
+	 */
+	public static <T> T getFlashAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getFlashAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the flash scope attribute value associated with the given name.
 	 * @param name The flash scope attribute name.
 	 * @param value The flash scope attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getFlash()
 	 */
 	public static void setFlashAttribute(String name, Object value) {
@@ -2127,6 +2534,7 @@ public final class Faces {
 	 * @param name The flash scope attribute name.
 	 * @return The flash scope attribute value previously associated with the given name, or <code>null</code> if
 	 * there is no such attribute.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getFlash()
 	 * @since 1.1
@@ -2140,6 +2548,7 @@ public final class Faces {
 	/**
 	 * Returns the view scope map.
 	 * @return The view scope map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getViewMap()
 	 */
 	public static Map<String, Object> getViewMap() {
@@ -2151,6 +2560,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The view scope attribute name.
 	 * @return The view scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see UIViewRoot#getViewMap()
 	 */
@@ -2159,9 +2569,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the view scope attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The view scope attribute name.
+	 * @param computeIfAbsent The computed view scope attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The view scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see UIViewRoot#getViewMap()
+	 * @since 3.0
+	 */
+	public static <T> T getViewAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getViewAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the view scope attribute value associated with the given name.
 	 * @param name The view scope attribute name.
 	 * @param value The view scope attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see UIViewRoot#getViewMap()
 	 */
 	public static void setViewAttribute(String name, Object value) {
@@ -2174,6 +2600,7 @@ public final class Faces {
 	 * @param name The view scope attribute name.
 	 * @return The view scope attribute value previously associated with the given name, or <code>null</code> if
 	 * there is no such attribute.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see UIViewRoot#getViewMap()
 	 * @since 1.1
@@ -2187,6 +2614,7 @@ public final class Faces {
 	/**
 	 * Returns the session scope map.
 	 * @return The session scope map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSessionMap()
 	 */
 	public static Map<String, Object> getSessionMap() {
@@ -2198,6 +2626,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The session scope attribute name.
 	 * @return The session scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getSessionMap()
 	 */
@@ -2206,9 +2635,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the session scope attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The session scope attribute name.
+	 * @param computeIfAbsent The computed session scope attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The session scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getSessionMap()
+	 * @since 3.0
+	 */
+	public static <T> T getSessionAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getSessionAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the session scope attribute value associated with the given name.
 	 * @param name The session scope attribute name.
 	 * @param value The session scope attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getSessionMap()
 	 */
 	public static void setSessionAttribute(String name, Object value) {
@@ -2221,6 +2666,7 @@ public final class Faces {
 	 * @param name The session scope attribute name.
 	 * @return The session scope attribute value previously associated with the given name, or <code>null</code> if
 	 * there is no such attribute.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getSessionMap()
 	 * @since 1.1
@@ -2234,6 +2680,7 @@ public final class Faces {
 	/**
 	 * Returns the application scope map.
 	 * @return The application scope map.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getApplicationMap()
 	 */
 	public static Map<String, Object> getApplicationMap() {
@@ -2245,6 +2692,7 @@ public final class Faces {
 	 * @param <T> The expected return type.
 	 * @param name The application scope attribute name.
 	 * @return The application scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getApplicationMap()
 	 */
@@ -2253,9 +2701,25 @@ public final class Faces {
 	}
 
 	/**
+	 * Returns the application scope attribute value associated with the given name, or computes the supplied value if absent.
+	 * @param <T> The expected return type.
+	 * @param name The application scope attribute name.
+	 * @param computeIfAbsent The computed application scope attribute value when absent. Useful if it represents a collection, map or bean.
+	 * @return The application scope attribute value associated with the given name.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @see ExternalContext#getApplicationMap()
+	 * @since 3.0
+	 */
+	public static <T> T getApplicationAttribute(String name, Supplier<T> computeIfAbsent) {
+		return FacesLocal.getApplicationAttribute(getContext(), name, computeIfAbsent);
+	}
+
+	/**
 	 * Sets the application scope attribute value associated with the given name.
 	 * @param name The application scope attribute name.
 	 * @param value The application scope attribute value.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @see ExternalContext#getApplicationMap()
 	 */
 	public static void setApplicationAttribute(String name, Object value) {
@@ -2268,6 +2732,7 @@ public final class Faces {
 	 * @param name The application scope attribute name.
 	 * @return The application scope attribute value previously associated with the given name, or <code>null</code> if
 	 * there is no such attribute.
+	 * @throws NullPointerException When faces context is unavailable.
 	 * @throws ClassCastException When <code>T</code> is of wrong type.
 	 * @see ExternalContext#getApplicationMap()
 	 * @since 1.1
@@ -2279,16 +2744,65 @@ public final class Faces {
 	// File download --------------------------------------------------------------------------------------------------
 
 	/**
+	 * Send the given file to the response. The file name will be derived from {@link File#getName()}. The content type
+	 * will be determined based on file name. The content length will be set to the length of the file. The
+	 * {@link FacesContext#responseComplete()} will implicitly be called after successful streaming.
+	 * @param file The file to be sent to the response.
+	 * @param attachment Whether the file should be provided as attachment, or just inline.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws IOException When given file cannot be read.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
+	 */
+	public static void sendFile(File file, boolean attachment) throws IOException {
+		FacesLocal.sendFile(getContext(), file, attachment);
+	}
+
+	/**
 	 * Send the given file to the response. The content type will be determined based on file name. The content length
 	 * will be set to the length of the file. The {@link FacesContext#responseComplete()} will implicitly be called
 	 * after successful streaming.
 	 * @param file The file to be sent to the response.
+	 * @param filename The file name which should appear in content disposition header.
 	 * @param attachment Whether the file should be provided as attachment, or just inline.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws IOException When given file cannot be read.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
+	 * @since 3.9
 	 */
-	public static void sendFile(File file, boolean attachment) throws IOException {
-		FacesLocal.sendFile(getContext(), file, attachment);
+	public static void sendFile(File file, String filename, boolean attachment) throws IOException {
+		FacesLocal.sendFile(getContext(), file, filename, attachment);
+	}
+
+	/**
+	 * Send the given path as a file to the response. The file will be derived from {@link Path#toFile()} and then the
+	 * file name will be derived from {@link File#getName()}. The content type will be determined based on file name.
+	 * The content length will be set to the length of the file. The {@link FacesContext#responseComplete()} will
+	 * implicitly be called after successful streaming.
+	 * @param path The path to be sent as a file to the response.
+	 * @param attachment Whether the file should be provided as attachment, or just inline.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws IOException When given file cannot be read.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
+	 * @since 3.9
+	 */
+	public static void sendFile(Path path, boolean attachment) throws IOException {
+		FacesLocal.sendFile(getContext(), path, attachment);
+	}
+
+	/**
+	 * Send the given path as a file to the response. The file will be derived from {@link Path#toFile()}. The content
+	 * type will be determined based on file name. The content length will be set to the length of the file. The
+	 * {@link FacesContext#responseComplete()} will implicitly be called after successful streaming.
+	 * @param path The path to be sent as a file to the response.
+	 * @param filename The file name which should appear in content disposition header.
+	 * @param attachment Whether the file should be provided as attachment, or just inline.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws IOException When given file cannot be read.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
+	 * @since 3.9
+	 */
+	public static void sendFile(Path path, String filename, boolean attachment) throws IOException {
+		FacesLocal.sendFile(getContext(), path, filename, attachment);
 	}
 
 	/**
@@ -2298,10 +2812,10 @@ public final class Faces {
 	 * @param content The file content as byte array.
 	 * @param filename The file name which should appear in content disposition header.
 	 * @param attachment Whether the file should be provided as attachment, or just inline.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 */
-	public static void sendFile(byte[] content, String filename, boolean attachment) throws IOException {
+	public static void sendFile(byte[] content, String filename, boolean attachment) {
 		FacesLocal.sendFile(getContext(), content, filename, attachment);
 	}
 
@@ -2316,10 +2830,10 @@ public final class Faces {
 	 * @param content The file content as input stream.
 	 * @param filename The file name which should appear in content disposition header.
 	 * @param attachment Whether the file should be provided as attachment, or just inline.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 */
-	public static void sendFile(InputStream content, String filename, boolean attachment) throws IOException {
+	public static void sendFile(InputStream content, String filename, boolean attachment) {
 		FacesLocal.sendFile(getContext(), content, filename, attachment);
 	}
 
@@ -2333,11 +2847,11 @@ public final class Faces {
 	 * @param filename The file name which should appear in content disposition header.
 	 * @param attachment Whether the file should be provided as attachment, or just inline.
 	 * @param outputCallback The output stream callback to write the file content to.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws NullPointerException When faces context is unavailable.
+	 * @throws UncheckedIOException When HTTP response is not available anymore.
 	 * @since 2.3
 	 */
-	public static void sendFile(String filename, boolean attachment, Callback.Output outputCallback) throws IOException {
+	public static void sendFile(String filename, boolean attachment, Callback.Output outputCallback) {
 		FacesLocal.sendFile(getContext(), filename, attachment, outputCallback);
 	}
 

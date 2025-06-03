@@ -12,16 +12,27 @@
  */
 package org.omnifaces.util;
 
+import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
-import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.FINEST;
 import static java.util.regex.Pattern.quote;
+import static javax.faces.application.StateManager.IS_BUILDING_INITIAL_STATE;
 import static javax.faces.component.UIComponent.getCompositeComponentParent;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_EVENT_PARAM_NAME;
+import static javax.faces.component.behavior.ClientBehaviorContext.BEHAVIOR_SOURCE_PARAM_NAME;
+import static javax.faces.component.search.SearchExpressionContext.createSearchExpressionContext;
+import static javax.faces.component.search.SearchExpressionHint.IGNORE_NO_RESULT;
+import static javax.faces.component.search.SearchExpressionHint.RESOLVE_SINGLE_COMPONENT;
 import static javax.faces.component.visit.VisitContext.createVisitContext;
 import static javax.faces.component.visit.VisitHint.SKIP_ITERATION;
 import static javax.faces.component.visit.VisitResult.ACCEPT;
+import static javax.faces.event.PhaseId.RENDER_RESPONSE;
+import static org.omnifaces.util.Ajax.load;
+import static org.omnifaces.util.Ajax.oncomplete;
+import static org.omnifaces.util.Events.subscribeToRequestBeforePhase;
 import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.Faces.getELContext;
 import static org.omnifaces.util.Faces.getFaceletContext;
@@ -32,6 +43,7 @@ import static org.omnifaces.util.Faces.setContext;
 import static org.omnifaces.util.FacesLocal.getRenderKit;
 import static org.omnifaces.util.FacesLocal.getRequestQueryStringMap;
 import static org.omnifaces.util.FacesLocal.getViewParameterMap;
+import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
 import static org.omnifaces.util.FacesLocal.normalizeViewId;
 import static org.omnifaces.util.Renderers.RENDERER_TYPE_JS;
 import static org.omnifaces.util.Utils.isEmpty;
@@ -39,6 +51,7 @@ import static org.omnifaces.util.Utils.isOneInstanceOf;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,11 +61,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import javax.el.MethodExpression;
 import javax.el.ValueExpression;
+import javax.faces.application.ResourceHandler;
 import javax.faces.application.ViewHandler;
 import javax.faces.component.ActionSource2;
 import javax.faces.component.EditableValueHolder;
@@ -72,6 +87,9 @@ import javax.faces.component.behavior.AjaxBehavior;
 import javax.faces.component.behavior.BehaviorBase;
 import javax.faces.component.behavior.ClientBehavior;
 import javax.faces.component.behavior.ClientBehaviorHolder;
+import javax.faces.component.html.HtmlBody;
+import javax.faces.component.search.SearchExpressionContext;
+import javax.faces.component.search.SearchExpressionHint;
 import javax.faces.component.visit.VisitCallback;
 import javax.faces.component.visit.VisitContext;
 import javax.faces.component.visit.VisitHint;
@@ -82,7 +100,6 @@ import javax.faces.context.ResponseWriter;
 import javax.faces.event.ActionEvent;
 import javax.faces.event.ActionListener;
 import javax.faces.event.AjaxBehaviorEvent;
-import javax.faces.event.AjaxBehaviorListener;
 import javax.faces.event.BehaviorListener;
 import javax.faces.event.MethodExpressionActionListener;
 import javax.faces.render.RenderKit;
@@ -91,6 +108,8 @@ import javax.faces.view.facelets.FaceletContext;
 
 import org.omnifaces.component.ParamHolder;
 import org.omnifaces.component.SimpleParam;
+import org.omnifaces.component.input.Form;
+import org.omnifaces.config.OmniFaces;
 import org.omnifaces.el.ScopedRunner;
 
 /**
@@ -153,7 +172,11 @@ public final class Components {
 
 	private static final Logger logger = Logger.getLogger(Components.class.getName());
 
-	private static final String ATTRIBUTE_LABEL = "label";
+	/** The name of the label attribute. */
+	public static final String LABEL_ATTRIBUTE = "label";
+
+	/** The name of the value attribute. */
+	public static final String VALUE_ATTRIBUTE = "value";
 
 	private static final String ERROR_MISSING_PARENT =
 		"Component '%s' must have a parent of type '%s', but it cannot be found.";
@@ -167,6 +190,8 @@ public final class Components {
 		"Component '%s' may only have children of type '%s'. Encountered children of types '%s'.";
 	private static final String ERROR_CHILDREN_DISALLOWED =
 		"Component '%s' may not have any children. Encountered children of types '%s'.";
+
+	private static final Set<SearchExpressionHint> RESOLVE_LABEL_FOR = EnumSet.of(RESOLVE_SINGLE_COMPONENT, IGNORE_NO_RESULT);
 
 	// Constructors ---------------------------------------------------------------------------------------------------
 
@@ -361,6 +386,19 @@ public final class Components {
 	}
 
 	/**
+	 * Returns a list of UI components matching the given type in children of the currently submitted form.
+	 * The currently submitted form is obtained by {@link #getCurrentForm()}.
+	 * @param <C> The generic component type.
+	 * @param type The type of the UI components to be searched in children of the currently submitted form.
+	 * @return A list of UI components matching the given type in children of the currently submitted form.
+	 * @since 3.1
+	 */
+	public static <C extends UIComponent> List<C> findComponentsInCurrentForm(Class<C> type) {
+		UIForm currentForm = getCurrentForm();
+		return currentForm != null ? findComponentsInChildren(currentForm, type) : emptyList();
+	}
+
+	/**
 	 * Returns from the given component the closest parent of the given parent type, or <code>null</code> if none
 	 * is found.
 	 * @param <C> The generic component type.
@@ -377,6 +415,18 @@ public final class Components {
 		}
 
 		return parentType.cast(parent);
+	}
+
+	/**
+	 * Finds from the given component the closest parent of the given parent type.
+	 * @param <C> The generic component type.
+	 * @param component The component to find the closest parent of the given parent type for.
+	 * @param parentType The parent type.
+	 * @return From the given component the closest parent of the given parent type.
+	 * @since 3.11
+	 */
+	public static <C extends UIComponent> Optional<C> findClosestParent(UIComponent component, Class<C> parentType) {
+		return Optional.ofNullable(getClosestParent(component, parentType));
 	}
 
 	// Iteration / Visiting -------------------------------------------------------------------------------------------
@@ -489,15 +539,10 @@ public final class Components {
 		 * @return the intermediate builder object to continue the builder chain
 		 */
 		public ForEach withHints(VisitHint... hints) {
-
 			if (hints.length > 0) {
 				EnumSet<VisitHint> hintsSet = EnumSet.noneOf(hints[0].getDeclaringClass());
-				for (VisitHint hint : hints) {
-					hintsSet.add(hint);
-				}
-
+				Collections.addAll(hintsSet, hints);
 				this.hints = hintsSet;
-
 			}
 			return this;
 		}
@@ -522,32 +567,11 @@ public final class Components {
 		 * @param operation the operation to invoke on each component
 		 * @throws ClassCastException When <code>C</code> is of wrong type.
 		 */
-		public <C extends UIComponent> void invoke(final Callback.WithArgument<C> operation) {
-			invoke(new VisitCallback() {
-				@Override
-				@SuppressWarnings("unchecked")
-				public VisitResult visit(VisitContext context, UIComponent target) {
-					operation.invoke((C) target);
-					return ACCEPT;
-				}
-			});
-		}
-
-		/**
-		 * Invokes the given operation on the components as specified by the
-		 * query parameters set via this builder.
-		 *
-		 * @param <C> The expected component type.
-		 * @param operation the operation to invoke on each component
-		 * @throws ClassCastException When <code>C</code> is of wrong type.
-		 */
-		public <C extends UIComponent> void invoke(final Callback.ReturningWithArgument<VisitResult, C> operation) {
-			invoke(new VisitCallback() {
-				@Override
-				@SuppressWarnings("unchecked")
-				public VisitResult visit(VisitContext context, UIComponent target) {
-					return operation.invoke((C) target);
-				}
+		@SuppressWarnings("unchecked")
+		public <C extends UIComponent> void invoke(Callback.WithArgument<C> operation) {
+			invoke((context, target) -> {
+				operation.invoke((C) target);
+				return ACCEPT;
 			});
 		}
 
@@ -557,21 +581,15 @@ public final class Components {
 		 *
 		 * @param operation the operation to invoke on each component
 		 */
-		public void invoke(final VisitCallback operation) {
-			final VisitContext visitContext = createVisitContext(getFacesContext(), getIds(), getHints());
-			final VisitCallback visitCallback = (types == null) ? operation : new TypesVisitCallback(types, operation);
-			UIViewRoot viewRoot = getFacesContext().getViewRoot();
+		public void invoke(VisitCallback operation) {
+			VisitContext visitContext = createVisitContext(getFacesContext(), getIds(), getHints());
+			VisitCallback visitCallback = (types == null) ? operation : new TypesVisitCallback(types, operation);
 
-			if (viewRoot.equals(getRoot())) {
-				viewRoot.visitTree(visitContext, visitCallback);
+			if (getFacesContext().getViewRoot().equals(getRoot())) {
+				getRoot().visitTree(visitContext, visitCallback);
 			}
 			else {
-				forEachComponent().havingIds(getRoot().getClientId()).invoke(new Callback.WithArgument<UIComponent>() {
-					@Override
-					public void invoke(UIComponent root) {
-						root.visitTree(visitContext, visitCallback);
-					}
-				});
+				forEachComponent().havingIds(getRoot().getClientId()).invoke(viewRoot -> viewRoot.visitTree(visitContext, visitCallback));
 			}
 		}
 
@@ -620,8 +638,7 @@ public final class Components {
 	 * to the webcontent root.
 	 * @param parent The parent component to include the Facelet file in.
 	 * @param path The (relative) path to the Facelet file.
-	 * @throws IOException Whenever something fails at I/O level. The caller should preferably not catch it, but just
-	 * redeclare it in the action method. The servletcontainer will handle it.
+	 * @throws IOException Whenever given path cannot be read.
 	 * @see FaceletContext#includeFacelet(UIComponent, String)
 	 * @since 1.5
 	 */
@@ -670,7 +687,7 @@ public final class Components {
 	 */
 	public static UIComponent includeCompositeComponent(UIComponent parent, String libraryName, String tagName, String id, Map<String, String> attributes) {
 		String taglibURI = "http://xmlns.jcp.org/jsf/composite/" + libraryName;
-		Map<String, Object> attrs = (attributes == null) ? null : new HashMap<String, Object>(attributes);
+		Map<String, Object> attrs = (attributes == null) ? null : new HashMap<>(attributes);
 
 		FacesContext context = FacesContext.getCurrentInstance();
 		UIComponent composite = context.getApplication().getViewHandler()
@@ -683,11 +700,14 @@ public final class Components {
 
 	/**
 	 * Add given JavaScript code as inline script to end of body of the current view.
-	 * Note: this doesn't have any effect during ajax postbacks. Rather use {@link Ajax#oncomplete(String...)} instead.
+	 * Note: this doesn't have any effect during non-@all ajax postbacks. Rather use {@link Ajax#oncomplete(String...)} instead.
 	 * @param script JavaScript code to be added as inline script to end of body of the current view.
 	 * @return The created script component.
 	 * @since 2.2
+	 * @deprecated since 3.6, use {@link #addScript(String)} instead as this will automatically detect non-@all ajax
+	 * postbacks.
 	 */
+	@Deprecated
 	public static UIComponent addScriptToBody(String script) {
 		UIOutput outputScript = createScriptResource();
 		UIOutput content = new UIOutput();
@@ -698,28 +718,37 @@ public final class Components {
 
 	/**
 	 * Add given JavaScript resource to end of body of the current view.
-	 * Note: this doesn't have any effect during non-@all ajax postbacks.
+	 * Note: this doesn't have any effect during non-@all ajax postbacks. Rather use {@link Ajax#load(String, String)} instead.
 	 * @param libraryName Library name of the JavaScript resource.
 	 * @param resourceName Resource name of the JavaScript resource.
 	 * @return The created script component resource.
 	 * @since 2.2
+	 * @deprecated since 3.6, use {@link #addScriptResource(String, String)} instead as this will automatically detect
+	 * already-added resources, non-@all ajax postbacks and rendering state and pick the most optimal approach to add
+	 * the JavaScript resource.
 	 */
+	@Deprecated
 	public static UIComponent addScriptResourceToBody(String libraryName, String resourceName) {
-		return addScriptResource(libraryName, resourceName, "body");
+		return addScriptResourceToTarget(libraryName, resourceName, "body");
 	}
 
 	/**
 	 * Add given JavaScript resource to end of head of the current view.
 	 * Note: this doesn't have any effect during non-@all ajax postbacks, nor during render response phase when the
-	 * <code>&lt;h:head&gt;</code> has already been encoded. During render response, rather use
+	 * <code>&lt;h:head&gt;</code> has already been encoded. During non-@all ajax postbacks, rather use
+	 * {@link Ajax#load(String, String)} instead, or during render response, rather use
 	 * {@link #addScriptResourceToBody(String, String)} instead.
 	 * @param libraryName Library name of the JavaScript resource.
 	 * @param resourceName Resource name of the JavaScript resource.
 	 * @return The created script component resource.
 	 * @since 2.2
+	 * @deprecated since 3.6, use {@link #addScriptResource(String, String)} instead as this will automatically detect
+	 * already-added resources, non-@all ajax postbacks and rendering state and pick the most optimal approach to add
+	 * the JavaScript resource.
 	 */
+	@Deprecated
 	public static UIComponent addScriptResourceToHead(String libraryName, String resourceName) {
-		return addScriptResource(libraryName, resourceName, "head");
+		return addScriptResourceToTarget(libraryName, resourceName, "head");
 	}
 
 	private static UIOutput createScriptResource() {
@@ -728,11 +757,11 @@ public final class Components {
 		return outputScript;
 	}
 
-	private static UIComponent addScriptResource(String libraryName, String resourceName, String target) {
+	private static UIComponent addScriptResourceToTarget(String libraryName, String resourceName, String target) {
 		FacesContext context = FacesContext.getCurrentInstance();
-		String id = libraryName + "_" + resourceName.replaceAll("\\W+", "_");
+		String id = (libraryName != null ? (libraryName.replaceAll("\\W+", "_") + "_") : "") + resourceName.replaceAll("\\W+", "_");
 
-		for (UIComponent existingResource : context.getViewRoot().getComponentResources(context, target)) {
+		for (UIComponent existingResource : context.getViewRoot().getComponentResources(context)) {
 			if (id.equals(existingResource.getId())) {
 				return existingResource;
 			}
@@ -758,6 +787,61 @@ public final class Components {
 
 		context.getViewRoot().addComponentResource(context, resource, target);
 		return resource;
+	}
+
+	/**
+	 * Add given JavaScript code to the current view which is to be executed as an inline script when the rendering is
+	 * completed. When the current request is {@link Faces#isAjaxRequestWithPartialRendering()}, then it will delegate
+	 * to {@link Ajax#oncomplete(String...)}, else it will add given JavaScript code as inline script to end of body.
+	 * @param script JavaScript code which is to be executed as an inline script.
+	 * @since 3.6
+	 */
+	public static void addScript(String script) {
+		FacesContext context = FacesContext.getCurrentInstance();
+
+		if (isAjaxRequestWithPartialRendering(context)) {
+			oncomplete(script);
+		}
+		else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
+			subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> addScriptToBody(script)); // Just to avoid it misses when view rebuilds in the meanwhile.
+		}
+		else {
+			addScriptToBody(script);
+		}
+	}
+
+	/**
+	 * Add given JavaScript resource to the current view. This will first check if the resource isn't already rendered
+	 * as per {@link ResourceHandler#isResourceRendered(FacesContext, String, String)}. If not, then continue as below:
+	 * <ul>
+	 * <li>When the current request is a {@link Faces#isAjaxRequestWithPartialRendering()}, then it will delegate to
+	 * {@link Ajax#load(String, String)}.</li>
+	 * <li>Else when the <code>&lt;h:head&gt;</code> has not yet been rendered, then add given JavaScript resource to
+	 * head.</li>
+	 * <li>Else add given JavaScript resource to end of the <code>&lt;h:body&gt;</code>.</li>
+	 * </ul>
+	 * @param libraryName Library name of the JavaScript resource.
+	 * @param resourceName Resource name of the JavaScript resource.
+	 * @since 3.6
+	 */
+	public static void addScriptResource(String libraryName, String resourceName) {
+		FacesContext context = FacesContext.getCurrentInstance();
+
+		if (!context.getApplication().getResourceHandler().isResourceRendered(context, resourceName, libraryName)) {
+			if (isAjaxRequestWithPartialRendering(context)) {
+				load(libraryName, resourceName);
+			}
+			else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
+				addScriptResourceToHead(libraryName, resourceName);
+				subscribeToRequestBeforePhase(RENDER_RESPONSE, () -> addScriptResourceToBody(libraryName, resourceName)); // Fallback in case view rebuilds in the meanwhile. It will re-check if already added.
+			}
+			else if (TRUE.equals(context.getAttributes().get(IS_BUILDING_INITIAL_STATE))) {
+				addScriptResourceToHead(libraryName, resourceName);
+			}
+			else {
+				addScriptResourceToBody(libraryName, resourceName);
+			}
+		}
 	}
 
 	// Building / rendering -------------------------------------------------------------------------------------------
@@ -801,11 +885,11 @@ public final class Components {
 	 * already doesn't have a HTML head nor body.
 	 * @param component The component to capture HTML output for.
 	 * @return The encoded HTML output of the given component.
-	 * @throws IOException Whenever something fails at I/O level. This would be quite unexpected as it happens locally.
+	 * @throws UncheckedIOException Whenever something fails at I/O level. This would be quite unexpected as it happens locally.
 	 * @since 2.2
 	 * @see UIComponent#encodeAll(FacesContext)
 	 */
-	public static String encodeHtml(UIComponent component) throws IOException {
+	public static String encodeHtml(UIComponent component) {
 		FacesContext context = FacesContext.getCurrentInstance();
 		ResponseWriter originalWriter = context.getResponseWriter();
 		StringWriter output = new StringWriter();
@@ -813,6 +897,9 @@ public final class Components {
 
 		try {
 			component.encodeAll(context);
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
 		finally {
 			if (originalWriter != null) {
@@ -887,7 +974,7 @@ public final class Components {
 	 * Returns the source of the currently invoked action, or <code>null</code> if there is none, which may happen when
 	 * the current request is not a postback request at all, or when the view has been changed by for example a
 	 * successful navigation. If the latter is the case, you'd better invoke this method before navigation.
-	 * @param <C> The generic component type.
+	 * @param <C> The expected component type.
 	 * @return The source of the currently invoked action.
 	 * @since 2.4
 	 */
@@ -913,7 +1000,7 @@ public final class Components {
 		Map<String, String> params = context.getExternalContext().getRequestParameterMap();
 
 		if (context.getPartialViewContext().isAjaxRequest()) {
-			String sourceClientId = params.get("javax.faces.source");
+			String sourceClientId = params.get(BEHAVIOR_SOURCE_PARAM_NAME);
 
 			if (sourceClientId != null) {
 				UIComponent actionSource = findComponentIgnoringIAE(parent, sourceClientId);
@@ -974,24 +1061,21 @@ public final class Components {
 	 * @return The value of the <code>label</code> attribute associated with the given UI component if any, else
 	 * null.
 	 */
-	public static String getOptionalLabel(final UIComponent component) {
-		final Object[] result = new Object[1];
+	public static String getOptionalLabel(UIComponent component) {
+		Object[] result = new Object[1];
 
-		new ScopedRunner(getContext()).with("cc", getCompositeComponentParent(component)).invoke(new Callback.Void() {
-			@Override
-			public void invoke() {
-				Object label = component.getAttributes().get(ATTRIBUTE_LABEL);
+		new ScopedRunner(getContext()).with("cc", getCompositeComponentParent(component)).invoke(() -> {
+			Object label = component.getAttributes().get(LABEL_ATTRIBUTE);
 
-				if (isEmpty(label)) {
-					ValueExpression labelExpression = component.getValueExpression(ATTRIBUTE_LABEL);
+			if (isEmpty(label)) {
+				ValueExpression labelExpression = component.getValueExpression(LABEL_ATTRIBUTE);
 
-					if (labelExpression != null) {
-						label = labelExpression.getValue(getELContext());
-					}
+				if (labelExpression != null) {
+					label = labelExpression.getValue(getELContext());
 				}
-
-				result[0] = label;
 			}
+
+			result[0] = label;
 		});
 
 		return (result[0] != null) ? result[0].toString() : null;
@@ -1004,13 +1088,13 @@ public final class Components {
 	 */
 	public static void setLabel(UIComponent component, Object label) {
 		if (label instanceof ValueExpression) {
-			component.setValueExpression(ATTRIBUTE_LABEL, (ValueExpression) label);
+			component.setValueExpression(LABEL_ATTRIBUTE, (ValueExpression) label);
 		}
 		else if (label != null) {
-			component.getAttributes().put(ATTRIBUTE_LABEL, label);
+			component.getAttributes().put(LABEL_ATTRIBUTE, label);
 		}
 		else {
-			component.getAttributes().remove(ATTRIBUTE_LABEL);
+			component.getAttributes().remove(LABEL_ATTRIBUTE);
 		}
 	}
 
@@ -1059,6 +1143,54 @@ public final class Components {
 	}
 
 	/**
+	 * Returns the expected type of the "value" attribute of the given component. This is useful in among others a
+	 * "generic entity converter".
+	 * @param <T> The expected type of the expected type of the "value" attribute of the given component.
+	 * @param component The component to obtain the expected type of the "value" attribute for.
+	 * @return The expected type of the "value" attribute of the given component, or <code>null</code> when there is no such value.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @since 3.8
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> Class<T> getExpectedValueType(UIComponent component) {
+		ValueExpression valueExpression = component.getValueExpression(VALUE_ATTRIBUTE);
+
+		if (valueExpression != null) {
+			return getExpectedType(valueExpression);
+		}
+		else {
+			Object value = component.getAttributes().get(VALUE_ATTRIBUTE);
+
+			if (value != null) {
+				return (Class<T>) value.getClass();
+			}
+
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the expected type of the given value expression. This first inspects if the
+	 * {@link ValueExpression#getExpectedType()} returns a specific type, i.e. not <code>java.lang.Object</code>, and
+	 * then returns it, else it inspects the actual type of the property behind the expression string.
+	 * @param <T> The expected type of the expected type of the given value expression.
+	 * @param valueExpression The value expression to obtain the expected type for.
+	 * @return The expected type of the given value expression.
+	 * @throws ClassCastException When <code>T</code> is of wrong type.
+	 * @since 3.8
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> Class<T> getExpectedType(ValueExpression valueExpression) {
+		Class<?> expectedType = valueExpression.getExpectedType();
+
+		if (expectedType == Object.class) {
+			expectedType = valueExpression.getType(getELContext());
+		}
+
+		return (Class<T>) expectedType;
+	}
+
+	/**
 	 * Returns whether the given component has invoked the form submit. In non-ajax requests, that can only be an
 	 * {@link UICommand} component. In ajax requests, that can also be among others an {@link UIInput} component.
 	 * @param component The component to be checked.
@@ -1074,24 +1206,25 @@ public final class Components {
 	 * Returns an unmodifiable list with all child {@link UIParameter} components (<code>&lt;f|o:param&gt;</code>) of
 	 * the given parent component as a list of {@link ParamHolder} instances. Those with <code>disabled=true</code> and
 	 * an empty name are skipped.
+	 * @param <T> The type of the param value.
 	 * @param component The parent component to retrieve all child {@link UIParameter} components from.
 	 * @return An unmodifiable list with all child {@link UIParameter} components having a non-empty name and not
 	 * disabled.
 	 * @since 2.1
 	 */
-	public static List<ParamHolder> getParams(UIComponent component) {
+	public static <T> List<ParamHolder<T>> getParams(UIComponent component) {
 		if (component.getChildCount() == 0) {
 			return Collections.emptyList();
 		}
 
-		List<ParamHolder> params = new ArrayList<>(component.getChildCount());
+		List<ParamHolder<T>> params = new ArrayList<>(component.getChildCount());
 
 		for (UIComponent child : component.getChildren()) {
 			if (child instanceof UIParameter) {
 				UIParameter param = (UIParameter) child;
 
 				if (!isEmpty(param.getName()) && !param.isDisable()) {
-					params.add(new SimpleParam(param));
+					params.add(new SimpleParam<>(param));
 				}
 			}
 		}
@@ -1126,14 +1259,14 @@ public final class Components {
 			params = new LinkedHashMap<>(0);
 		}
 
-		for (ParamHolder param : getParams(component)) {
-			Object value = param.getValue();
+		for (ParamHolder<Object> param : getParams(component)) {
+			String value = param.getValue();
 
 			if (isEmpty(value)) {
 				continue;
 			}
 
-			params.put(param.getName(), asList(value.toString()));
+			params.put(param.getName(), asList(value));
 		}
 
 		return Collections.unmodifiableMap(params);
@@ -1146,26 +1279,26 @@ public final class Components {
 	 * @return The {@link UIMessage} component associated with given {@link UIInput} component.
 	 * @since 2.5
 	 */
-	public static UIMessage getMessageComponent(final UIInput input) {
-		final UIMessage[] found = new UIMessage[1];
+	public static UIMessage getMessageComponent(UIInput input) {
+		UIMessage[] found = new UIMessage[1];
 
-		forEachComponent().ofTypes(UIMessage.class).withHints(SKIP_ITERATION).invoke(new VisitCallback() {
-			@Override
-			public VisitResult visit(VisitContext context, UIComponent target) {
-				UIMessage messageComponent = (UIMessage) target;
-				String forValue = messageComponent.getFor();
+		forEachComponent().ofTypes(UIMessage.class).withHints(SKIP_ITERATION).invoke((context, target) -> {
+			UIMessage messageComponent = (UIMessage) target;
+			String forValue = messageComponent.getFor();
 
-				if (!isEmpty(forValue)) {
-					UIComponent forComponent = findComponentRelatively(messageComponent, forValue);
+			if (!isEmpty(forValue)) {
+				FacesContext facesContext = context.getFacesContext();
+				SearchExpressionContext searchExpressionContext = createSearchExpressionContext(facesContext, messageComponent, RESOLVE_LABEL_FOR, null);
+				String forClientId = facesContext.getApplication().getSearchExpressionHandler().resolveClientId(searchExpressionContext, forValue);
+				UIComponent forComponent = findComponentRelatively(messageComponent, forClientId);
 
-					if (input.equals(forComponent)) {
-						found[0] = messageComponent;
-						return VisitResult.COMPLETE;
-					}
+				if (input.equals(forComponent)) {
+					found[0] = messageComponent;
+					return VisitResult.COMPLETE;
 				}
-
-				return VisitResult.ACCEPT;
 			}
+
+			return VisitResult.ACCEPT;
 		});
 
 		return found[0];
@@ -1178,14 +1311,11 @@ public final class Components {
 	 * @since 2.5
 	 */
 	public static UIMessages getMessagesComponent() {
-		final UIMessages[] found = new UIMessages[1];
+		UIMessages[] found = new UIMessages[1];
 
-		forEachComponent().ofTypes(UIMessages.class).withHints(SKIP_ITERATION).invoke(new VisitCallback() {
-			@Override
-			public VisitResult visit(VisitContext context, UIComponent target) {
-				found[0] = (UIMessages) target;
-				return VisitResult.COMPLETE;
-			}
+		forEachComponent().ofTypes(UIMessages.class).withHints(SKIP_ITERATION).invoke((context, target) -> {
+			found[0] = (UIMessages) target;
+			return VisitResult.COMPLETE;
 		});
 
 		return found[0];
@@ -1216,12 +1346,44 @@ public final class Components {
 	 * @since 2.5
 	 */
 	public static void resetInputs(UIComponent component) {
-		forEachComponent().fromRoot(component).ofTypes(UIInput.class).invoke(new Callback.WithArgument<UIInput>() {
-			@Override
-			public void invoke(UIInput input) {
-				input.resetValue();
-			}
-		});
+		forEachComponent().fromRoot(component).ofTypes(UIInput.class).invoke(UIInput::resetValue);
+	}
+
+	/**
+	 * Add an {@link UIForm} to the current view if absent.
+	 * This might be needed for scripts which rely on JSF view state identifier and/or on functioning of jsf.ajax.request().
+	 * @since 3.6
+	 */
+	public static void addFormIfNecessary() {
+		FacesContext context = FacesContext.getCurrentInstance();
+
+		if (isAjaxRequestWithPartialRendering(context)) {
+			return; // It's impossible to have this condition without an UIForm in first place.
+		}
+
+		UIViewRoot viewRoot = context.getViewRoot();
+
+		if (viewRoot == null || viewRoot.getChildCount() == 0) {
+			return; // Empty view. Nothing to do against. The client should probably find a better moment to invoke this.
+		}
+
+		VisitCallback visitCallback = (visitContext, target) -> (target instanceof UIForm) ? VisitResult.COMPLETE : VisitResult.ACCEPT;
+		boolean formFound = viewRoot.visitTree(createVisitContext(context, null, EnumSet.of(VisitHint.SKIP_ITERATION)), visitCallback);
+
+		if (formFound) {
+			return; // UIForm present. No need to add a new one.
+		}
+
+		Optional<UIComponent> body = viewRoot.getChildren().stream().filter(HtmlBody.class::isInstance).findFirst();
+
+		if (!body.isPresent()) {
+			return; // No <h:body> present. Not possible to add a new UIForm then.
+		}
+
+		Form form = new Form();
+		form.setId(OmniFaces.OMNIFACES_DYNAMIC_FORM_ID);
+		form.getAttributes().put("style", "display:none"); // Just to be on the safe side. There might be CSS which puts visible style such as margin/padding/border on any <form> for some reason.
+		body.get().getChildren().add(form);
 	}
 
 	// Expressions ----------------------------------------------------------------------------------------------------
@@ -1337,13 +1499,8 @@ public final class Components {
 	public static AjaxBehavior createAjaxBehavior(String expression) {
 		FacesContext context = FacesContext.getCurrentInstance();
 		AjaxBehavior behavior = (AjaxBehavior) context.getApplication().createBehavior(AjaxBehavior.BEHAVIOR_ID);
-		final MethodExpression method = createVoidMethodExpression(expression, AjaxBehaviorEvent.class);
-		behavior.addAjaxBehaviorListener(new AjaxBehaviorListener() {
-			@Override
-			public void processAjaxBehavior(AjaxBehaviorEvent event) {
-				method.invoke(getELContext(), new Object[] { event });
-			}
-		});
+		MethodExpression method = createVoidMethodExpression(expression, AjaxBehaviorEvent.class);
+		behavior.addAjaxBehaviorListener(event -> method.invoke(getELContext(), new Object[] { event }));
 		return behavior;
 	}
 
@@ -1364,13 +1521,13 @@ public final class Components {
 			ActionSource2 source = (ActionSource2) component;
 			addExpressionStringIfNotNull(source.getActionExpression(), actions);
 
-			for (ActionListener actionListener : source.getActionListeners()) {
-				actions.add(actionListener.getClass().getName());
+			for (ActionListener listener : source.getActionListeners()) {
+				addExpressionStringIfNotNull(getField(listener.getClass(), MethodExpression.class, listener), actions);
 			}
 		}
 
 		if (component instanceof ClientBehaviorHolder) {
-			String behaviorEvent = getRequestParameter("javax.faces.behavior.event");
+			String behaviorEvent = getRequestParameter(BEHAVIOR_EVENT_PARAM_NAME);
 
 			if (behaviorEvent != null) {
 				for (BehaviorListener listener : getBehaviorListeners((ClientBehaviorHolder) component, behaviorEvent)) {
@@ -1391,9 +1548,7 @@ public final class Components {
 	 * @param parentType The parent type to be checked.
 	 * @throws IllegalStateException When the given component doesn't have any parent of the given type.
 	 */
-	public static <C extends UIComponent> void validateHasParent(UIComponent component, Class<C> parentType)
-		throws IllegalStateException
-	{
+	public static <C extends UIComponent> void validateHasParent(UIComponent component, Class<C> parentType) {
 		if (!isDevelopment()) {
 			return;
 		}
@@ -1411,9 +1566,7 @@ public final class Components {
 	 * @param parentType The parent type to be checked.
 	 * @throws IllegalStateException When the given component doesn't have a direct parent of the given type.
 	 */
-	public static <C extends UIComponent> void validateHasDirectParent(UIComponent component, Class<C> parentType)
-		throws IllegalStateException
-	{
+	public static <C extends UIComponent> void validateHasDirectParent(UIComponent component, Class<C> parentType) {
 		if (!isDevelopment()) {
 			return;
 		}
@@ -1432,9 +1585,7 @@ public final class Components {
 	 * @throws IllegalStateException When the given component does have a parent of the given type.
 	 * @since 2.5
 	 */
-	public static <C extends UIComponent> void validateHasNoParent(UIComponent component, Class<C> parentType)
-		throws IllegalStateException
-	{
+	public static <C extends UIComponent> void validateHasNoParent(UIComponent component, Class<C> parentType) {
 		if (!isDevelopment()) {
 			return;
 		}
@@ -1453,9 +1604,7 @@ public final class Components {
 	 * @throws IllegalStateException When the given component doesn't have any children of the given type.
 	 * @since 2.5
 	 */
-	public static <C extends UIComponent> void validateHasChild(UIComponent component, Class<C> childType)
-		throws IllegalStateException
-	{
+	public static <C extends UIComponent> void validateHasChild(UIComponent component, Class<C> childType) {
 		if (!isDevelopment()) {
 			return;
 		}
@@ -1474,9 +1623,7 @@ public final class Components {
 	 * @throws IllegalStateException When the given component has children of a different type.
 	 * @since 2.5
 	 */
-	public static <C extends UIComponent> void validateHasOnlyChildren(UIComponent component, Class<C> childType)
-		throws IllegalStateException
-	{
+	public static <C extends UIComponent> void validateHasOnlyChildren(UIComponent component, Class<C> childType) {
 		if (!isDevelopment() || component.getChildCount() == 0) {
 			return;
 		}
@@ -1544,7 +1691,7 @@ public final class Components {
 			return parent.findComponent(stripIterationIndexFromClientId(clientId));
 		}
 		catch (IllegalArgumentException ignore) {
-			logger.log(FINE, "Ignoring thrown exception; this may occur when view has changed by for example a successful navigation.", ignore);
+			logger.log(FINEST, "Ignoring thrown exception; this may occur when view has changed by for example a successful navigation.", ignore);
 			return null;
 		}
 	}
@@ -1589,15 +1736,17 @@ public final class Components {
 	 */
 	@SuppressWarnings("unchecked")
 	private static <C, F> F getField(Class<? extends C> classType, Class<F> fieldType, C instance) {
-		for (Field field : classType.getDeclaredFields()) {
-			if (fieldType.isAssignableFrom(field.getType())) {
-				field.setAccessible(true);
+		for (Class<?> type = classType; type != Object.class; type = type.getSuperclass()) {
+			for (Field field : type.getDeclaredFields()) {
+				if (fieldType.isAssignableFrom(field.getType())) {
+					field.setAccessible(true);
 
-				try {
-					return (F) field.get(instance);
-				}
-				catch (IllegalAccessException e) {
-					throw new IllegalStateException(e);
+					try {
+						return (F) field.get(instance);
+					}
+					catch (IllegalAccessException e) {
+						throw new IllegalStateException(e);
+					}
 				}
 			}
 		}
@@ -1618,11 +1767,10 @@ public final class Components {
 	 */
 	private static class TemporaryViewFacesContext extends FacesContextWrapper {
 
-		private FacesContext wrapped;
 		private UIViewRoot temporaryView;
 
 		public TemporaryViewFacesContext(FacesContext wrapped, UIViewRoot temporaryView) {
-			this.wrapped = wrapped;
+			super(wrapped);
 			this.temporaryView = temporaryView;
 		}
 
@@ -1634,11 +1782,6 @@ public final class Components {
 		@Override
 		public RenderKit getRenderKit() {
 			return FacesLocal.getRenderKit(this);
-		}
-
-		@Override
-		public FacesContext getWrapped() {
-			return wrapped;
 		}
 
 	}
