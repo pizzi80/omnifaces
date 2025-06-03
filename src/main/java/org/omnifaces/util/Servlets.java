@@ -580,7 +580,7 @@ public final class Servlets {
 		response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
 		response.setDateHeader("Expires", 0);
 		response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-		addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), -1); // #897
+		addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), 1); // #897
 	}
 
 	/**
