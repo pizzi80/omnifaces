@@ -594,19 +594,20 @@ public final class Servlets {
      * <li><code>Cache-Control: public,max-age=[expiration time in seconds],must-revalidate</code></li>
      * <li><code>Expires: [expiration date of now plus expiration time in seconds]</code></li>
      * </ul>
-     * <p>Else the method will delegate to {@link #setNoCacheHeaders(HttpServletResponse)}.
+     * <p>Else the method will delegate to {@link #setNoCacheHeaders(HttpServletRequest, HttpServletResponse)}.
+     * @param request The involved HTTP servlet request.
      * @param response The HTTP servlet response to set the headers on.
      * @param expires The expire time in seconds (not milliseconds!).
      * @since 2.2
      */
-    public static void setCacheHeaders(HttpServletResponse response, long expires) {
+    public static void setCacheHeaders(HttpServletRequest request, HttpServletResponse response, long expires) {
         if (expires > 0) {
             response.setHeader("Cache-Control", "public,max-age=" + expires + ",must-revalidate");
             response.setDateHeader("Expires", System.currentTimeMillis() + SECONDS.toMillis(expires));
             response.setHeader("Pragma", ""); // Explicitly set pragma to prevent container from overriding it.
         }
         else {
-            setNoCacheHeaders(response);
+            setNoCacheHeaders(request, response);
         }
     }
 
@@ -616,17 +617,19 @@ public final class Servlets {
      * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
      * <li><code>Expires: [expiration date of 0]</code></li>
      * <li><code>Pragma: no-cache</code></li>
+     * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
      * </ul>
      * <p>Since 2.7.28 a cookie with name "BFCache-Buster" will be set with a random value
      * in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
+     * @param request The involved HTTP servlet request.
      * @param response The HTTP servlet response to set the headers on.
      * @since 2.2
      */
-    public static void setNoCacheHeaders(HttpServletResponse response) {
+    public static void setNoCacheHeaders(HttpServletRequest request, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
         response.setDateHeader("Expires", 0);
         response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-        response.addCookie(new Cookie("BFCache-Buster", UUID.randomUUID().toString())); // #897
+        addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), -1); // #897
     }
 
     /**
@@ -927,7 +930,7 @@ public final class Servlets {
 
         try {
             if (isFacesAjaxRequest(request)) {
-                setNoCacheHeaders(response);
+                setNoCacheHeaders(request, response);
                 response.setContentType("text/xml");
                 response.setCharacterEncoding(UTF_8.name());
                 response.getWriter().printf(FACES_AJAX_REDIRECT_XML, redirectURL);

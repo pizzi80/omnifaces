@@ -155,6 +155,7 @@ import org.omnifaces.util.Servlets;
  * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
  * <li><code>Expires: [expiration date of 0]</code></li>
  * <li><code>Pragma: no-cache</code></li>
+ * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
  * </ul>
  *
  * <h2>Faces development stage</h2>
@@ -233,7 +234,7 @@ public class CacheControlFilter extends HttpFilter {
             throws ServletException, IOException
     {
         if (!isFacesResourceRequest(request)) {
-            setCacheHeaders(response, expires);
+            setCacheHeaders(request, response, expires);
         }
 
         chain.doFilter(request, response);
