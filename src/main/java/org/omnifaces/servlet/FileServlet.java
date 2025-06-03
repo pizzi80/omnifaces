@@ -288,7 +288,7 @@ public abstract class FileServlet extends HttpServlet {
 	 * Set cache headers.
 	 */
 	private void setCacheHeaders(HttpServletResponse response, Resource resource, long expires) {
-		Servlets.setCacheHeaders(response, expires);
+		Servlets.setCacheHeaders(request, response, expires);
 		response.setHeader("ETag", resource.eTag);
 		response.setDateHeader("Last-Modified", resource.lastModified);
 	}
