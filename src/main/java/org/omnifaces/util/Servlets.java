@@ -600,7 +600,7 @@ public final class Servlets {
 	 * <li><code>Cache-Control: public,max-age=[expiration time in seconds],must-revalidate</code></li>
 	 * <li><code>Expires: [expiration date of now plus expiration time in seconds]</code></li>
 	 * </ul>
-	 * <p>Else the method will delegate to {@link #setNoCacheHeaders(HttpServletResponse)}.
+	 * <p>Else the method will delegate to {@link #setNoCacheHeaders(HttpServletRequest, HttpServletResponse)}
 	 * @param request The involved HTTP servlet request.
 	 * @param response The HTTP servlet response to set the headers on.
 	 * @param expires The expire time in seconds (not milliseconds!).
