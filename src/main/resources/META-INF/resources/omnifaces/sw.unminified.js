@@ -42,7 +42,7 @@ self.addEventListener("fetch", function(event) {
     var request = event.request;
     var requestURL = new URL(request.url);
 
-    if (requestURL.origin !== window.location.origin) {
+    if (requestURL.origin !== self.location.origin) {
         return; // Not our resource.
     }
 
