@@ -22,7 +22,7 @@
  * @see PWAResourceHandler
  * @see <a href="https://css-tricks.com/serviceworker-for-offline/">https://css-tricks.com/serviceworker-for-offline/</a>
  */
-var cacheName = "omnifaces.4.6.2"; // Should be bumped every time this sw.unminified.js logic is changed.
+var cacheName = "omnifaces.4.6.4"; // Should be bumped every time this sw.unminified.js logic is changed.
 var cacheableResources = $cacheableResources;
 var offlineResource = $offlineResource;
 
@@ -42,7 +42,7 @@ self.addEventListener("fetch", function(event) {
     var request = event.request;
     var requestURL = new URL(request.url);
 
-    if (requestURL.origin !== window.location.origin) {
+    if (requestURL.origin !== self.location.origin) {
         return; // Not our resource.
     }
 
