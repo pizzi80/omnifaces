@@ -55,9 +55,9 @@ jobs:
       with:
         java-version: '8'
         distribution: 'adopt'
-        server-id: ossrh
-        server-username: OSSRH_USERNAME
-        server-password: OSSRH_PASSWORD
+        server-id: central
+        server-username: CENTRAL_USERNAME
+        server-password: CENTRAL_PASSWORD
     - name: Extract project version
       id: project
       run: echo version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) >> $GITHUB_OUTPUT
@@ -65,5 +65,5 @@ jobs:
       if: ${{endsWith(steps.project.outputs.version, '-SNAPSHOT')}}
       run: mvn -B deploy -Dmaven.test.skip=true
       env:
-        OSSRH_USERNAME: ${{secrets.OSSRH_USERNAME}}
-        OSSRH_PASSWORD: ${{secrets.OSSRH_PASSWORD}}
+        CENTRAL_USERNAME: ${{secrets.CENTRAL_USERNAME}}
+        CENTRAL_PASSWORD: ${{secrets.CENTRAL_PASSWORD}}
