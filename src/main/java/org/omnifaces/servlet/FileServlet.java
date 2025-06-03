@@ -161,7 +161,7 @@ public abstract class FileServlet extends HttpServlet {
 			return;
 		}
 
-		setCacheHeaders(response, resource, getExpireTime(request, resource.file));
+		setCacheHeaders(request, response, resource, getExpireTime(request, resource.file));
 
 		if (notModified(request, resource)) {
 			response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
@@ -287,7 +287,7 @@ public abstract class FileServlet extends HttpServlet {
 	/**
 	 * Set cache headers.
 	 */
-	private void setCacheHeaders(HttpServletResponse response, Resource resource, long expires) {
+	private void setCacheHeaders(HttpServletRequest request, HttpServletResponse response, Resource resource, long expires) {
 		Servlets.setCacheHeaders(request, response, expires);
 		response.setHeader("ETag", resource.eTag);
 		response.setDateHeader("Last-Modified", resource.lastModified);
