@@ -37,11 +37,9 @@ import static org.omnifaces.util.Utils.isEmpty;
 import static org.omnifaces.util.Utils.isOneOf;
 import static org.omnifaces.util.Utils.splitAndTrim;
 import static org.omnifaces.util.Utils.startsWithOneOf;
-import static org.omnifaces.util.Utils.unmodifiableSet;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -51,8 +49,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -115,9 +113,8 @@ public final class Servlets {
     private static final Logger logger = Logger.getLogger(Servlets.class.getName());
 
     private static final String CONTENT_DISPOSITION_HEADER = "%s;filename=\"%2$s\"; filename*=UTF-8''%2$s";
-    private static final Set<String> FACES_AJAX_HEADERS = unmodifiableSet("partial/ajax", "partial/process");
-    private static final String FACES_AJAX_REDIRECT_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        + "<partial-response><redirect url=\"%s\"></redirect></partial-response>";
+    private static final Set<String> FACES_AJAX_HEADERS = Set.of("partial/ajax", "partial/process");
+    private static final String FACES_AJAX_REDIRECT_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><partial-response><redirect url=\"%s\"></redirect></partial-response>";
 
     private static final String WEB_XML = "/WEB-INF/web.xml";
     private static final String QUARKUS_WEB_XML = "META-INF/web.xml";
@@ -254,7 +251,7 @@ public final class Servlets {
      */
     public static Map<String, List<String>> getRequestParameterMap(HttpServletRequest request) {
         var parameterMap = new HashMap<String, List<String>>(request.getParameterMap().size());
-        request.getParameterMap().entrySet().forEach(entry -> parameterMap.put(entry.getKey(), asList(entry.getValue())));
+        request.getParameterMap().forEach((key, value) -> parameterMap.put(key, asList(value)));
         return parameterMap;
     }
 
@@ -509,9 +506,9 @@ public final class Servlets {
 
             if (parts.length == 3 && !isEmpty(parts[0])) {
                 try {
-                    fileName = URLDecoder.decode(parts[2], Charset.forName(parts[0]).name());
+                    fileName = URLDecoder.decode(parts[2], Charset.forName(parts[0]));
                 }
-                catch (IllegalArgumentException | UnsupportedEncodingException ignore) {
+                catch (IllegalArgumentException ignore) {
                     logger.log(Level.FINEST, "Ignoring thrown exception, falling back to default filename", ignore);
                 }
             }
@@ -587,6 +584,14 @@ public final class Servlets {
 
     // HttpServletResponse --------------------------------------------------------------------------------------------
 
+    static final class DeferredRandom {
+        static final Random generator = new Random();
+    }
+
+    static String nextCacheBusterValue() {
+        return Integer.toHexString(DeferredRandom.generator.nextInt());
+    }
+
     /**
      * <p>Set the cache headers. If the <code>expires</code> argument is larger than 0 seconds, then the following headers
      * will be set:
@@ -629,7 +634,7 @@ public final class Servlets {
         response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
         response.setDateHeader("Expires", 0);
         response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-        addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), 1); // #897
+        addResponseCookie(request, response, "BFCache-Buster", nextCacheBusterValue(), 1); // #897
     }
 
     /**
@@ -878,7 +883,7 @@ public final class Servlets {
      */
     public static boolean isFacesDevelopment(ServletContext context) {
         if (facesDevelopment == null) {
-            String projectStage = null;
+            String projectStage;
 
             try {
                 projectStage = lookup(PROJECT_STAGE_JNDI_NAME);
