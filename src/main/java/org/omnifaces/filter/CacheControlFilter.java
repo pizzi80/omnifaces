@@ -180,9 +180,9 @@ public class CacheControlFilter extends HttpFilter {
     private enum Unit {
         W(DAYS.toSeconds(DAYS_PER_WEEK)), D(DAYS.toSeconds(1)), H(HOURS.toSeconds(1)), M(MINUTES.toSeconds(1)), S(1);
 
-        private long seconds;
+        private final long seconds;
 
-        private Unit(long seconds) {
+        Unit(long seconds) {
             this.seconds = seconds;
         }
 
