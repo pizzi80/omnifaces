@@ -105,10 +105,7 @@ public final class Strings {
             return string;
         }
 
-        return new StringBuilder()
-            .append(Character.toTitleCase(string.charAt(0)))
-            .append(string.substring(1))
-            .toString();
+        return Character.toTitleCase(string.charAt(0)) + string.substring(1);
     }
 
     /**
