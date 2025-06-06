@@ -467,7 +467,7 @@ public final class Utils {
      * @param file The file.
      * @param output The output stream.
      * @param start The start position (offset).
-     * @param length The (intented) length of written bytes.
+     * @param length The (intended) length of written bytes.
      * @return The (actual) length of the written bytes. This may be smaller when the given length is too large.
      * @throws IOException When an I/O error occurs.
      * @since 2.2
