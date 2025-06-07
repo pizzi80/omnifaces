@@ -253,8 +253,8 @@ public final class Servlets {
      * @since 2.6
      */
     public static Map<String, List<String>> getRequestParameterMap(HttpServletRequest request) {
-        var parameterMap = new HashMap<String, List<String>>(request.getParameterMap().size());
-        request.getParameterMap().entrySet().forEach(entry -> parameterMap.put(entry.getKey(), asList(entry.getValue())));
+        var parameterMap = new HashMap<String, List<String>>(request.getParameterMap().size(), 1);
+        request.getParameterMap().forEach((name, value) -> parameterMap.put(name, asList(value)));
         return parameterMap;
     }
 
@@ -339,7 +339,7 @@ public final class Servlets {
      */
     public static Map<String, List<String>> toParameterMap(String queryString) {
         var parameters = queryString.split(quote("&"));
-        var parameterMap = new LinkedHashMap<String, List<String>>(parameters.length);
+        var parameterMap = new LinkedHashMap<String, List<String>>(parameters.length, 1);
 
         for (var parameter : parameters) {
             if (parameter.contains("=")) {

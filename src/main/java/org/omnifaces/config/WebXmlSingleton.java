@@ -15,6 +15,7 @@ package org.omnifaces.config;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.Collections.unmodifiableSet;
 import static org.omnifaces.util.Servlets.getWebXmlURL;
 import static org.omnifaces.util.Utils.isEmpty;
@@ -44,7 +45,6 @@ import jakarta.servlet.ServletContext;
 import org.omnifaces.util.Servlets;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -118,7 +118,7 @@ enum WebXmlSingleton implements WebXml {
     /**
      * Perform automatic initialization whereby the servlet context is obtained from CDI.
      */
-    private WebXmlSingleton() {
+    WebXmlSingleton() {
         try {
             ServletContext servletContext = Servlets.getContext();
             Element allWebXmls = loadAllWebXmls(servletContext).getDocumentElement();
@@ -148,12 +148,12 @@ enum WebXmlSingleton implements WebXml {
             location = errorPageLocations.get(cls);
         }
 
-        return (location == null) ? errorPageLocations.get(null) : location;
+        return location == null ? errorPageLocations.get(null) : location;
     }
 
     @Override
     public boolean isAccessAllowed(String url, String role) {
-        if (url.charAt(0) != ('/')) {
+        if (url.charAt(0) != '/') {
             throw new IllegalArgumentException(format(ERROR_URL_MUST_START_WITH_SLASH, url));
         }
 
@@ -232,7 +232,7 @@ enum WebXmlSingleton implements WebXml {
     }
 
     private static boolean isRoleMatch(Set<String> roles, String role) {
-        return roles.isEmpty() || roles.contains(role) || (role != null && roles.contains("*"));
+        return roles.isEmpty() || roles.contains(role) || role != null && roles.contains("*");
     }
 
     // Getters --------------------------------------------------------------------------------------------------------
@@ -312,19 +312,19 @@ enum WebXmlSingleton implements WebXml {
      */
     @SuppressWarnings("unchecked") // For the cast on Class<Throwable>.
     private static Map<Class<Throwable>, String> parseErrorPageLocations(Element webXml, XPath xpath) throws XPathExpressionException, ClassNotFoundException {
-        Map<Class<Throwable>, String> errorPageLocations = new HashMap<>();
-        NodeList exceptionTypes = getNodeList(webXml, xpath, XPATH_EXCEPTION_TYPE);
+        var exceptionTypes = getNodeList(webXml, xpath, XPATH_EXCEPTION_TYPE);
+        var errorPageLocations = new HashMap<Class<Throwable>, String>(exceptionTypes.getLength(), 1);
 
         for (int i = 0; i < exceptionTypes.getLength(); i++) {
-            Node node = exceptionTypes.item(i);
-            Class<Throwable> exceptionClass = (Class<Throwable>) Class.forName(getTextContent(node));
-            String exceptionLocation = xpath.compile(XPATH_LOCATION).evaluate(node.getParentNode()).trim();
-            Class<Throwable> key = (exceptionClass == Throwable.class) ? null : exceptionClass;
+            var node = exceptionTypes.item(i);
+            var exceptionClass = (Class<Throwable>) Class.forName(getTextContent(node));
+            var exceptionLocation = xpath.compile(XPATH_LOCATION).evaluate(node.getParentNode()).trim();
+            var key = exceptionClass == Throwable.class ? null : exceptionClass;
             errorPageLocations.computeIfAbsent(key, k -> exceptionLocation);
         }
 
         if (!errorPageLocations.containsKey(null)) {
-            String defaultLocation = xpath.compile(XPATH_ERROR_PAGE_500_LOCATION).evaluate(webXml).trim();
+            var defaultLocation = xpath.compile(XPATH_ERROR_PAGE_500_LOCATION).evaluate(webXml).trim();
 
             if (isEmpty(defaultLocation)) {
                 defaultLocation = xpath.compile(XPATH_ERROR_PAGE_DEFAULT_LOCATION).evaluate(webXml).trim();
@@ -335,7 +335,7 @@ enum WebXmlSingleton implements WebXml {
             }
         }
 
-        return Collections.unmodifiableMap(errorPageLocations);
+        return unmodifiableMap(errorPageLocations);
     }
 
     /**
@@ -368,28 +368,28 @@ enum WebXmlSingleton implements WebXml {
      * Create and return a mapping of all security constraint URL patterns and the associated roles.
      */
     private static Map<String, Set<String>> parseSecurityConstraints(Element webXml, XPath xpath) throws XPathExpressionException {
-        Map<String, Set<String>> securityConstraints = new LinkedHashMap<>();
-        NodeList constraints = getNodeList(webXml, xpath, XPATH_SECURITY_CONSTRAINT);
+        var constraints = getNodeList(webXml, xpath, XPATH_SECURITY_CONSTRAINT);
+        var securityConstraints = new LinkedHashMap<String, Set<String>>(constraints.getLength(), 1);
 
         for (int i = 0; i < constraints.getLength(); i++) {
-            Node constraint = constraints.item(i);
-            Set<String> roles = emptySet();
-            NodeList auth = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT);
+            var constraint = constraints.item(i);
+            var roles = Collections.<String>emptySet();
+            var auth = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT);
 
             if (auth.getLength() > 0) {
-                NodeList authRoles = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT_ROLE_NAME);
-                roles = new HashSet<>(authRoles.getLength());
+                var authRoles = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT_ROLE_NAME);
+                roles = new HashSet<>(authRoles.getLength(), 1);
 
                 for (int j = 0; j < authRoles.getLength(); j++) {
                     roles.add(getTextContent(authRoles.item(j)));
                 }
             }
 
-            NodeList urlPatterns = getNodeList(constraint, xpath, XPATH_WEB_RESOURCE_URL_PATTERN);
+            var urlPatterns = getNodeList(constraint, xpath, XPATH_WEB_RESOURCE_URL_PATTERN);
 
             for (int j = 0; j < urlPatterns.getLength(); j++) {
-                String urlPattern = getTextContent(urlPatterns.item(j));
-                Set<String> allRoles = securityConstraints.get(urlPattern);
+                var urlPattern = getTextContent(urlPatterns.item(j));
+                var allRoles = securityConstraints.get(urlPattern);
 
                 if (allRoles != null) {
                     allRoles = new HashSet<>(allRoles);

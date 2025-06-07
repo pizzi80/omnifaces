@@ -683,8 +683,8 @@ public final class Utils {
      * @return the reverse of the given map
      */
     public static <T> Map<T, T> reverse(Map<T, T> source) {
-        var target = new HashMap<T, T>();
-        source.entrySet().forEach(entry -> target.put(entry.getValue(), entry.getKey()));
+        var target = new HashMap<T, T>(source.size(), 1);
+        source.forEach((key, value) -> target.put(value, key));
         return target;
     }
 

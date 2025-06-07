@@ -134,7 +134,7 @@ public class SocketFacesListener implements SystemEventListener {
      * and the map value represents the last known value of the <code>user</code> and <code>connected</code> attributes.
      */
     private static Map<String, Entry<Serializable, Boolean>> getSockets(FacesContext context) {
-        return getViewAttribute(context, Socket.class.getName(), () -> new HashMap<>(ESTIMATED_TOTAL_CHANNELS));
+        return getViewAttribute(context, Socket.class.getName(), () -> new HashMap<>(ESTIMATED_TOTAL_CHANNELS, 1));
     }
 
 }

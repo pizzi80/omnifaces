@@ -16,7 +16,6 @@ import static java.lang.String.format;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
-import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Level.FINEST;
 import static org.omnifaces.util.Beans.getManager;
 import static org.omnifaces.util.BeansLocal.getReference;
@@ -40,7 +39,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -270,17 +268,17 @@ public class GraphicResource extends DynamicResource {
      * Create mapping of content types by base64 header.
      */
     private static Map<String, String> createContentTypesByBase64Header() {
-        Map<String, String> contentTypesByBase64Header = new HashMap<>();
-        contentTypesByBase64Header.put("UklGR", "image/webp");
-        contentTypesByBase64Header.put("/9j/", "image/jpeg");
-        contentTypesByBase64Header.put("iVBORw", "image/png");
-        contentTypesByBase64Header.put("R0lGOD", "image/gif");
-        contentTypesByBase64Header.put("AAABAA", "image/x-icon");
-        contentTypesByBase64Header.put("PD94bW", "image/svg+xml");
-        contentTypesByBase64Header.put("Qk0", "image/bmp");
-        contentTypesByBase64Header.put("SUkqAA", "image/tiff");
-        contentTypesByBase64Header.put("TU0AKg", "image/tiff");
-        return unmodifiableMap(contentTypesByBase64Header);
+        return Map.of(
+            "UklGR", "image/webp",
+            "/9j/", "image/jpeg",
+            "iVBORw", "image/png",
+            "R0lGOD", "image/gif",
+            "AAABAA", "image/x-icon",
+            "PD94bW", "image/svg+xml",
+            "Qk0", "image/bmp",
+            "SUkqAA", "image/tiff",
+            "TU0AKg", "image/tiff"
+        );
     }
 
     /**
