@@ -12,14 +12,6 @@
  */
 package org.omnifaces.filter;
 
-import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.DAYS;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.omnifaces.util.Servlets.isFacesDevelopment;
-import static org.omnifaces.util.Servlets.isFacesResourceRequest;
-import static org.omnifaces.util.Servlets.setCacheHeaders;
-
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
@@ -155,7 +147,7 @@ import org.omnifaces.util.Servlets;
  * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
  * <li><code>Expires: [expiration date of 0]</code></li>
  * <li><code>Pragma: no-cache</code></li>
- * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
+ * <li><code>Set-Cookie: BFCache-Buster=[random value]</code> (since 2.7.29)</li>
  * </ul>
  *
  * <h3>JSF development stage</h3>
