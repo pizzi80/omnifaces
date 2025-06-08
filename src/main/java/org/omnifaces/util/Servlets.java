@@ -543,7 +543,7 @@ public final class Servlets {
 	 * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
 	 * <li><code>Expires: [expiration date of 0]</code></li>
 	 * <li><code>Pragma: no-cache</code></li>
-	 * <li><code>Set-Cookie: BFCache-Buster=[random value]</code> (since 2.7.29)</li>
+	 * <li><code>Set-Cookie: BFCache-Buster=[random]</code> (since 2.7.29)</li>
 	 * </ul>
 	 * <p>Since 2.7.29, on non-ajax requests, a cookie with name "BFCache-Buster" will be set with a random value and
 	 * an expiration time of 1 second in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
