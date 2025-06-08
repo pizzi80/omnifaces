@@ -12,30 +12,6 @@
  */
 package org.omnifaces.util;
 
-import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.logging.Level.FINE;
-import static java.util.regex.Pattern.quote;
-import static javax.faces.application.ProjectStage.Development;
-import static javax.faces.application.ProjectStage.PROJECT_STAGE_JNDI_NAME;
-import static javax.faces.application.ProjectStage.PROJECT_STAGE_PARAM_NAME;
-import static javax.servlet.RequestDispatcher.ERROR_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
-import static org.omnifaces.util.JNDI.lookup;
-import static org.omnifaces.util.Utils.coalesce;
-import static org.omnifaces.util.Utils.decodeURL;
-import static org.omnifaces.util.Utils.encodeURI;
-import static org.omnifaces.util.Utils.encodeURL;
-import static org.omnifaces.util.Utils.isEmpty;
-import static org.omnifaces.util.Utils.isOneOf;
-import static org.omnifaces.util.Utils.startsWithOneOf;
-import static org.omnifaces.util.Utils.unmodifiableSet;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -252,7 +228,7 @@ public final class Servlets {
 	public static String getRequestURIWithQueryString(HttpServletRequest request) {
 		String requestURI = getRequestURI(request);
 		String queryString = getRequestQueryString(request);
-		return (queryString == null) ? requestURI : (requestURI + "?" + queryString);
+		return queryString == null ? requestURI : requestURI + "?" + queryString;
 	}
 
 	/**
@@ -337,7 +313,7 @@ public final class Servlets {
 	public static String getForwardRequestURIWithQueryString(HttpServletRequest request) {
 		String requestURI = getForwardRequestURI(request);
 		String queryString = getForwardRequestQueryString(request);
-		return (queryString == null) ? requestURI : (requestURI + "?" + queryString);
+		return queryString == null ? requestURI : requestURI + "?" + queryString;
 	}
 
 	/**
@@ -359,7 +335,7 @@ public final class Servlets {
 				}
 
 				String key = decodeURLWithFallback(pair[0]);
-				String value = (pair.length > 1 && !isEmpty(pair[1])) ? decodeURLWithFallback(pair[1]) : "";
+				String value = pair.length > 1 && !isEmpty(pair[1]) ? decodeURLWithFallback(pair[1]) : "";
 				List<String> values = parameterMap.get(key);
 
 				if (values == null) {
@@ -515,11 +491,11 @@ public final class Servlets {
 			char c = header.charAt(i);
 			builder.append(c);
 
-			if (c == '"' && i > 0 && (header.charAt(i - 1) != '\\' || (i > 1 && header.charAt(i - 2) == '\\'))) {
+			if (c == '"' && i > 0 && (header.charAt(i - 1) != '\\' || i > 1 && header.charAt(i - 2) == '\\')) {
 				quoted = !quoted;
 			}
 
-			if ((!quoted && c == ';') || i + 1 == header.length()) {
+			if (!quoted && c == ';' || i + 1 == header.length()) {
 				String[] entry = builder.toString().replaceAll(";$", "").trim().split("\\s*=\\s*", 2);
 				String name = entry[0].toLowerCase();
 				String value = entry.length == 1 ? ""
@@ -567,10 +543,10 @@ public final class Servlets {
 	 * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
 	 * <li><code>Expires: [expiration date of 0]</code></li>
 	 * <li><code>Pragma: no-cache</code></li>
-	 * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
+	 * <li><code>Set-Cookie: BFCache-Buster=[random]</code> (since 2.7.29)</li>
 	 * </ul>
-	 * <p>Since 2.7.28 a cookie with name "BFCache-Buster" will be set with a random value
-	 * in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
+	 * <p>Since 2.7.29, on non-ajax requests, a cookie with name "BFCache-Buster" will be set with a random value and
+	 * an expiration time of 1 second in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
 	 * @param request The involved HTTP servlet request.
 	 * @param response The HTTP servlet response to set the headers on.
 	 * @since 2.2
@@ -593,7 +569,7 @@ public final class Servlets {
 	 * @since 2.6
 	 */
 	public static String formatContentDispositionHeader(String filename, boolean attachment) {
-		return format(CONTENT_DISPOSITION_HEADER, (attachment ? "attachment" : "inline"), encodeURI(filename));
+		return format(CONTENT_DISPOSITION_HEADER, attachment ? "attachment" : "inline", encodeURI(filename));
 	}
 
 	// Cookies --------------------------------------------------------------------------------------------------------
@@ -878,7 +854,7 @@ public final class Servlets {
 
 		for (int i = 0; i < paramValues.length; i++) {
 			Object paramValue = paramValues[i];
-			encodedParams[i] = (paramValue instanceof String) ? encodeURL((String) paramValue) : paramValue;
+			encodedParams[i] = paramValue instanceof String ? encodeURL((String) paramValue) : paramValue;
 		}
 
 		return format(redirectURL, encodedParams);
