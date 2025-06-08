@@ -55,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -635,7 +634,10 @@ public final class Servlets {
 		response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
 		response.setDateHeader("Expires", 0);
 		response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-		addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), 1); // #897
+
+		if (!isFacesAjaxRequest(request)) {
+		    addResponseCookie(request, response, "BFCache-Buster", String.valueOf(System.nanoTime()), 1); // #897
+		}
 	}
 
 	/**
