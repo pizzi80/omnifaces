@@ -52,7 +52,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -617,10 +616,10 @@ public final class Servlets {
      * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
      * <li><code>Expires: [expiration date of 0]</code></li>
      * <li><code>Pragma: no-cache</code></li>
-     * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
+     * <li><code>Set-Cookie: BFCache-Buster=[random value]</code> (since 2.7.28)</li>
      * </ul>
-     * <p>Since 2.7.28 a cookie with name "BFCache-Buster" will be set with a random value
-     * in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
+     * <p>Since 2.7.28, on non-ajax requests, a cookie with name "BFCache-Buster" will be set with a random value and
+     * an expiration time of 1 second in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
      * @param request The involved HTTP servlet request.
      * @param response The HTTP servlet response to set the headers on.
      * @since 2.2
@@ -629,7 +628,10 @@ public final class Servlets {
         response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
         response.setDateHeader("Expires", 0);
         response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-        addResponseCookie(request, response, "BFCache-Buster", UUID.randomUUID().toString(), 1); // #897
+
+        if (!isFacesAjaxRequest(request)) {
+            addResponseCookie(request, response, "BFCache-Buster", String.valueOf(System.nanoTime()), 1); // #897
+        }
     }
 
     /**
