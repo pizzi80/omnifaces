@@ -215,7 +215,7 @@ public class CompressedResponseFilter extends HttpFilter {
                 throw new ServletException(format(ERROR_THRESHOLD, thresholdParam));
             }
             else {
-                threshold = Integer.valueOf(thresholdParam);
+                threshold = Integer.parseInt(thresholdParam);
             }
         }
 
