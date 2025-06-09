@@ -82,7 +82,7 @@ public class ValidatorManager {
 
     @Inject
     private BeanManager manager;
-    private Map<String, Bean<Validator>> validatorsById = new HashMap<>();
+    private final Map<String, Bean<Validator>> validatorsById = new HashMap<>();
 
     // Actions --------------------------------------------------------------------------------------------------------
 
