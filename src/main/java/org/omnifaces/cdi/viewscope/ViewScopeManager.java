@@ -23,7 +23,6 @@ import static org.omnifaces.util.ComponentsLocal.addFormIfNecessary;
 import static org.omnifaces.util.ComponentsLocal.addScript;
 import static org.omnifaces.util.ComponentsLocal.addScriptResource;
 import static org.omnifaces.util.Faces.getContext;
-import static org.omnifaces.util.Faces.getViewId;
 import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.getViewId;
@@ -46,7 +45,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.BeanStorage;
 import org.omnifaces.cdi.ViewScoped;
-import org.omnifaces.util.FacesLocal;
 
 /**
  * Manages view scoped bean creation and destroy. The creation is initiated by {@link ViewScopeContext} which is
@@ -95,8 +93,8 @@ public class ViewScopeManager {
             + " The current view %s is stateless and this may cause memory leaks."
             + " Consider subclassing the bean with @jakarta.faces.view.ViewScoped annotation.";
 
-    private static final String ERROR_INVALID_STATE_SAVING = "@ViewScoped(saveInViewState=true) %s"
-            + " requires web.xml context parameter 'jakarta.faces.STATE_SAVING_METHOD' being set to 'client'.";
+    private static final String ERROR_INVALID_STATE_SAVING =
+            "@ViewScoped(saveInViewState=true) %s requires web.xml context parameter 'jakarta.faces.STATE_SAVING_METHOD' being set to 'client'.";
 
     private static final String ERROR_VIEW_ALREADY_UNLOADED = "View %s was already unloaded.";
 
