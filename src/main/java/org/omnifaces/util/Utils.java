@@ -559,6 +559,18 @@ public final class Utils {
     // Collections ----------------------------------------------------------------------------------------------------
 
     /**
+     * Ported from Java 19.
+     * Calculate initial capacity for HashMap based classes, from expected size and default load factor (0.75).
+     *
+     * @param numMappings the expected number of mappings
+     * @return initial capacity for HashMap based classes.
+     * @since 4.6.6
+     */
+    public static int calculateHashMapCapacity(int numMappings) {
+        return (int) Math.ceil(numMappings / 0.75);
+    }
+
+    /**
      * Creates an unmodifiable set based on the given values. If one of the values is an instance of an array or a
      * collection, then each of its values will also be merged into the set. Nested arrays or collections will result
      * in a {@link ClassCastException}.
@@ -570,7 +582,7 @@ public final class Utils {
      */
     @SuppressWarnings("unchecked")
     public static <E> Set<E> unmodifiableSet(Object... values) {
-        var set = new HashSet<E>();
+        var set = new HashSet<E>(calculateHashMapCapacity(values.length));
 
         for (var value : values) {
             if (value instanceof Object[]) {
@@ -683,7 +695,7 @@ public final class Utils {
      * @return the reverse of the given map
      */
     public static <T> Map<T, T> reverse(Map<T, T> source) {
-        var target = new HashMap<T, T>(source.size(), 1);
+        var target = new HashMap<T, T>(calculateHashMapCapacity(source.size()));
         source.forEach((key, value) -> target.put(value, key));
         return target;
     }
