@@ -87,20 +87,20 @@ public interface FacesConfigXml {
 
     /**
      * Returns an ordered list of all resource handlers registered on this application. This will return an empty list
-     * if there are no resource handlers definied in <code>faces-config.xml</code>.
+     * if there are no resource handlers defined in <code>faces-config.xml</code>.
      * @return An ordered list of all resource handlers registered on this application.
      * @see Application#getResourceHandler()
      * @since 3.10
      */
-    public List<Class<? extends ResourceHandler>> getResourceHandlers();
+    List<Class<? extends ResourceHandler>> getResourceHandlers();
 
     /**
      * Returns an ordered list of all exception handler factories registered on this application. This will return an
-     * empty list if there are no exception handler factories definied in <code>faces-config.xml</code>.
+     * empty list if there are no exception handler factories defined in <code>faces-config.xml</code>.
      * @return An ordered list of all exception handler factories registered on this application.
      * @see FacesContext#getExceptionHandler()
      * @since 4.5
      */
-    public List<Class<? extends ExceptionHandlerFactory>> getExceptionHandlerFactories();
+    List<Class<? extends ExceptionHandlerFactory>> getExceptionHandlerFactories();
 
 }
