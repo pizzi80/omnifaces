@@ -230,4 +230,14 @@ public final class FunctionalInterfaces {
          */
         R apply(T t, U u) throws Exception;
     }
+
+    // Empty -----------------------------------------------------------------------------------
+
+    private static final SerializableBiConsumer no_op_eviction_listener =  (key, value) -> {};
+
+    @SuppressWarnings("unchecked")
+    public static <K,V> SerializableBiConsumer<K,V> emptySerializableBiConsumer() {
+        return (SerializableBiConsumer<K,V>) no_op_eviction_listener;
+    }
+
 }
