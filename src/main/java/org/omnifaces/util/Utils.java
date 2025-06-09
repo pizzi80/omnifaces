@@ -683,7 +683,7 @@ public final class Utils {
      * @return the reverse of the given map
      */
     public static <T> Map<T, T> reverse(Map<T, T> source) {
-        var target = new HashMap<T, T>( (int) Math.ceil(source.size() / 0.75) );
+        var target = new HashMap<T, T>(source.size(), 1);
         source.forEach((key, value) -> target.put(value, key));
         return target;
     }

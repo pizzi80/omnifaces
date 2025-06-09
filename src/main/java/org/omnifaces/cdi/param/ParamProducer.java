@@ -436,7 +436,7 @@ public class ParamProducer {
 
         // Next check if bean validation has been disabled globally, but only if this hasn't been overridden locally
         // Next check if this is a field injection; other cases are not supported by Validator#validateValue().
-        if (requestParameter.disableBeanValidation() || (!requestParameter.overrideGlobalBeanValidationDisabled() && parseBoolean(getInitParameter(DISABLE_DEFAULT_BEAN_VALIDATOR_PARAM_NAME))) || !(injectionPoint.getMember() instanceof Field)) {
+        if (requestParameter.disableBeanValidation() || !requestParameter.overrideGlobalBeanValidationDisabled() && parseBoolean(getInitParameter(DISABLE_DEFAULT_BEAN_VALIDATOR_PARAM_NAME)) || !(injectionPoint.getMember() instanceof Field)) {
             return false;
         }
 
@@ -511,10 +511,10 @@ public class ParamProducer {
     }
 
     private static Map<String, Object> getConverterAttributes(Param requestParameter) {
-        Map<String, Object> attributeMap = new HashMap<>();
-
         var attributes = requestParameter.converterAttributes();
-        for (Attribute attribute : attributes) {
+        var attributeMap = new HashMap<String, Object>(attributes.length, 1);
+
+        for (var attribute : attributes) {
             attributeMap.put(attribute.name(), evaluateExpressionGet(attribute.value()));
         }
 
@@ -522,10 +522,10 @@ public class ParamProducer {
     }
 
     private static Map<String, Object> getValidatorAttributes(Param requestParameter) {
-        Map<String, Object> attributeMap = new HashMap<>();
-
         var attributes = requestParameter.validatorAttributes();
-        for (Attribute attribute : attributes) {
+        var attributeMap = new HashMap<String, Object>(attributes.length, 1);
+
+        for (var attribute : attributes) {
             attributeMap.put(attribute.name(), evaluateExpressionGet(attribute.value()));
         }
 

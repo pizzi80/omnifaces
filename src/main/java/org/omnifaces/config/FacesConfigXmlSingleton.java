@@ -12,6 +12,7 @@
  */
 package org.omnifaces.config;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.omnifaces.util.Reflection.toClass;
 import static org.omnifaces.util.Utils.isEmpty;
 import static org.omnifaces.util.Utils.parseLocale;
@@ -39,7 +40,6 @@ import jakarta.servlet.ServletContext;
 import org.omnifaces.util.Servlets;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -94,7 +94,7 @@ enum FacesConfigXmlSingleton implements FacesConfigXml {
     /**
      * Perform automatic initialization whereby the servlet context is obtained from CDI.
      */
-    private FacesConfigXmlSingleton() {
+    FacesConfigXmlSingleton() {
         try {
             ServletContext servletContext = Servlets.getContext();
             Element facesConfigXml = loadFacesConfigXml(servletContext).getDocumentElement();
@@ -149,18 +149,17 @@ enum FacesConfigXmlSingleton implements FacesConfigXml {
      * @throws XPathExpressionException
      */
     private static Map<String, String> parseResourceBundles(Element facesConfigXml, XPath xpath) throws XPathExpressionException {
-        Map<String, String> resourceBundles = new LinkedHashMap<>();
-        NodeList resourceBundleNodes = getNodeList(facesConfigXml, xpath, XPATH_RESOURCE_BUNDLE);
+        var resourceBundleNodes = getNodeList(facesConfigXml, xpath, XPATH_RESOURCE_BUNDLE);
+        var resourceBundles = new LinkedHashMap<String, String>(resourceBundleNodes.getLength(), 1);
 
         for (int i = 0; i < resourceBundleNodes.getLength(); i++) {
-            Node node = resourceBundleNodes.item(i);
-
-            String var = xpath.compile(XPATH_VAR).evaluate(node).trim();
-            String baseName = xpath.compile(XPATH_BASE_NAME).evaluate(node).trim();
+            var node = resourceBundleNodes.item(i);
+            var var = xpath.compile(XPATH_VAR).evaluate(node).trim();
+            var baseName = xpath.compile(XPATH_BASE_NAME).evaluate(node).trim();
             resourceBundles.computeIfAbsent(var, k -> baseName);
         }
 
-        return Collections.unmodifiableMap(resourceBundles);
+        return unmodifiableMap(resourceBundles);
     }
 
     /**

@@ -394,7 +394,7 @@ public class Tree extends TreeFamily implements NamingContainer {
      */
     private Map<Integer, TreeNode> getNodes(PhaseId phaseId) {
         if (phaseId == PhaseId.RENDER_RESPONSE || nodes == null) {
-            nodes = new HashMap<>(getChildCount());
+            nodes = new HashMap<>(getChildCount(), 1);
 
             for (var child : getChildren()) {
                 var node = (TreeNode) child;

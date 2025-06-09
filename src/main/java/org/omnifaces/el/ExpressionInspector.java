@@ -12,6 +12,7 @@
  */
 package org.omnifaces.el;
 
+import static java.util.Optional.ofNullable;
 import static org.omnifaces.el.MethodReference.NO_PARAMS;
 import static org.omnifaces.el.functions.Strings.capitalize;
 import static org.omnifaces.util.Beans.unwrapIfNecessary;
@@ -86,7 +87,8 @@ public final class ExpressionInspector {
         if (type != null && MethodExpression.class.isAssignableFrom(type)) {
             var methodReference = getMethodReference(inspectorElContext, valueExpression);
             var base = methodReference.getBase();
-            var property = getPropertyName(methodReference.getName());
+            var name = methodReference.getName();
+            var property = ofNullable(getPropertyName(name)).orElse(null);
             return new ValueReference(base, property);
         }
 

@@ -12,7 +12,9 @@
  */
 package org.omnifaces.util;
 
+import static java.beans.Introspector.decapitalize;
 import static java.beans.PropertyEditorManager.findEditor;
+import static java.lang.Character.isUpperCase;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
@@ -567,6 +569,30 @@ public final class Reflection {
         }
     }
 
+    /**
+     * Given a method name, e.g. "getName", "isCompleted" or "setValue", return the name of the corresponding bean
+     * property based on the JavaBeans specification, e.g. "name", "completed" or "value", if any. If the method name
+     * does not represent a valid bean property getter or setter, then return {@code null}.
+     *
+     * @param methodName The name of the method to return property name for.
+     * @return The name of the bean property corresponding to the given method name, or {@code null} if the given method
+     * name does not represent a valid bean property getter or setter.
+     * @since 4.7
+     */
+    public static String getPropertyName(String methodName) {
+        if (methodName == null || methodName.length() < 3) {
+            return null;
+        }
+        else if (methodName.startsWith("is") && isUpperCase(methodName.charAt(2))) {
+            return decapitalize(methodName.substring(2));
+        }
+        else if (methodName.length() > 3 && (methodName.startsWith("get") || methodName.startsWith("set")) && isUpperCase(methodName.charAt(3))) {
+            return decapitalize(methodName.substring(3));
+        }
+        else {
+            return null;
+        }
+    }
 
     // Methods --------------------------------------------------------------------------------------------------------
 

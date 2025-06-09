@@ -71,7 +71,7 @@ public class SocketUserManager {
      */
     protected void addChannelId(String userId, String channel, String channelId) {
         userChannels
-                .computeIfAbsent(userId, $ -> new ConcurrentHashMap<>(ESTIMATED_USER_CHANNELS_PER_APPLICATION))
+                .computeIfAbsent(userId, $ -> new ConcurrentHashMap<>(ESTIMATED_USER_CHANNELS_PER_APPLICATION, 1))
                 .computeIfAbsent(channel, $ -> newKeySet(ESTIMATED_USER_CHANNELS_PER_SESSION))
                 .add(channelId);
     }

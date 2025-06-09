@@ -12,6 +12,7 @@
  */
 package org.omnifaces.component.output;
 
+import static java.util.Collections.unmodifiableMap;
 import static org.omnifaces.config.OmniFaces.OMNIFACES_LIBRARY_NAME;
 import static org.omnifaces.config.OmniFaces.OMNIFACES_SCRIPT_NAME;
 import static org.omnifaces.resourcehandler.DefaultResourceHandler.RES_NOT_FOUND;
@@ -24,7 +25,6 @@ import static org.omnifaces.util.Utils.isEmpty;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -375,14 +375,15 @@ public class GraphicImage extends HtmlGraphicImage {
     // Helpers --------------------------------------------------------------------------------------------------------
 
     private static Map<String, String> collectAttributeNames() {
-        Map<String, String> attributeNames = new HashMap<>();
+        var propertyKeys = HtmlGraphicImage.PropertyKeys.values();
+        var attributeNames = new HashMap<String, String>(propertyKeys.length, 1);
 
-        for (HtmlGraphicImage.PropertyKeys propertyKey : HtmlGraphicImage.PropertyKeys.values()) {
-            String name = propertyKey.name();
+        for (var propertyKey : propertyKeys) {
+            var name = propertyKey.name();
             attributeNames.put(name, "styleClass".equals(name) ? "class" : propertyKey.toString());
         }
 
-        return Collections.unmodifiableMap(attributeNames);
+        return unmodifiableMap(attributeNames);
     }
 
 }

@@ -12,6 +12,7 @@
  */
 package org.omnifaces.el;
 
+import static org.omnifaces.util.Reflection.getPropertyName;
 import static org.omnifaces.util.Utils.isOneInstanceOf;
 import static org.omnifaces.util.Utils.startsWithOneOf;
 
@@ -20,7 +21,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.el.ELContext;
@@ -28,7 +28,6 @@ import jakarta.el.ELResolver;
 import jakarta.el.PropertyNotFoundException;
 
 import org.omnifaces.util.Faces;
-import org.omnifaces.util.Reflection;
 
 /**
  * This EL resolver basically creates an implicit object <code>#{faces}</code> in EL scope.
@@ -59,10 +58,9 @@ public class FacesELResolver extends ELResolver {
                 continue;
             }
 
-            String methodName = method.getName();
-            String propertyName = Reflection.getPropertyName(methodName);
+            var propertyName = getPropertyName(method.getName());
 
-            if ( ! Objects.equals(methodName,propertyName) && !startsWithOneOf(propertyName, "response", "session", "flash")) {
+            if (propertyName != null && !startsWithOneOf(propertyName, "response", "session", "flash")) {
                 FACES_PROPERTIES.put(propertyName, method);
             }
         }
@@ -70,7 +68,7 @@ public class FacesELResolver extends ELResolver {
 
     @Override
     public Class<?> getCommonPropertyType(ELContext context, Object base) {
-        return (base == this) ? Object.class : null;
+        return base == this ? Object.class : null;
     }
 
     @Override
@@ -94,7 +92,7 @@ public class FacesELResolver extends ELResolver {
             return this;
         }
         else if (base == this && property != null) {
-            Method method = FACES_PROPERTIES.get(property);
+            var method = FACES_PROPERTIES.get(property);
 
             if (method == null) {
                 throw new PropertyNotFoundException("#{faces." + property + "} does not exist.");

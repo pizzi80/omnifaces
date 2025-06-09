@@ -40,6 +40,7 @@ import static org.omnifaces.util.Utils.startsWithOneOf;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -49,8 +50,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -250,8 +251,8 @@ public final class Servlets {
      * @since 2.6
      */
     public static Map<String, List<String>> getRequestParameterMap(HttpServletRequest request) {
-        var parameterMap = new HashMap<String, List<String>>(request.getParameterMap().size());
-        request.getParameterMap().forEach((key, value) -> parameterMap.put(key, asList(value)));
+        var parameterMap = new HashMap<String, List<String>>(request.getParameterMap().size(), 1);
+        request.getParameterMap().forEach((name, value) -> parameterMap.put(name, asList(value)));
         return parameterMap;
     }
 
@@ -336,7 +337,7 @@ public final class Servlets {
      */
     public static Map<String, List<String>> toParameterMap(String queryString) {
         var parameters = queryString.split(quote("&"));
-        var parameterMap = new LinkedHashMap<String, List<String>>(parameters.length);
+        var parameterMap = new LinkedHashMap<String, List<String>>(parameters.length, 1);
 
         for (var parameter : parameters) {
             if (parameter.contains("=")) {
@@ -584,14 +585,6 @@ public final class Servlets {
 
     // HttpServletResponse --------------------------------------------------------------------------------------------
 
-    static final class DeferredRandom {
-        static final Random generator = new Random();
-    }
-
-    static String nextCacheBusterValue() {
-        return Integer.toHexString(DeferredRandom.generator.nextInt());
-    }
-
     /**
      * <p>Set the cache headers. If the <code>expires</code> argument is larger than 0 seconds, then the following headers
      * will be set:
@@ -622,10 +615,10 @@ public final class Servlets {
      * <li><code>Cache-Control: no-cache,no-store,must-revalidate</code></li>
      * <li><code>Expires: [expiration date of 0]</code></li>
      * <li><code>Pragma: no-cache</code></li>
-     * <li><code>Set-Cookie: BFCache-Buster=[UUID]</code> (since 2.7.28)</li>
+     * <li><code>Set-Cookie: BFCache-Buster=[random value]</code> (since 2.7.28)</li>
      * </ul>
-     * <p>Since 2.7.28 a cookie with name "BFCache-Buster" will be set with a random value
-     * in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
+     * <p>Since 2.7.28, on non-ajax requests, a cookie with name "BFCache-Buster" will be set with a random value and
+     * an expiration time of 1 second in order to prevent Chrome from saving the page in so-called Back/Forward Cache.
      * @param request The involved HTTP servlet request.
      * @param response The HTTP servlet response to set the headers on.
      * @since 2.2
@@ -634,7 +627,10 @@ public final class Servlets {
         response.setHeader("Cache-Control", "no-cache,no-store,must-revalidate");
         response.setDateHeader("Expires", 0);
         response.setHeader("Pragma", "no-cache"); // Backwards compatibility for HTTP 1.0.
-        addResponseCookie(request, response, "BFCache-Buster", nextCacheBusterValue(), 1); // #897
+
+        if (!isFacesAjaxRequest(request)) {
+            addResponseCookie(request, response, "BFCache-Buster", String.valueOf(System.nanoTime()), 1); // #897
+        }
     }
 
     /**
@@ -883,7 +879,7 @@ public final class Servlets {
      */
     public static boolean isFacesDevelopment(ServletContext context) {
         if (facesDevelopment == null) {
-            String projectStage;
+            String projectStage = null;
 
             try {
                 projectStage = lookup(PROJECT_STAGE_JNDI_NAME);
