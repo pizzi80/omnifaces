@@ -14,6 +14,7 @@ package org.omnifaces.cdi.push;
 
 import static java.util.Collections.emptySet;
 import static java.util.concurrent.ConcurrentHashMap.newKeySet;
+import static org.omnifaces.util.Utils.calculateHashMapCapacity;
 
 import java.io.Serializable;
 import java.util.HashSet;
@@ -101,7 +102,7 @@ public class SocketUserManager {
      * @return The user-specific channel IDs associated with given user and channel name.
      */
     protected Set<String> getChannelIds(Serializable user, String channel) {
-        var channelIds = new HashSet<String>(ESTIMATED_CHANNELS_IDS_PER_USER);
+        var channelIds = new HashSet<String>(calculateHashMapCapacity(ESTIMATED_CHANNELS_IDS_PER_USER));
         var userIds = applicationUsers.get(user);
 
         if (userIds != null) {
