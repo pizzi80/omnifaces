@@ -14,6 +14,7 @@ package org.omnifaces.util.cache;
 
 import static java.util.Objects.requireNonNull;
 import static org.omnifaces.util.FunctionalInterfaces.emptySerializableBiConsumer;
+import static org.omnifaces.util.Utils.calculateHashMapCapacity;
 import static org.omnifaces.util.Utils.executeAtomically;
 
 import java.io.Serializable;
@@ -76,7 +77,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
 
         this.maximumCapacity = maximumCapacity;
         this.evictionListener = evictionListener;
-        this.entries = new LinkedHashMap<>((int) Math.ceil(maximumCapacity/0.75));
+        this.entries = new LinkedHashMap<>(calculateHashMapCapacity(maximumCapacity));
     }
 
     // Mutation methods -----------------------------------------------------------------------------------------------
