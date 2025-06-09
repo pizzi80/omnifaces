@@ -37,10 +37,10 @@ import static org.omnifaces.util.Utils.isEmpty;
 import static org.omnifaces.util.Utils.isOneOf;
 import static org.omnifaces.util.Utils.splitAndTrim;
 import static org.omnifaces.util.Utils.startsWithOneOf;
+import static org.omnifaces.util.Utils.unmodifiableSet;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -51,7 +51,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -114,7 +113,7 @@ public final class Servlets {
     private static final Logger logger = Logger.getLogger(Servlets.class.getName());
 
     private static final String CONTENT_DISPOSITION_HEADER = "%s;filename=\"%2$s\"; filename*=UTF-8''%2$s";
-    private static final Set<String> FACES_AJAX_HEADERS = Set.of("partial/ajax", "partial/process");
+    private static final Set<String> FACES_AJAX_HEADERS = unmodifiableSet("partial/ajax", "partial/process");
     private static final String FACES_AJAX_REDIRECT_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><partial-response><redirect url=\"%s\"></redirect></partial-response>";
 
     private static final String WEB_XML = "/WEB-INF/web.xml";
