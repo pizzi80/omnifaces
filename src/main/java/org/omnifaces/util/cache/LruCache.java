@@ -13,6 +13,7 @@
 package org.omnifaces.util.cache;
 
 import static java.util.Objects.requireNonNull;
+import static org.omnifaces.util.FunctionalInterfaces.emptySerializableBiConsumer;
 import static org.omnifaces.util.Utils.executeAtomically;
 
 import java.io.Serializable;
@@ -57,7 +58,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
      * @throws IllegalArgumentException when maximum capacity is less than 2.
      */
     public LruCache(int maximumCapacity) {
-        this(maximumCapacity, (key, value) -> {});
+        this(maximumCapacity, emptySerializableBiConsumer());
     }
 
     /**
@@ -75,7 +76,7 @@ public class LruCache<K extends Serializable, V extends Serializable> implements
 
         this.maximumCapacity = maximumCapacity;
         this.evictionListener = evictionListener;
-        this.entries = new LinkedHashMap<>(maximumCapacity);
+        this.entries = new LinkedHashMap<>((int) Math.ceil(maximumCapacity/0.75));
     }
 
     // Mutation methods -----------------------------------------------------------------------------------------------
