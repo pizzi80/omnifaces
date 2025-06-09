@@ -55,8 +55,8 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
     private static final String[] PARAM_NAMES_MAX_ACTIVE_VIEW_SCOPES = {
         PARAM_NAME_MAX_ACTIVE_VIEW_SCOPES, PARAM_NAME_MOJARRA_NUMBER_OF_VIEWS, PARAM_NAME_MYFACES_NUMBER_OF_VIEWS
     };
-    private static final String ERROR_MAX_ACTIVE_VIEW_SCOPES = "The '%s' init param must be a number."
-        + " Encountered an invalid value of '%s'.";
+    private static final String ERROR_MAX_ACTIVE_VIEW_SCOPES =
+            "The '%s' init param must be a number. Encountered an invalid value of '%s'.";
 
     // Static variables -----------------------------------------------------------------------------------------------
 
@@ -103,10 +103,11 @@ public class ViewScopeStorageInSession implements ViewScopeStorage, Serializable
      * @param beanStorageId The bean storage identifier.
      */
     public void destroyBeans(FacesContext context, UUID beanStorageId) {
-        var storage = activeViewScopes.remove(beanStorageId);
+        var storage = activeViewScopes.get(beanStorageId);
 
         if (storage != null) {
-            storage.destroyBeans();
+            storage.destroyBeans();                     // first destroy
+            activeViewScopes.remove(beanStorageId);     // then remove
         }
 
         if (isUnloadRequest(context)) {
