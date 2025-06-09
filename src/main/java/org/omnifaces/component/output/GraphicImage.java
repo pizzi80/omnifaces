@@ -20,6 +20,7 @@ import static org.omnifaces.util.Components.VALUE_ATTRIBUTE;
 import static org.omnifaces.util.FacesLocal.createResource;
 import static org.omnifaces.util.Renderers.writeAttributes;
 import static org.omnifaces.util.Renderers.writeIdAttributeIfNecessary;
+import static org.omnifaces.util.Utils.calculateHashMapCapacity;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.isEmpty;
 
@@ -376,7 +377,7 @@ public class GraphicImage extends HtmlGraphicImage {
 
     private static Map<String, String> collectAttributeNames() {
         var propertyKeys = HtmlGraphicImage.PropertyKeys.values();
-        var attributeNames = new HashMap<String, String>(propertyKeys.length, 1);
+        var attributeNames = new HashMap<String, String>(calculateHashMapCapacity(propertyKeys.length));
 
         for (var propertyKey : propertyKeys) {
             var name = propertyKey.name();
