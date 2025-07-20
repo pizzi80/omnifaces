@@ -23,7 +23,6 @@ import static org.omnifaces.util.ComponentsLocal.addFormIfNecessary;
 import static org.omnifaces.util.ComponentsLocal.addScript;
 import static org.omnifaces.util.ComponentsLocal.addScriptResource;
 import static org.omnifaces.util.Faces.getContext;
-import static org.omnifaces.util.Faces.getViewId;
 import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
 import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
@@ -184,11 +183,12 @@ public class ViewScopeManager {
 
     private <T> BeanStorage getBeanStorage(Contextual<T> type) {
         ViewScopeStorage storage = storageInSession;
+        var context = getContext();
         var beanClass = ((Bean<T>) type).getBeanClass();
         var annotation = beanClass.getAnnotation(ViewScoped.class);
 
         if (annotation != null && annotation.saveInViewState()) { // Can be null when declared on producer method.
-            checkStateSavingMethod(beanClass);
+            checkStateSavingMethod(context, beanClass);
             storage = storageInViewState;
         }
 
@@ -198,9 +198,10 @@ public class ViewScopeManager {
             beanStorageId = UUID.randomUUID();
 
             if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
-                if (context.getViewRoot().isTransient()) {
-                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), getViewId()));
+                var viewRoot = context.getViewRoot();
+
+                if (viewRoot.isTransient()) {
+                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), viewRoot.getViewId()));
                 }
                 else {
                     registerUnloadScript(context, beanStorageId);
@@ -211,13 +212,9 @@ public class ViewScopeManager {
         var beanStorage = storage.getBeanStorage(beanStorageId);
 
         if (beanStorage == null) {
-            if (storage instanceof ViewScopeStorageInSession) {
-                var context = getContext();
-
-                if (isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
-                    var viewId = context.getViewRoot().getViewId();
-                    throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
-                }
+            if (storage instanceof ViewScopeStorageInSession && isPostback(context) && storageInSession.isRecentlyUnloaded(context)) {
+                var viewId = context.getViewRoot().getViewId();
+                throw new ViewExpiredException(format(ERROR_VIEW_ALREADY_UNLOADED, viewId), viewId);
             }
 
             beanStorage = new BeanStorage(DEFAULT_BEANS_PER_VIEW_SCOPE);
@@ -227,9 +224,7 @@ public class ViewScopeManager {
         return beanStorage;
     }
 
-    private static void checkStateSavingMethod(Class<?> beanClass) {
-        var context = getContext();
-
+    private static void checkStateSavingMethod(FacesContext context, Class<?> beanClass) {
         if (!context.getApplication().getStateManager().isSavingStateInClient(context)) {
             throw new IllegalStateException(format(ERROR_INVALID_STATE_SAVING, beanClass.getName()));
         }
