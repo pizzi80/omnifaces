@@ -14,6 +14,7 @@ package org.omnifaces.util;
 
 import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
 import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static org.omnifaces.exceptionhandler.ViewExpiredExceptionHandler.FLASH_ATTRIBUTE_VIEW_EXPIRED;
@@ -149,6 +150,7 @@ public final class FacesLocal {
     // Lazy loaded properties (will only be initialized when FacesContext is available) -------------------------------
 
     private static String faceletsSuffix;
+    private static List<Locale> supportedLocales;
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
@@ -724,20 +726,24 @@ public final class FacesLocal {
      * @see Faces#getSupportedLocales()
      */
     public static List<Locale> getSupportedLocales(FacesContext context) {
-        var application = context.getApplication();
-        var supportedLocales = new ArrayList<Locale>();
-        var defaultLocale = application.getDefaultLocale();
+        if (supportedLocales == null) {
+            var application = context.getApplication();
+            var supportedLocales = new ArrayList<Locale>();
+            var defaultLocale = application.getDefaultLocale();
 
-        if (defaultLocale != null) {
-            supportedLocales.add(defaultLocale);
-        }
-
-        for (var iter = application.getSupportedLocales(); iter.hasNext();) {
-            var supportedLocale = iter.next();
-
-            if (!supportedLocale.equals(defaultLocale)) {
-                supportedLocales.add(supportedLocale);
+            if (defaultLocale != null) {
+                supportedLocales.add(defaultLocale);
             }
+
+            for (var iter = application.getSupportedLocales(); iter.hasNext();) {
+                var supportedLocale = iter.next();
+
+                if (!supportedLocale.equals(defaultLocale)) {
+                    supportedLocales.add(supportedLocale);
+                }
+            }
+
+            FacesLocal.supportedLocales = unmodifiableList(supportedLocales);
         }
 
         return supportedLocales;
