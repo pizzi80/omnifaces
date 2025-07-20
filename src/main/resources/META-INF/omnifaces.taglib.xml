@@ -2823,7 +2823,7 @@ It's very similar to the <code>&lt;o:viewParam&gt;</code>.
 &lt;/f:metadata&gt;
 </pre>
 <p>
-This only requires that the Faces page has at least one {@link UIForm} component, such as <code>&lt;h:form&gt;</code>
+This only requires that the Faces page has at least one <code>UIForm</code> component, such as <code>&lt;h:form&gt;</code>
 or <code>&lt;o:form&gt;</code>, otherwise the <code>&lt;o:hashParam&gt;</code> won't be able to fire the ajax
 request which sets the with hash query parameter values in bean. In such case an error will be printed to JS console
 when the project stage is <code>Development</code>.
@@ -5060,16 +5060,16 @@ public enum Baz {
         <description>
             <![CDATA[
                 The <code>&lt;o:loadBundle&gt;</code> taghandler basically extends the standard <code>&lt;f:loadBundle&gt;</code>
-                with a new <code>loader</code> attribute allowing you to explicitly set the desired {@link ClassLoader} where
-                the resource bundle should be looked up. Also the {@link Locale} of the bundle is obtained with better default values
+                with a new <code>loader</code> attribute allowing you to explicitly set the desired <code>ClassLoader</code> where
+                the resource bundle should be looked up. Also the <code>Locale</code> of the bundle is obtained with better default values
                 than the default Faces implementation.
                 <p>
                 You can use the <code>loader</code> attribute to specify an object whose class loader will be used to load the
                 resource bundle specified in the <code>basename</code> attribute. The class loader of the given object is resolved as
-                specified in {@link Utils#getClassLoader(Object)}. In the end this should allow you to use a more specific resource
+                specified in <code>Utils#getClassLoader(Object)</code>. In the end this should allow you to use a more specific resource
                 bundle when there are duplicate instances in the runtime classpath, e.g. via multiple (plugin) libraries.
                 <p>
-                The locale of the resource bundle is obtained as specified in {@link Faces#getLocale()}.
+                The locale of the resource bundle is obtained as specified in <code>Faces#getLocale()</code>.
                 <h2>Usage</h2>
                 <p>
                 You can use it the same way as <code>&lt;f:loadBundle&gt;</code>, you only need to change <code>f:</code> into
@@ -6354,9 +6354,9 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <tag>
         <description>
             <![CDATA[
-                The <code>o:selectItemGroups</code> is an extension of {@link UISelectItems} which allows you to iterate over a nested collection representing groups of select items.
-                This is the {@link UIComponent} counterpart of <code>jakarta.faces.model.SelectItemGroup</code>.
-                There is no equivalent (yet) in the standard Faces API. Currently the only way to represent {@link SelectItemGroup} in UI is to manually create and populate them in a backing bean which can end up to be quite verbose.
+                The <code>o:selectItemGroups</code> is an extension of <code>UISelectItems</code> which allows you to iterate over a nested collection representing groups of select items.
+                This is the <code>UIComponent</code> counterpart of <code>jakarta.faces.model.SelectItemGroup</code>.
+                There is no equivalent (yet) in the standard Faces API. Currently the only way to represent <code>SelectItemGroup</code> in UI is to manually create and populate them in a backing bean which can end up to be quite verbose.
                 <p>
                 Below example assumes a <code>List&lt;Category&gt;</code> as value wherein <code>Category</code> in turn has a <code>List&lt;Product&gt;</code>.
                 <pre>
@@ -7822,7 +7822,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <function>
         <description>
             <![CDATA[
-                Format the given bytes to nearest 10<sup>n</sup> with IEC binary unit (KiB, MiB, etc) with rounding
+                Format the given bytes to nearest 10<sup>n</sup> in the default pattern of the default locale with IEC binary unit (KiB, MiB, etc) with rounding
                 precision of 1 fraction. For example:
                 <ul>
                     <li>1023 bytes will appear as 1023 B
@@ -7840,15 +7840,48 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <function>
         <description>
             <![CDATA[
-                Format the given number as currency with the given symbol. This is useful when you want to format numbers as
+                Format the given bytes to nearest 10<sup>n</sup> in the default pattern of the given locale with IEC binary unit (KiB, MiB, etc) with rounding
+                precision of 1 fraction. For example:
+                <ul>
+                    <li>1023 bytes will appear as 1023 B
+                    <li>1024 bytes will appear as 1.0 KiB
+                    <li>500000 bytes will appear as 488.3 KiB
+                    <li>1048576 bytes will appear as 1.0 GiB
+                </ul>
+                The given locale can be a <code>Locale</code> object or a string representation.
+            ]]>
+        </description>
+        <function-name>formatBytesForLocale</function-name>
+        <function-class>org.omnifaces.el.functions.Numbers</function-class>
+        <function-signature>java.lang.String formatBytesForLocale(java.lang.Long, java.lang.Object)</function-signature>
+    </function>
+
+    <function>
+        <description>
+            <![CDATA[
+                Format the given number as currency with the given symbol in the default pattern of the default locale. This is useful when you want to format numbers as
                 currency in for example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code>
-                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The format
-                locale will be set to the one as obtained by <code>Faces#getLocale()</code>.
+                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The default locale is
+                the one as obtained by <code>Faces#getLocale()</code>.
             ]]>
         </description>
         <function-name>formatCurrency</function-name>
         <function-class>org.omnifaces.el.functions.Numbers</function-class>
         <function-signature>java.lang.String formatCurrency(java.lang.Number, java.lang.String)</function-signature>
+    </function>
+
+    <function>
+        <description>
+            <![CDATA[
+                Format the given number as currency with the given symbol in the default pattern of the given locale. This is useful when you want to format numbers as
+                currency in for example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code>
+                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag.
+                The given locale can be a <code>Locale</code> object or a string representation.
+            ]]>
+        </description>
+        <function-name>formatCurrencyForLocale</function-name>
+        <function-class>org.omnifaces.el.functions.Numbers</function-class>
+        <function-signature>java.lang.String formatCurrencyForLocale(java.lang.Number, java.lang.String, java.lang.Object)</function-signature>
     </function>
 
     <function>
@@ -7885,7 +7918,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                 Format the given number in the default pattern of the given locale. This is useful when you want to format numbers in for 
                 example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code> attribute of select
                 item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The given
-                locale can be a {@link Locale} object or a string representation.
+                locale can be a <code>Locale</code> object or a string representation.
             ]]>
         </description>
         <function-name>formatNumberDefaultForLocale</function-name>
@@ -7896,10 +7929,10 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <function>
         <description>
             <![CDATA[
-                Format the given number as percentage. This is useful when you want to format numbers as
+                Format the given number as percentage in the default pattern of the default locale. This is useful when you want to format numbers as
                 percentage in for example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code>
-                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The format
-                locale will be set to the one as obtained by <code>Faces#getLocale()</code>.
+                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The default locale is
+                the one as obtained by <code>Faces#getLocale()</code>.
             ]]>
         </description>
         <function-name>formatPercent</function-name>
@@ -7910,7 +7943,21 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <function>
         <description>
             <![CDATA[
-                Format the given number to nearest 10<sup>n</sup> (rounded to thousands), immediately suffixed (without space)
+                Format the given number as percentage in the default pattern of the given locale. This is useful when you want to format numbers as
+                percentage in for example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code>
+                attribute of select item, or wherever you can't use the <code>&lt;f:convertNumber&gt;</code> tag. The given
+                locale can be a <code>Locale</code> object or a string representation.
+            ]]>
+        </description>
+        <function-name>formatPercentForLocale</function-name>
+        <function-class>org.omnifaces.el.functions.Numbers</function-class>
+        <function-signature>java.lang.String formatPercentForLocale(java.lang.Number, java.lang.Object)</function-signature>
+    </function>
+
+    <function>
+        <description>
+            <![CDATA[
+                Format the given number to nearest 10<sup>n</sup> (rounded to thousands) in the default pattern of the default locale, immediately suffixed (without space)
                 with metric unit (k, M, G, T, P or E), rounding half up with a precision of 3 digits, whereafter
                 trailing zeroes in fraction part are stripped. Numbers lower than thousand are not affected.
                 For example (with English locale):
@@ -7929,7 +7976,7 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                     <li>9994999 will appear as 9.99M
                     <li>9995000 will appear as 10M
                 </ul>
-                The format locale will be set to the one as obtained by <code>Faces#getLocale()</code>.
+                The default locale is the one as obtained by <code>Faces#getLocale()</code>.
                 If the value is <code>null</code>, <code>NaN</code> or infinity, then this will return <code>null</code>.
             ]]>
         </description>
@@ -7941,7 +7988,38 @@ String name2 = Faces.getRequestParameter("name2"); // value2
     <function>
         <description>
             <![CDATA[
-                Format the given number to nearest 10<sup>n</sup> (rounded to thousands), suffixed with a space, the metric unit
+                Format the given number to nearest 10<sup>n</sup> (rounded to thousands) in the default pattern of the given locale, immediately suffixed (without space)
+                with metric unit (k, M, G, T, P or E), rounding half up with a precision of 3 digits, whereafter
+                trailing zeroes in fraction part are stripped. Numbers lower than thousand are not affected.
+                For example (with English locale):
+                <ul>
+                    <li>999.999 will appear as 999.999
+                    <li>1000 will appear as 1k
+                    <li>1004 will appear as 1k
+                    <li>1005 will appear as 1.01k
+                    <li>1594 will appear as 1.59k
+                    <li>1595 will appear as 1.6k
+                    <li>9000 will appear as 9k
+                    <li>9900 will appear as 9.9k
+                    <li>9994 will appear as 9.99k
+                    <li>9995 will appear as 10k
+                    <li>99990 will appear as 100k
+                    <li>9994999 will appear as 9.99M
+                    <li>9995000 will appear as 10M
+                </ul>
+                The given locale can be a <code>Locale</code> object or a string representation.
+                If the value is <code>null</code>, <code>NaN</code> or infinity, then this will return <code>null</code>.
+            ]]>
+        </description>
+        <function-name>formatThousandsForLocale</function-name>
+        <function-class>org.omnifaces.el.functions.Numbers</function-class>
+        <function-signature>java.lang.String formatThousandsForLocale(java.lang.Number, java.lang.Object)</function-signature>
+    </function>
+
+    <function>
+        <description>
+            <![CDATA[
+                Format the given number to nearest 10<sup>n</sup> (rounded to thousands) in the default pattern of the default locale, suffixed with a space, the metric unit
                 prefix (k, M, G, T, P or E) and the given unit, rounding half up with a precision of 3 digits, whereafter
                 trailing zeroes in fraction part are stripped.
                 For example (with English locale and unit <code>B</code>):
@@ -7960,13 +8038,44 @@ String name2 = Faces.getRequestParameter("name2"); // value2
                 <li>9994999 will appear as 9.99 MB
                 <li>9995000 will appear as 10 MB
                 </ul>
-                The format locale will be set to the one as obtained by <code>Faces#getLocale()</code>.
+                The default locale is the one as obtained by <code>Faces#getLocale()</code>.
                 If the value is <code>null</code>, <code>NaN</code> or infinity, then this will return <code>null</code>.
             ]]>
         </description>
         <function-name>formatThousandsUnit</function-name>
         <function-class>org.omnifaces.el.functions.Numbers</function-class>
         <function-signature>java.lang.String formatThousandsUnit(java.lang.Number, java.lang.String)</function-signature>
+    </function>
+
+    <function>
+        <description>
+            <![CDATA[
+                Format the given number to nearest 10<sup>n</sup> (rounded to thousands) in the default pattern of the given locale, suffixed with a space, the metric unit
+                prefix (k, M, G, T, P or E) and the given unit, rounding half up with a precision of 3 digits, whereafter
+                trailing zeroes in fraction part are stripped.
+                For example (with English locale and unit <code>B</code>):
+                <ul>
+                <li>999 will appear as 999 B
+                <li>1000 will appear as 1 kB
+                <li>1004 will appear as 1 kB
+                <li>1005 will appear as 1.01 kB
+                <li>1594 will appear as 1.59 kB
+                <li>1595 will appear as 1.6 kB
+                <li>9000 will appear as 9 kB
+                <li>9900 will appear as 9.9 kB
+                <li>9994 will appear as 9.99 kB
+                <li>9995 will appear as 10 kB
+                <li>99990 will appear as 100 kB
+                <li>9994999 will appear as 9.99 MB
+                <li>9995000 will appear as 10 MB
+                </ul>
+                The given locale can be a <code>Locale</code> object or a string representation.
+                If the value is <code>null</code>, <code>NaN</code> or infinity, then this will return <code>null</code>.
+            ]]>
+        </description>
+        <function-name>formatThousandsUnitForLocale</function-name>
+        <function-class>org.omnifaces.el.functions.Numbers</function-class>
+        <function-signature>java.lang.String formatThousandsUnitForLocale(java.lang.Number, java.lang.String, java.lang.Object)</function-signature>
     </function>
 
     <function>
