@@ -74,6 +74,7 @@
         <test.tomcat.version>10.1.41</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
         <test.piranha.version>25.5.0</test.piranha.version> <!-- https://mvnrepository.com/artifact/cloud.piranha.arquillian/piranha-arquillian-server -->
         <test.tomee-myfaces4.version>10.0.1</test.tomee-myfaces4.version> <!-- https://mvnrepository.com/artifact/org.apache.tomee/apache-tomee -->
+        <test.payara.version>6.2025.7</test.payara.version> <!-- https://mvnrepository.com/artifact/fish.payara.distributions/payara-web -->
 
         <!-- Test impl versions for servletcontainers (Tomcat/Piranha). -->
         <test.mojarra4.version>4.0.11</test.mojarra4.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
@@ -1076,6 +1077,50 @@
                             <systemPropertyVariables>
                                 <tomee.dir>${project.build.directory}/apache-tomee-webprofile-${test.tomee-myfaces4.version}</tomee.dir>
                             </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Payara - Mojarra 4.x integration test profile: mvn verify -P payara-mojarra4 -->
+        <profile>
+            <id>payara-mojarra4</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jboss.arquillian.container</groupId>
+                    <artifactId>arquillian-glassfish-managed-3.1</artifactId>
+                    <version>1.0.2</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>fish.payara.distributions</groupId>
+                                            <artifactId>payara-web</artifactId>
+                                            <version>${test.payara.version}</version>
+                                            <type>zip</type>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <environmentVariables>
+                                <GLASSFISH_HOME>${project.build.directory}/payara6</GLASSFISH_HOME>
+                            </environmentVariables>
                         </configuration>
                     </plugin>
                 </plugins>
