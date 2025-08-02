@@ -838,8 +838,8 @@
             <dependencies>
                 <dependency>
                     <groupId>org.jboss.arquillian.container</groupId>
-                    <artifactId>arquillian-tomcat-managed-8</artifactId>
-                    <version>1.2.0.Alpha1</version>
+                    <artifactId>arquillian-tomcat-managed-10</artifactId>
+                    <version>1.2.1.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -917,8 +917,8 @@
             <dependencies>
                 <dependency>
                     <groupId>org.jboss.arquillian.container</groupId>
-                    <artifactId>arquillian-tomcat-managed-8</artifactId>
-                    <version>1.2.0.Alpha1</version>
+                    <artifactId>arquillian-tomcat-managed-10</artifactId>
+                    <version>1.2.1.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
