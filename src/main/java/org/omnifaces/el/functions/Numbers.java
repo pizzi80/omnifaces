@@ -111,7 +111,7 @@ public final class Numbers {
      * @param locale The locale to obtain the default pattern from.
      * @return The number which is formatted as currency with the given symbol.
      * @throws NullPointerException When the currency symbol is <code>null</code>.
-     * @subce 5.0
+     * @since 5.0
      */
     public static String formatCurrencyForLocale(Number number, String currencySymbol, Object locale) {
         if (number == null) {
