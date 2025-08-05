@@ -99,9 +99,9 @@ public class SocketChannelManager implements Serializable {
 
     // Properties -----------------------------------------------------------------------------------------------------
 
-    private static final ConcurrentHashMap<String, String> APPLICATION_SCOPE = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_APPLICATION);
-    private final ConcurrentHashMap<String, String> sessionScopedChannels = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_SESSION);
-    private final ConcurrentHashMap<Serializable, String> sessionUsers = new ConcurrentHashMap<>(ESTIMATED_USERS_PER_SESSION);
+    private static final ConcurrentHashMap<String, String> APPLICATION_SCOPE = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_APPLICATION, 1);
+    private final ConcurrentHashMap<String, String> sessionScopedChannels = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_SESSION, 1);
+    private final ConcurrentHashMap<Serializable, String> sessionUsers = new ConcurrentHashMap<>(ESTIMATED_USERS_PER_SESSION, 1);
 
     @Inject
     private SocketSessionManager socketSessions;
@@ -209,7 +209,7 @@ public class SocketChannelManager implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        private final ConcurrentHashMap<String, String> channels = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_VIEW);
+        private final ConcurrentHashMap<String, String> channels = new ConcurrentHashMap<>(ESTIMATED_CHANNELS_PER_VIEW, 1);
 
         /**
          * Returns the view scoped channels.
@@ -297,7 +297,7 @@ public class SocketChannelManager implements Serializable {
 
         // All of below is just in case server restarts with session persistence or failovers/synchronizes to another server.
         output.writeObject(APPLICATION_SCOPE);
-        var sessionUserChannels = new HashMap<String, ConcurrentHashMap<String, Set<String>>>(sessionUsers.size());
+        var sessionUserChannels = new HashMap<String, ConcurrentHashMap<String, Set<String>>>(sessionUsers.size(), 1);
 
         for (var userId : sessionUsers.values()) {
             sessionUserChannels.put(userId, socketUsers.getUserChannels().get(userId));

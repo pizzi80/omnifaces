@@ -12,7 +12,7 @@
  */
 package org.omnifaces.el;
 
-import static java.beans.Introspector.decapitalize;
+import static org.omnifaces.util.Reflection.getPropertyName;
 import static org.omnifaces.util.Utils.isOneInstanceOf;
 import static org.omnifaces.util.Utils.startsWithOneOf;
 
@@ -56,21 +56,17 @@ public class FacesELResolver extends ELResolver {
                 continue;
             }
 
-            String name = method.getName();
+            var propertyName = getPropertyName(method.getName());
 
-            if (startsWithOneOf(name, "get", "is")) {
-                String property = decapitalize(name.replaceFirst("(get|is)", ""));
-
-                if (!startsWithOneOf(property, "response", "session", "flash")) {
-                    FACES_PROPERTIES.put(property, method);
-                }
+            if (propertyName != null && !startsWithOneOf(propertyName, "response", "session", "flash")) {
+                FACES_PROPERTIES.put(propertyName, method);
             }
         }
     }
 
     @Override
     public Class<?> getCommonPropertyType(ELContext context, Object base) {
-        return (base == this) ? Object.class : null;
+        return base == this ? Object.class : null;
     }
 
     @Override
@@ -94,7 +90,7 @@ public class FacesELResolver extends ELResolver {
             return this;
         }
         else if (base == this && property != null) {
-            Method method = FACES_PROPERTIES.get(property);
+            var method = FACES_PROPERTIES.get(property);
 
             if (method == null) {
                 throw new PropertyNotFoundException("#{faces." + property + "} does not exist.");

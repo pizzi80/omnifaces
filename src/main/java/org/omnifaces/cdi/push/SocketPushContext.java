@@ -85,14 +85,14 @@ public class SocketPushContext implements PushContext {
 
     @Override
     public <S extends Serializable> Map<S, Set<Future<Void>>> send(Object message, Collection<S> users) {
-        Map<S, Set<Future<Void>>> resultsByUser = new HashMap<>(users.size());
-        String json = Json.encode(message);
+        var resultsByUser = new HashMap<S, Set<Future<Void>>>(users.size(), 1);
+        var json = Json.encode(message);
 
         for (S user : users) {
-            Set<String> channelIds = socketUsers.getChannelIds(user, channel);
-            Set<Future<Void>> results = new HashSet<>(channelIds.size());
+            var channelIds = socketUsers.getChannelIds(user, channel);
+            var results = new HashSet<Future<Void>>(channelIds.size(), 1);
 
-            for (String channelId : channelIds) {
+            for (var channelId : channelIds) {
                 results.addAll(socketSessions.send(channelId, json));
             }
 

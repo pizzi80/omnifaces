@@ -575,7 +575,7 @@ public final class FacesLocal {
             return new LinkedHashMap<>(0);
         }
 
-        var parameterMap = new LinkedHashMap<String, List<String>>(viewParameters.size());
+        var parameterMap = new LinkedHashMap<String, List<String>>(viewParameters.size(), 1);
 
         for (var viewParameter : viewParameters) {
             var value = viewParameter.getStringValue(context);
@@ -608,7 +608,7 @@ public final class FacesLocal {
             return new LinkedHashMap<>(0);
         }
 
-        var parameterMap = new LinkedHashMap<String, List<String>>(hashParameters.size());
+        var parameterMap = new LinkedHashMap<String, List<String>>(hashParameters.size(), 1);
 
         for (var hashParameter : hashParameters) {
             if (isEmpty(hashParameter.getName())) {
@@ -787,7 +787,7 @@ public final class FacesLocal {
      */
     public static Map<String, ResourceBundle> getResourceBundles(FacesContext context) {
         var resourceBundles = FacesConfigXml.instance().getResourceBundles();
-        var map = new HashMap<String, ResourceBundle>(resourceBundles.size());
+        var map = new HashMap<String, ResourceBundle>(resourceBundles.size(), 1);
         resourceBundles.keySet().forEach(var -> map.put(var, getResourceBundle(context, var)));
         return map;
     }
@@ -837,7 +837,7 @@ public final class FacesLocal {
         var map = new HashMap<String, List<String>>();
 
         if (params != null) {
-            params.entrySet().forEach(param -> param.getValue().forEach(value -> addParamToMapIfNecessary(map, param.getKey(), value)));
+            params.forEach((name, values) -> values.forEach(value -> addParamToMapIfNecessary(map, name, value)));
         }
 
         return context.getApplication().getViewHandler().getBookmarkableURL(context, viewId, map, includeViewParams);

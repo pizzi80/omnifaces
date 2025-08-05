@@ -55,8 +55,8 @@ public class BeanStorage implements Serializable {
      * @param initialCapacity The initial capacity of the map holding all beans.
      */
     public BeanStorage(int initialCapacity) {
-        beans = new ConcurrentHashMap<>(initialCapacity);
-        locks = new ConcurrentHashMap<>(initialCapacity);
+        beans = new ConcurrentHashMap<>(initialCapacity, 1);
+        locks = new ConcurrentHashMap<>(initialCapacity, 1);
     }
 
     // Actions --------------------------------------------------------------------------------------------------------
@@ -75,12 +75,10 @@ public class BeanStorage implements Serializable {
         return ofNullable((T) beans.get(id)).orElseGet(() -> {
             var lock = locks.computeIfAbsent(id, $ -> new ReentrantLock());
             try {
-                return executeAtomically(lock, () -> {
-                    return ofNullable((T) beans.get(id)).orElseGet(() -> {
-                        var bean = (Serializable) type.create(context);
-                        return (T) coalesce(beans.putIfAbsent(id, bean), bean);
-                    });
-                });
+                return executeAtomically(lock, () -> ofNullable((T) beans.get(id)).orElseGet(() -> {
+                    var bean = (Serializable) type.create(context);
+                    return (T) coalesce(beans.putIfAbsent(id, bean), bean);
+                }));
             }
             finally {
                 locks.remove(id);

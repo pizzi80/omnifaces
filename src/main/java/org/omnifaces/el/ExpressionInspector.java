@@ -12,12 +12,13 @@
  */
 package org.omnifaces.el;
 
-import static java.beans.Introspector.decapitalize;
+import static java.util.Optional.ofNullable;
 import static org.omnifaces.el.MethodReference.NO_PARAMS;
 import static org.omnifaces.el.functions.Strings.capitalize;
 import static org.omnifaces.util.Beans.unwrapIfNecessary;
 import static org.omnifaces.util.Components.createValueExpression;
 import static org.omnifaces.util.Reflection.findMethod;
+import static org.omnifaces.util.Reflection.getPropertyName;
 
 import java.lang.reflect.Method;
 import java.util.Objects;
@@ -86,7 +87,8 @@ public final class ExpressionInspector {
         if (type != null && MethodExpression.class.isAssignableFrom(type)) {
             var methodReference = getMethodReference(inspectorElContext, valueExpression);
             var base = methodReference.getBase();
-            var property = decapitalize(methodReference.getName().replaceFirst("(get|is)", ""));
+            var name = methodReference.getName();
+            var property = ofNullable(getPropertyName(name)).orElse(null);
             return new ValueReference(base, property);
         }
 

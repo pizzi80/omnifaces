@@ -92,7 +92,7 @@ public abstract class DynamicResource extends Resource {
 
     @Override
     public Map<String, String> getResponseHeaders() {
-        Map<String, String> responseHeaders = new HashMap<>(RESPONSE_HEADERS_SIZE);
+        var responseHeaders = new HashMap<String, String>(RESPONSE_HEADERS_SIZE, 1);
         responseHeaders.put("Last-Modified", formatRFC1123(new Date(getLastModified())));
         responseHeaders.put("Expires", formatRFC1123(new Date(System.currentTimeMillis() + Hacks.getDefaultResourceMaxAge())));
         responseHeaders.put("Etag", format("W/\"%d-%d\"", getResourceName().hashCode(), getLastModified()));

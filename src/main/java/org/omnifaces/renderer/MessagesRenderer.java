@@ -24,8 +24,6 @@ import static org.omnifaces.util.Utils.isOneOf;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,12 +59,12 @@ public class MessagesRenderer extends Renderer<OmniMessages> {
     private static final Map<Severity, String> SEVERITY_NAMES = createSeverityNames();
 
     private static Map<Severity, String> createSeverityNames() {
-        Map<Severity, String> severityNames = new HashMap<>();
-        severityNames.put(FacesMessage.SEVERITY_INFO, "info");
-        severityNames.put(FacesMessage.SEVERITY_WARN, "warn");
-        severityNames.put(FacesMessage.SEVERITY_ERROR, "error");
-        severityNames.put(FacesMessage.SEVERITY_FATAL, "fatal");
-        return Collections.unmodifiableMap(severityNames);
+        return Map.of(
+            FacesMessage.SEVERITY_INFO, "info",
+            FacesMessage.SEVERITY_WARN, "warn",
+            FacesMessage.SEVERITY_ERROR, "error",
+            FacesMessage.SEVERITY_FATAL, "fatal"
+        );
     }
 
     // Actions --------------------------------------------------------------------------------------------------------
