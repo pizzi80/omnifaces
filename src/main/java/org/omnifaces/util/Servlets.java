@@ -429,16 +429,17 @@ public final class Servlets {
     }
 
     /**
-     * Returns the Internet Protocol (IP) address of the client that sent the request. This will first check the
-     * <code>Forwarded</code> and <code>X-Forwarded-For</code> request headers and if any is present, then return its
-     * first IP address, else just return {@link HttpServletRequest#getRemoteAddr()} unmodified.
+     * Returns the Internet Protocol (IP) address of the client that sent the request. This will first check the request
+     * headers <code>Forwarded</code>, <code>X-Forwarded-For</code> and <code>X-Real-IP</code> (since OmniFaces 4.7)
+     * and if any is present, then return its first IP address, else just return {@link HttpServletRequest#getRemoteAddr()}
+     * unmodified.
      * @param request The involved HTTP servlet request.
      * @return The IP address of the client.
      * @see HttpServletRequest#getRemoteAddr()
      * @since 2.3
      */
     public static String getRemoteAddr(HttpServletRequest request) {
-        var forwardedFor = coalesce(request.getHeader("Forwarded"), request.getHeader("X-Forwarded-For"));
+        var forwardedFor = coalesce(request.getHeader("Forwarded"), request.getHeader("X-Forwarded-For"), request.getHeader("X-Real-IP"));
         return isEmpty(forwardedFor) ? request.getRemoteAddr() : splitAndTrim(forwardedFor, ",", 2)[0]; // It's a comma separated string: client,proxy1,proxy2,...
     }
 
