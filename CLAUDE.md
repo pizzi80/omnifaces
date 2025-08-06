@@ -25,6 +25,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OmniFaces is a Jakarta Faces utility library with a three-tier architecture:
 
+### **Important: Developer Tool Context**
+**OmniFaces is a web developer utility library, not an end-user framework.** Components like `o:inputFile`, utilities, and renderers are used by developers building web applications. Security validation and business logic should be implemented by application developers in their own code, not enforced by the framework. OmniFaces provides secure utilities and building blocks, but responsibility for application-specific security lies with the developer using these tools.
+
 ### Core Integration Layer
 - **Initialization**: Three-phase startup (ServletContainerInitializer → ServletContextListener → SystemEventListener)
 - **Wrapper Pattern**: `OmniApplication`, `OmniExternalContext`, `OmniPartialViewContext` extend standard Faces APIs
