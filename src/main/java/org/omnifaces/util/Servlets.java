@@ -788,6 +788,7 @@ public final class Servlets {
         cookie.setMaxAge(maxAge);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure(request));
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 
