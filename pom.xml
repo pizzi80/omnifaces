@@ -154,6 +154,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jboss.arquillian.junit5</groupId>
             <artifactId>arquillian-junit5-container</artifactId>
             <version>1.8.0.Final</version> <!-- NOTE: 1.8.1 and newer don't work with GlassFish: java.lang.reflect.MalformedParameterizedTypeException: Mismatch of count of formal and actual type arguments in constructor of org.jboss.arquillian.container.spi.Container: 0 formal argument(s) 1 actual argument(s) -->
