@@ -1917,18 +1917,6 @@ public final class Faces {
     }
 
     /**
-     * Returns all headers with given name from the HTTP response.
-     * @param name The header name.
-     * @throws NullPointerException When faces context is unavailable.
-     * @see ExternalContext#getResponse()
-     * @see HttpServletResponse#getHeaders(String)
-     * @since 5.0
-     */
-    public static Collection<String> getResponseHeaders(String name) {
-        return FacesLocal.getResponseHeaders(getContext(), name);
-    }
-
-    /**
      * Returns whether the response is already committed. That is, when the response headers and a part of the response
      * body has already been sent to the client. This is usually a point of no return and you can't change the response
      * anymore.
