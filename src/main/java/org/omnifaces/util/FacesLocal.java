@@ -1329,6 +1329,13 @@ public final class FacesLocal {
     }
 
     /**
+     * @see Faces#getResponseHeaders(String)
+     */
+    public static Collection<String> getResponseHeaders(FacesContext context, String name) {
+        return getResponse(context).getHeaders(name);
+    }
+
+    /**
      * @see Faces#isResponseCommitted()
      */
     public static boolean isResponseCommitted(FacesContext context) {
