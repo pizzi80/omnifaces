@@ -945,7 +945,7 @@ public final class Servlets {
 				setNoCacheHeaders(request, response);
 				response.setContentType("text/xml");
 				response.setCharacterEncoding(UTF_8.name());
-				response.getWriter().printf(FACES_AJAX_REDIRECT_XML, redirectURL);
+				response.getWriter().printf(FACES_AJAX_REDIRECT_XML, redirectURL.replace("&", "&amp;"));
 			}
 			else {
 				response.sendRedirect(redirectURL);
