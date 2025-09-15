@@ -123,7 +123,12 @@ public class RateLimiter {
      */
     @PostConstruct
     public void init() {
-        executorService = JNDI.lookup("java:comp/DefaultManagedScheduledExecutorService");
+        try {
+            executorService = JNDI.lookup("java:comp/DefaultManagedScheduledExecutorService");
+        }
+        catch (Exception e) {
+            // JNDI lookup failed, will create our own executor service below
+        }
 
         if (executorService != null) {
             managedExecutorService = true;

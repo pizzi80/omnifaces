@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.omnifaces.test.servlet;
+package org.omnifaces.test.cdi.ratelimit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,10 +21,11 @@ import java.time.Duration;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.omnifaces.servlet.RateLimiter;
-import org.omnifaces.servlet.RateLimiter.RateLimitExceededException;
+import org.omnifaces.cdi.ratelimit.RateLimiter;
+import org.omnifaces.cdi.ratelimit.RateLimiter.RateLimitExceededException;
 
 class TestRateLimiter {
 
@@ -37,8 +38,14 @@ class TestRateLimiter {
     @BeforeEach
     void setUp() {
         rateLimiter = new RateLimiter();
+        rateLimiter.init();
         request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn(FIRST_IP);
+    }
+
+    @AfterEach
+    void tearDown() {
+        rateLimiter.destroy();
     }
 
     @Test
@@ -47,7 +54,7 @@ class TestRateLimiter {
         var maxRequests = 5;
 
         for (var i = 0; i < maxRequests; i++) {
-            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
         }
     }
 
@@ -57,10 +64,10 @@ class TestRateLimiter {
         var maxRequests = 3;
 
         for (var i = 0; i < maxRequests; i++) {
-            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
         }
 
-        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
     }
 
     @Test
@@ -75,12 +82,12 @@ class TestRateLimiter {
         when(request2.getRemoteAddr()).thenReturn(SECOND_IP);
 
         for (var i = 0; i < maxRequests; i++) {
-            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow));
-            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow));
+            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow, 0));
+            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow, 0));
         }
 
-        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow));
-        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow));
+        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow, 0));
+        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow, 0));
     }
 
     @Test
@@ -89,19 +96,19 @@ class TestRateLimiter {
         var maxRequests = 2;
 
         for (var i = 0; i < maxRequests; i++) {
-            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+            assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
         }
 
-        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
 
-        Thread.sleep(150); // Wait for the time window to pass
+        Thread.sleep(100); // Wait for the time window to pass
 
-        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow));
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
     }
 
     @Test
     void testAutomaticCleanupOfExpiredEntries() throws InterruptedException {
-        var timeWindow = Duration.ofMillis(50);
+        var timeWindow = Duration.ofMillis(50); // Very short window for testing
         var maxRequests = 1;
 
         var request1 = mock(HttpServletRequest.class);
@@ -110,11 +117,21 @@ class TestRateLimiter {
         var request2 = mock(HttpServletRequest.class);
         when(request2.getRemoteAddr()).thenReturn(SECOND_IP);
 
-        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow));
-        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow));
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow, 0));
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request2, maxRequests, timeWindow, 0));
 
-        Thread.sleep(100); // Wait for entries to expire
+        Thread.sleep(100); // Wait for the time window to pass
 
-        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow));
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request1, maxRequests, timeWindow, 0));
+    }
+
+    @Test
+    void testMaxRetriesAllowsAdditionalAttempts() {
+        var timeWindow = Duration.ofMillis(200); // Short window for testing
+        var maxRequests = 1;
+
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
+        assertThrows(RateLimitExceededException.class, () -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 0));
+        assertDoesNotThrow(() -> rateLimiter.checkRateLimit(request, maxRequests, timeWindow, 1));
     }
 }
