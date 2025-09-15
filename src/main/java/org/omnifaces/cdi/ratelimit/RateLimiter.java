@@ -172,13 +172,13 @@ public class RateLimiter {
     public void checkRateLimit(String clientId, int maxRequestsPerTimeWindow, Duration timeWindow, int maxRetries) throws RateLimitExceededException {
         var attempt = new AtomicInteger(0);
 
-        while (attempt.get() < maxRetries) {
+        while (attempt.get() <= maxRetries) {
             try {
                 checkRateLimit(clientId, maxRequestsPerTimeWindow, timeWindow);
                 return;
             }
             catch (RateLimiter.RateLimitExceededException e) {
-                if (attempt.incrementAndGet() >= maxRetries) {
+                if (attempt.incrementAndGet() > maxRetries) {
                     throw e;
                 }
 
