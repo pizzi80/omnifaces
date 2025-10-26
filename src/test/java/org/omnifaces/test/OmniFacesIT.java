@@ -336,7 +336,8 @@ public abstract class OmniFacesIT {
         withCustomCDNResourceHandler,
         withVersionedResourceHandler,
         withViewExpiredExceptionHandler,
-        withViewResourceHandler;
+        withViewResourceHandler,
+        withSupportedLocales;
     }
 
     public enum WebXml {

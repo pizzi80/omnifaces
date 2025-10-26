@@ -12,11 +12,11 @@
  */
 package org.omnifaces.config;
 
+import static org.omnifaces.util.Beans.getReference;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.omnifaces.cdi.config.WebXmlProducer;
 
 /**
  * <p>
@@ -60,20 +60,22 @@ import org.omnifaces.cdi.config.WebXmlProducer;
  *
  * @author Bauke Scholtz
  * @since 1.2
- * @see WebXmlSingleton
- * @see WebXmlProducer
  */
 public interface WebXml {
 
     // Enum singleton -------------------------------------------------------------------------------------------------
 
     /**
-     * Returns the lazily loaded enum singleton instance.
-     * @return The lazily loaded enum singleton instance.
-     * @since 3.1
+     * Returns the concrete {@link WebXml} instance.
+     * <ul>
+     * <li>Since OmniFaces 1.2, this returned a "lazy initialization on demand holder singleton".</li>
+     * <li>Since OmniFaces 3.1, this returned an "enum singleton" via a (mockable) interface as per #441.</li>
+     * <li>Since OmniFaces 4.7, this returns an "application scoped bean" as per #910.</li>
+     * </ul>
+     * @return The concrete {@link WebXml} instance.
      */
     static WebXml instance() {
-        return WebXmlSingleton.INSTANCE;
+        return getReference(WebXml.class);
     }
 
     // Actions --------------------------------------------------------------------------------------------------------

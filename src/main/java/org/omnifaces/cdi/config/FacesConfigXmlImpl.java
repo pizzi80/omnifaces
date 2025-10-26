@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.omnifaces.config;
+package org.omnifaces.cdi.config;
 
 import static java.util.Collections.unmodifiableMap;
 import static org.omnifaces.util.Reflection.toClass;
@@ -33,31 +33,28 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.context.ExceptionHandlerFactory;
+import jakarta.inject.Inject;
 import jakarta.servlet.ServletContext;
 
-import org.omnifaces.util.Servlets;
+import org.omnifaces.config.FacesConfigXml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Enum singleton implementation of {@link FacesConfigXml}.
+ * Application scoped bean implementation of {@link FacesConfigXml}.
  *
  * @author Bauke Scholtz
  * @author Michele Mariotti
- * @since 3.1
+ * @since 4.7
  */
-enum FacesConfigXmlSingleton implements FacesConfigXml {
-
-    // Enum singleton -------------------------------------------------------------------------------------------------
-
-    /**
-     * Returns the lazily loaded enum singleton instance.
-     */
-    INSTANCE;
+@ApplicationScoped
+class FacesConfigXmlImpl implements FacesConfigXml {
 
     // Private constants ----------------------------------------------------------------------------------------------
 
@@ -89,14 +86,14 @@ enum FacesConfigXmlSingleton implements FacesConfigXml {
     private List<Class<? extends ResourceHandler>> resourceHandlers;
     private List<Class<? extends ExceptionHandlerFactory>> exceptionHandlerFactories;
 
+    @Inject
+    private ServletContext servletContext;
+
     // Init -----------------------------------------------------------------------------------------------------------
 
-    /**
-     * Perform automatic initialization whereby the servlet context is obtained from CDI.
-     */
-    FacesConfigXmlSingleton() {
+    @PostConstruct
+    public void init() {
         try {
-            ServletContext servletContext = Servlets.getContext();
             Element facesConfigXml = loadFacesConfigXml(servletContext).getDocumentElement();
             XPath xpath = XPathFactory.newInstance().newXPath();
             resourceBundles = parseResourceBundles(facesConfigXml, xpath);

@@ -12,6 +12,8 @@
  */
 package org.omnifaces.config;
 
+import static org.omnifaces.util.Beans.getReference;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -20,8 +22,6 @@ import jakarta.faces.application.Application;
 import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.context.ExceptionHandlerFactory;
 import jakarta.faces.context.FacesContext;
-
-import org.omnifaces.cdi.config.FacesConfigXmlProducer;
 
 /**
  * <p>
@@ -50,20 +50,22 @@ import org.omnifaces.cdi.config.FacesConfigXmlProducer;
  * @author Bauke Scholtz
  * @author Michele Mariotti
  * @since 2.1
- * @see FacesConfigXmlSingleton
- * @see FacesConfigXmlProducer
  */
 public interface FacesConfigXml {
 
     // Enum singleton -------------------------------------------------------------------------------------------------
 
     /**
-     * Returns the lazily loaded enum singleton instance.
-     * @return The lazily loaded enum singleton instance.
-     * @since 3.1
+     * Returns the concrete {@link FacesConfigXml} instance.
+     * <ul>
+     * <li>Since OmniFaces 2.1, this returned a "lazy initialization on demand holder singleton".</li>
+     * <li>Since OmniFaces 3.1, this returned an "enum singleton" via a (mockable) interface as per #441.</li>
+     * <li>Since OmniFaces 4.7, this returns an "application scoped bean" as per #910.</li>
+     * </ul>
+     * @return The concrete {@link FacesConfigXml} instance.
      */
     static FacesConfigXml instance() {
-        return FacesConfigXmlSingleton.INSTANCE;
+        return getReference(FacesConfigXml.class);
     }
 
     // Getters --------------------------------------------------------------------------------------------------------
