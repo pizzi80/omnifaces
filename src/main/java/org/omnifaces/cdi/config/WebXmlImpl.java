@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.omnifaces.config;
+package org.omnifaces.cdi.config;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -40,28 +40,27 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.servlet.ServletContext;
 
-import org.omnifaces.util.Servlets;
+import org.omnifaces.config.WebXml;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Enum singleton implementation of {@link WebXml}.
+ * Application scoped bean implementation of {@link WebXml}.
+ *
+ * NOTE: package private so end user is prevented from injecting {@link WebXmlImpl} directly instead of {@link WebXml}.
  *
  * @author Bauke Scholtz
- * @since 3.1
+ * @since 4.7
  */
-enum WebXmlSingleton implements WebXml {
-
-    // Enum singleton -------------------------------------------------------------------------------------------------
-
-    /**
-     * Returns the lazily loaded enum singleton instance.
-     */
-    INSTANCE;
+@ApplicationScoped
+class WebXmlImpl implements WebXml {
 
     // Private constants ----------------------------------------------------------------------------------------------
 
@@ -113,14 +112,14 @@ enum WebXmlSingleton implements WebXml {
     private int sessionTimeout;
     private boolean distributable;
 
+    @Inject
+    private ServletContext servletContext;
+
     // Init -----------------------------------------------------------------------------------------------------------
 
-    /**
-     * Perform automatic initialization whereby the servlet context is obtained from CDI.
-     */
-    WebXmlSingleton() {
+    @PostConstruct
+    public void init() {
         try {
-            ServletContext servletContext = Servlets.getContext();
             Element allWebXmls = loadAllWebXmls(servletContext).getDocumentElement();
             XPath xpath = XPathFactory.newInstance().newXPath();
             welcomeFiles = parseWelcomeFiles(allWebXmls, xpath);
