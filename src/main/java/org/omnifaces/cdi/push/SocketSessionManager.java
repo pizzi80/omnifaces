@@ -71,8 +71,6 @@ public class SocketSessionManager {
             + " A push message could NOT be sent after %s retries of " + TOMCAT_WEB_SOCKET_RETRY_TIMEOUT + "ms apart."
             + " Consider rate limiting sending push messages. For example, once every 500ms.";
 
-    private static SocketSessionManager instance;
-
     // Properties -----------------------------------------------------------------------------------------------------
 
     private final ConcurrentHashMap<String, Collection<Session>> socketSessions = new ConcurrentHashMap<>();
@@ -243,14 +241,11 @@ public class SocketSessionManager {
     // Internal -------------------------------------------------------------------------------------------------------
 
     /**
-     * Internal usage only. Awkward workaround for it being unavailable via @Inject in endpoint in Tomcat+Weld/OWB.
+     * Internal usage only. Awkward workaround for it being unavailable via {@code @Inject} in endpoint in Tomcat+Weld/OWB.
+     * {@code CDI.current()} could have been used, but it is unavailable during {@code SocketEndpoint#onClose()} in WildFly.
      */
     static SocketSessionManager getInstance() {
-        if (instance == null) {
-            instance = getReference(SocketSessionManager.class);
-        }
-
-        return instance;
+        return getReference(SocketSessionManager.class);
     }
 
     // Helpers --------------------------------------------------------------------------------------------------------
