@@ -42,10 +42,10 @@ import javax.xml.xpath.XPathFactory;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.servlet.ServletContext;
 
 import org.omnifaces.config.WebXml;
+import org.omnifaces.util.Servlets;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -112,14 +112,12 @@ class WebXmlImpl implements WebXml {
     private int sessionTimeout;
     private boolean distributable;
 
-    @Inject
-    private ServletContext servletContext;
-
     // Init -----------------------------------------------------------------------------------------------------------
 
     @PostConstruct
     public void init() {
         try {
+            ServletContext servletContext = Servlets.getContext();
             Element allWebXmls = loadAllWebXmls(servletContext).getDocumentElement();
             XPath xpath = XPathFactory.newInstance().newXPath();
             welcomeFiles = parseWelcomeFiles(allWebXmls, xpath);
