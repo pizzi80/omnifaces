@@ -37,10 +37,10 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.faces.application.ResourceHandler;
 import jakarta.faces.context.ExceptionHandlerFactory;
-import jakarta.inject.Inject;
 import jakarta.servlet.ServletContext;
 
 import org.omnifaces.config.FacesConfigXml;
+import org.omnifaces.util.Servlets;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -48,6 +48,8 @@ import org.xml.sax.SAXException;
 
 /**
  * Application scoped bean implementation of {@link FacesConfigXml}.
+ *
+ * NOTE: package private so end user is prevented from injecting {@link FacesConfigXmlImpl} directly instead of {@link FacesConfigXml}.
  *
  * @author Bauke Scholtz
  * @author Michele Mariotti
@@ -86,14 +88,12 @@ class FacesConfigXmlImpl implements FacesConfigXml {
     private List<Class<? extends ResourceHandler>> resourceHandlers;
     private List<Class<? extends ExceptionHandlerFactory>> exceptionHandlerFactories;
 
-    @Inject
-    private ServletContext servletContext;
-
     // Init -----------------------------------------------------------------------------------------------------------
 
     @PostConstruct
     public void init() {
         try {
+            ServletContext servletContext = Servlets.getContext();
             Element facesConfigXml = loadFacesConfigXml(servletContext).getDocumentElement();
             XPath xpath = XPathFactory.newInstance().newXPath();
             resourceBundles = parseResourceBundles(facesConfigXml, xpath);
