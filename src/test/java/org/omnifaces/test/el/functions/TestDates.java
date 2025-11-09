@@ -18,6 +18,7 @@ import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.time.format.DateTimeFormatter.ISO_TIME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Map.Entry;
 import java.util.TimeZone;
 
@@ -131,6 +133,11 @@ class TestDates {
         testZonedDateTimeUtilities(new DateProducer().getNow());
     }
 
+    @Test
+    void testZonedDateTimeUtilitiesWithLong() {
+        testZonedDateTimeUtilities(System.currentTimeMillis());
+    }
+
     private static <D> void testZonedDateTimeUtilities(D date) { // Used under the covers by these EL functions.
         ZonedDateTime zonedDateTime = Utils.toZonedDateTime(date);
         D thisShouldBeExactlyTheSameAsOriginal = Utils.fromZonedDateTime(zonedDateTime, date.getClass());
@@ -212,6 +219,13 @@ class TestDates {
         testFormatDate(MY_BIRTH_DATE.toLocalTime(), CUR);
     }
 
+    @Test
+    void testFormatDateWithLong() {
+        testFormatDate(MY_BIRTH_DATE.toInstant().toEpochMilli(), null);
+        testFormatDate(MY_BIRTH_DATE.toInstant().toEpochMilli(), ZP2);
+        testFormatDate(MY_BIRTH_DATE.toInstant().toEpochMilli(), CUR);
+    }
+
     private static <D, Z> void testFormatDate(D date, Z zone) {
         String pattern = "yyyy-MM-dd'T'HH:mm:ss";
         String expectedDate = "1978-03-26";
@@ -280,6 +294,29 @@ class TestDates {
         end = end.minusNanos(1);
         minutesBetween = Dates.minutesBetween(start, end);
         assertEquals(9, minutesBetween, "Diff is 9 minutes");
+    }
+    
+    @Test
+    void testDaysBetweenDifferentDateTypes() {
+        LocalDateTime localDateTime = LocalDateTime.now();
+        LocalDate localDate = localDateTime.plusDays(10).toLocalDate();
+        int daysBetween = Dates.daysBetween(localDateTime, localDate);
+        assertEquals(10, daysBetween, "Diff is 10 days");
+
+        Long epoch = System.currentTimeMillis();
+        Instant instant = Instant.now().plus(Duration.ofDays(7));
+        daysBetween = Dates.daysBetween(epoch, instant);
+        assertEquals(7, daysBetween, "Diff is 7 days");
+
+        Calendar calendar = Calendar.getInstance();
+        ZonedDateTime zonedDateTime = ZonedDateTime.now().plusDays(5);
+        daysBetween = Dates.daysBetween(calendar, zonedDateTime);
+        assertEquals(5, daysBetween, "Diff is 5 days");
+
+        Date date = new Date();
+        OffsetDateTime offsetDateTime = OffsetDateTime.now().plusDays(3);
+        daysBetween = Dates.daysBetween(date, offsetDateTime);
+        assertEquals(3, daysBetween, "Diff is 3 days");
     }
 
     @Test

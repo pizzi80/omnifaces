@@ -123,7 +123,7 @@ public final class Utils {
     private static final int UNICODE_BEGIN_PRINTABLE_ASCII = 0x20;
     private static final Map<Class<?>, Object> PRIMITIVE_DEFAULTS = collectPrimitiveDefaults();
     private static final Map<Class<?>, Class<?>> PRIMITIVE_TYPES = collectPrimitiveTypes();
-    private static final String ERROR_UNSUPPORTED_DATE = "Only java.util.Date, java.util.Calendar and java.time.Temporal are supported.";
+    private static final String ERROR_UNSUPPORTED_DATE = "Only java.lang.Long, java.util.Date, java.util.Calendar and java.time.Temporal are supported.";
     private static final String ERROR_UNSUPPORTED_TIMEZONE = "Only java.lang.String, java.util.TimeZone and java.time.ZoneId are supported.";
 
     // Constructors ---------------------------------------------------------------------------------------------------
@@ -828,19 +828,19 @@ public final class Utils {
 
     /**
      * Obtain {@link ZoneId} from <code>D</code>.
-     * When <code>D</code> is {@code null} or {@link Date}, then return {@link ZoneId#systemDefault()}.
+     * When <code>D</code> is {@code null}, {@link Date} or since 4.7 {@link Long} as epoch milli, then return {@link ZoneId#systemDefault()}.
      * When <code>D</code> is {@link Calendar}, then return {@link TimeZone#toZoneId()} of {@link Calendar#getTimeZone()}
      * When <code>D</code> is {@link Temporal} and supports {@link ChronoField#OFFSET_SECONDS}, then return {@link ZoneId#from(java.time.temporal.TemporalAccessor)}.
      * When <code>D</code> is {@link Temporal} and supports {@link ChronoField#CLOCK_HOUR_OF_DAY}, then return {@link ZoneId#systemDefault()}.
      * When <code>D</code> is {@link Temporal} and supports neither, then return {@link ZoneOffset#UTC}.
-     * @param <D> The date type, can be {@code null}, {@link Date}, {@link Calendar} or {@link Temporal}.
+     * @param <D> The date type, can be {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or {@link Long}.
      * @param date The <code>D</code> to obtain {@link ZoneId} from.
      * @return {@link ZoneId} obtained from <code>D</code>.
-     * @throws IllegalArgumentException When date is not {@link Date}, {@link Calendar} or {@link Temporal}.
+     * @throws IllegalArgumentException When date is not {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or {@link Long}.
      * @since 3.6
      */
     public static <D> ZoneId getZoneId(D date) {
-        if (date == null || date instanceof Date) {
+        if (date == null || date instanceof Long || date instanceof Date) {
             return ZoneId.systemDefault();
         }
         else if (date instanceof Calendar) {
@@ -897,10 +897,10 @@ public final class Utils {
     /**
      * Convert <code>D</code> to {@link ZonedDateTime}.
      * This method is guaranteed repeatable when combined with {@link #fromZonedDateTime(ZonedDateTime, Class)}.
-     * @param <D> The date type, can be {@link Date}, {@link Calendar} or {@link Temporal}.
+     * @param <D> The date type, can be {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or since 4.7 {@link Long} as epoch milli.
      * @param date The <code>D</code> to convert to {@link ZonedDateTime}.
      * @return {@link ZonedDateTime} converted from <code>D</code>.
-     * @throws IllegalArgumentException When date is not {@link Date}, {@link Calendar} or {@link Temporal}.
+     * @throws IllegalArgumentException When date is not {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or {@link Long}.
      * @since 3.6
      */
     public static <D> ZonedDateTime toZonedDateTime(D date) {
@@ -910,7 +910,10 @@ public final class Utils {
 
         var zone = getZoneId(date);
 
-        if (date instanceof java.util.Date) {
+        if (date instanceof Long) {
+            return ZonedDateTime.ofInstant(Instant.ofEpochMilli((Long) date), zone);
+        }
+        else if (date instanceof java.util.Date) {
             return ZonedDateTime.ofInstant(Instant.ofEpochMilli(((java.util.Date) date).getTime()), zone);
         }
         else if (date instanceof Calendar) {
@@ -968,18 +971,21 @@ public final class Utils {
     /**
      * Convert {@link ZonedDateTime} to <code>D</code>.
      * This method is guaranteed repeatable when combined with {@link #toZonedDateTime(Object)}.
-     * @param <D> The date type, can be {@link Date}, {@link Calendar} or {@link Temporal} or any of its subclasses.
+     * @param <D> The date type, can be {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or since 4.7 {@link Long} as epoch milli.
      * @param zonedDateTime The {@link ZonedDateTime} to convert to <code>D</code>.
      * @param type The type of <code>D</code>.
      * @return <code>D</code> converted from {@link ZonedDateTime}.
      * @throws NullPointerException When type is <code>null</code>.
-     * @throws IllegalArgumentException When type is not {@link Date}, {@link Calendar} or {@link Temporal} or any of its subclasses.
+     * @throws IllegalArgumentException When type is not {@code null}, {@link Temporal}, {@link Date}, {@link Calendar} or {@link Long}.
      * @since 3.6
      */
     @SuppressWarnings("unchecked")
     public static <D> D fromZonedDateTime(ZonedDateTime zonedDateTime, Class<?> type) {
         if (zonedDateTime == null) {
             return null;
+        }
+        else if (Long.class == type) {
+            return (D) Long.valueOf(zonedDateTime.toInstant().toEpochMilli());
         }
         else if (java.util.Date.class.isAssignableFrom(type)) {
             return fromZonedDateTimeToDate(zonedDateTime, (Class<Date>) type);
