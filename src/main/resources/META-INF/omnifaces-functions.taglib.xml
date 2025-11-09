@@ -438,7 +438,7 @@
                 format dates in for example the <code>title</code> attribute of an UI component, or the
                 <code>itemLabel</code> attribute of select item, or wherever you can't use the
                 <code>&lt;f:convertDateTime&gt;</code> tag.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>formatDate</function-name>
@@ -452,7 +452,7 @@
                 Format the given date in the given pattern with given timezone. This is useful when you want to format
                 dates in for example the <code>title</code> attribute of an UI component, or the <code>itemLabel</code>
                 attribute of select item, or wherever you can't use the <code>&lt;f:convertDateTime&gt;</code> tag.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>formatDateWithTimezone</function-name>
@@ -464,7 +464,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of years. The years can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addYears</function-name>
@@ -476,7 +476,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of months. The months can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addMonths</function-name>
@@ -488,7 +488,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of weeks. The weeks can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addWeeks</function-name>
@@ -500,7 +500,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of days. The days can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addDays</function-name>
@@ -512,7 +512,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of hours. The hours can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addHours</function-name>
@@ -524,7 +524,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of minutes. The minutes can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addMinutes</function-name>
@@ -536,7 +536,7 @@
         <description>
             <![CDATA[
                 Returns a new date instance which is a sum of the given date and the given amount of seconds. The seconds can be negative.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>addSeconds</function-name>
@@ -548,7 +548,7 @@
         <description>
             <![CDATA[
                 Returns the amount of years between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>yearsBetween</function-name>
@@ -560,7 +560,7 @@
         <description>
             <![CDATA[
                 Returns the amount of months between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>monthsBetween</function-name>
@@ -572,7 +572,7 @@
         <description>
             <![CDATA[
                 Returns the amount of weeks between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>weeksBetween</function-name>
@@ -584,7 +584,7 @@
         <description>
             <![CDATA[
                 Returns the amount of days between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>daysBetween</function-name>
@@ -596,7 +596,7 @@
         <description>
             <![CDATA[
                 Returns the amount of hours between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>hoursBetween</function-name>
@@ -608,7 +608,7 @@
         <description>
             <![CDATA[
                 Returns the amount of minutes between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>minutesBetween</function-name>
@@ -620,7 +620,7 @@
         <description>
             <![CDATA[
                 Returns the amount of seconds between two given dates. This will be negative when the end date is before the start date.
-                <code>java.util.Date</code>, <code>java.util.Calendar</code> and <code>java.time.Temporal</code> are supported.
+                <code>java.time.Temporal</code>, <code>java.util.Calendar</code>, <code>java.util.Date</code> and <code>java.lang.Long</code> as epoch milli are supported.
             ]]>
         </description>
         <function-name>secondsBetween</function-name>
