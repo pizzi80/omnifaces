@@ -14,6 +14,9 @@ package org.omnifaces.cdi.config;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -51,6 +54,10 @@ import org.omnifaces.cdi.Eager;
  * <li>They have a {@link TemporalDate#getZonedDateTime()} method which allows you to convert them to
  * {@link ZonedDateTime} at {@link ZoneId#systemDefault()} via <code>#{startup.zonedDateTime}</code> and
  * <code>#{now.zonedDateTime}</code> in EL.</li>
+ * <li>Since 4.7, they also have {@link TemporalDate#getLocalDateTime()}, {@link TemporalDate#getLocalDate()} and
+ * {@link TemporalDate#getLocalTime()} methods which allows you to convert them to {@link LocalDateTime},
+ * {@link LocalDate} and {@link LocalTime} via <code>#{startup.localDateTime}</code>, <code>#{now.localDateTime}</code>,
+ * etc in EL.</li>
  * <li>They are injectable in CDI beans via e.g. <code>&#64;Inject &#64;Named private Temporal startup;</code>.
  * </ul>
  *
@@ -90,10 +97,8 @@ public class DateProducer {
 
         private static final long serialVersionUID = 1L;
 
-        private ZonedDateTime zonedDateTime;
-        private Instant instant;
-        private long time;
-        private String string;
+        private final ZonedDateTime zonedDateTime;
+        private final String string;
 
         /**
          * Constructs a new proxyable temporal date which is initialized with {@link ZonedDateTime#now()}.
@@ -109,17 +114,42 @@ public class DateProducer {
          */
         public TemporalDate(ZonedDateTime zonedDateTime) {
             this.zonedDateTime = zonedDateTime;
-            this.instant = zonedDateTime.toInstant();
-            this.time = instant.toEpochMilli();
             this.string = zonedDateTime.toString();
         }
 
         /**
-         * Convenience method to return this temporal date as {@link ZonedDateTime} at {@link ZoneId#systemDefault()}.
-         * @return This as {@link ZonedDateTime} at {@link ZoneId#systemDefault()}.
+         * Convenience method to return this temporal date as {@link ZonedDateTime}.
+         * @return This as {@link ZonedDateTime}.
          */
         public ZonedDateTime getZonedDateTime() {
             return zonedDateTime;
+        }
+
+        /**
+         * Convenience method to return this temporal date as {@link LocalDateTime}.
+         * @return This as {@link LocalDateTime}.
+         * @since 4.7
+         */
+        public LocalDateTime getLocalDateTime() {
+            return zonedDateTime.toLocalDateTime();
+        }
+
+        /**
+         * Convenience method to return this temporal date as {@link LocalDate}.
+         * @return This as {@link LocalDateTime}.
+         * @since 4.7
+         */
+        public LocalDate getLocalDate() {
+            return zonedDateTime.toLocalDate();
+        }
+
+        /**
+         * Convenience method to return this temporal date as {@link LocalTime}.
+         * @return This as {@link LocalTime}.
+         * @since 4.7
+         */
+        public LocalTime getLocalTime() {
+            return zonedDateTime.toLocalTime();
         }
 
         /**
@@ -127,7 +157,7 @@ public class DateProducer {
          * @return This as {@link Instant} at {@link ZoneOffset#UTC}.
          */
         public Instant getInstant() {
-            return instant;
+            return zonedDateTime.toInstant();
         }
 
         /**
@@ -136,7 +166,7 @@ public class DateProducer {
          * @return The number of milliseconds since January 1, 1970, 00:00:00 GMT represented by this temporal date.
          */
         public long getTime() {
-            return time;
+            return getInstant().toEpochMilli();
         }
 
         // Required overrides -----------------------------------------------------------------------------------------
