@@ -18,6 +18,7 @@ import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCustomCDNResourceHa
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashSet;
@@ -55,6 +56,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 @TestInstance(Lifecycle.PER_CLASS)
 public abstract class OmniFacesIT {
 
+    protected final Logger logger = Logger.getLogger(getClass().getName());
+
     protected WebDriver browser;
 
     @ArquillianResource
@@ -62,14 +65,22 @@ public abstract class OmniFacesIT {
 
     @BeforeAll
     public void setup() {
-        Logger.getLogger(RemoteWebDriver.class.getPackageName()).setLevel(Level.WARNING);
+        logger.fine(this + "#setup(); " + browser + "; " + baseURL);
+        Logger.getLogger(RemoteWebDriver.class.getPackageName()).setLevel(Level.WARNING); // Tone down super verbose WebDriver#findElement logging.
         var arquillianBrowser = System.getProperty("arquillian.browser");
 
         browser = switch (arquillianBrowser) {
             case "chrome" -> {
                 WebDriverManager.chromedriver().setup();
-                var chrome = new ChromeDriver(new ChromeOptions().addArguments("--no-sandbox", "--headless"));
-                yield chrome;
+                var originalClassLoader = Thread.currentThread().getContextClassLoader();
+
+                try {
+                    Thread.currentThread().setContextClassLoader(ChromeDriver.class.getClassLoader()); // Because quarkus-arquillian loads selenium-remote-driver and selenium-chrome-driver from different classloaders and this would cause Chrome driver to throw java.util.ServiceConfigurationError: org.openqa.selenium.remote.AdditionalHttpCommands: org.openqa.selenium.chrome.AddHasCasting not a subtype
+                    yield new ChromeDriver(new ChromeOptions().addArguments("--no-sandbox", "--headless"));
+                }
+                finally {
+                    Thread.currentThread().setContextClassLoader(originalClassLoader);
+                }
             }
             default -> throw new UnsupportedOperationException("arquillian.browser='" + arquillianBrowser + "' is not yet supported");
         };
@@ -79,6 +90,21 @@ public abstract class OmniFacesIT {
 
     @BeforeEach
     public void init() {
+        logger.fine(this + "#init(); " + browser + "; " + baseURL);
+
+        if (browser == null) {
+            setup(); // Because quarkus-arquillian doesn't recognize the different lifecycle of @BeforeAll on a @TestInstance(Lifecycle.PER_CLASS) and forgets to invoke it on each instantiation.
+        }
+
+        try {
+            if (!baseURL.toExternalForm().endsWith("/")) {
+                baseURL = new URL(baseURL + "/"); // And for some reason quarkus-arquillian forgets the trailing slash?
+            }
+        }
+        catch (MalformedURLException e) {
+            throw new IllegalStateException();
+        }
+
         open(getClass().getSimpleName() + ".xhtml");
     }
 
@@ -212,6 +238,10 @@ public abstract class OmniFacesIT {
         return System.getProperty("profile.id").startsWith("liberty-");
     }
 
+    protected static boolean isQuarkusUsed() {
+        return System.getProperty("profile.id").startsWith("quarkus-");
+    }
+
     protected static <T extends OmniFacesIT> WebArchive createWebArchive(Class<T> testClass) {
         return buildWebArchive(testClass).createDeployment();
     }
@@ -222,7 +252,8 @@ public abstract class OmniFacesIT {
 
     protected static class ArchiveBuilder {
 
-        private WebArchive archive;
+        private final WebArchive archive;
+        private final boolean treatWarAsWebFragmentJar;
         private boolean facesConfigSet;
         private boolean webXmlSet;
         private boolean primeFacesSet;
@@ -235,8 +266,10 @@ public abstract class OmniFacesIT {
             archive = create(WebArchive.class, warName)
                 .addPackage(packageName)
                 .deleteClass(testClass)
-                .addAsWebInfResource("WEB-INF/beans.xml", "beans.xml")
                 .addAsLibrary(new File(System.getProperty("omnifaces.jar")));
+
+            treatWarAsWebFragmentJar = isQuarkusUsed();
+            addWebInfResource("WEB-INF/beans.xml", "beans.xml");
 
             var warLibraries = System.getProperty("war.libraries");
 
@@ -252,7 +285,7 @@ public abstract class OmniFacesIT {
                 var path = directory + "/" + file.getName();
 
                 if (file.isFile()) {
-                    archive.addAsWebResource(file, path);
+                    addWebResource(file, path);
                 }
                 else if (file.isDirectory()) {
                     addWebResources(file, path);
@@ -260,12 +293,43 @@ public abstract class OmniFacesIT {
             }
         }
 
+        private void addWebResource(File file, String path) {
+            if (treatWarAsWebFragmentJar) {
+                archive.addAsResource(file, "META-INF/resources/" + path);
+            }
+            else {
+                archive.addAsWebResource(file, path);
+            }
+        }
+
+        private void addWebResource(String name, String path) {
+            if (treatWarAsWebFragmentJar) {
+                archive.addAsResource(name, "META-INF/resources/" + path);
+            }
+            else {
+                archive.addAsWebResource(name, path);
+            }
+        }
+
+        private void addWebInfResource(String name, String path) {
+            if (treatWarAsWebFragmentJar) {
+                archive.addAsResource(name, "META-INF/" + path);
+            }
+            else {
+                archive.addAsWebInfResource(name, path);
+            }
+        }
+
+        private void addWebResource(String name) {
+            addWebResource(name, name);
+        }
+
         public ArchiveBuilder withFacesConfig(FacesConfig facesConfig) {
             if (facesConfigSet) {
                 throw new IllegalStateException("There can be only one faces-config.xml");
             }
 
-            archive.addAsWebInfResource("WEB-INF/faces-config.xml/" + facesConfig.name() + ".xml", "faces-config.xml");
+            addWebInfResource("WEB-INF/faces-config.xml/" + facesConfig.name() + ".xml", "faces-config.xml");
 
             if (facesConfig == withMessageBundle) {
                 archive.addAsResource("messages.properties");
@@ -283,17 +347,17 @@ public abstract class OmniFacesIT {
                 throw new IllegalStateException("There can be only one web.xml");
             }
 
-            archive.setWebXML("WEB-INF/web.xml/" + webXml.name() + ".xml");
+            addWebInfResource("WEB-INF/web.xml/" + webXml.name() + ".xml", "web.xml");
 
             switch (webXml) {
                 case withDevelopmentStage:
                 case withErrorPage:
-                    archive.addAsWebInfResource("WEB-INF/500.xhtml");
+                    addWebResource("WEB-INF/500.xhtml");
                     break;
                 case withFacesViews:
                 case withFacesViewsLowercasedRequestURI:
                 case withMultiViews:
-                    archive.addAsWebInfResource("WEB-INF/404.xhtml");
+                    addWebResource("WEB-INF/404.xhtml");
                     break;
                 default:
                     break;

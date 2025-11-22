@@ -8,7 +8,7 @@
 
     <groupId>org.omnifaces</groupId>
     <artifactId>omnifaces</artifactId>
-    <version>5.0-M5</version>
+    <version>5.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>OmniFaces</name>
@@ -97,8 +97,8 @@
 
         <!-- Required Jakarta EE 11 dependencies. -->
         <dependency>
-            <groupId>jakarta.faces</groupId>
-            <artifactId>jakarta.faces-api</artifactId>
+            <groupId>org.apache.myfaces.core</groupId> <!-- NOTE: myfaces-api instead of jakarta.faces-api because jakarta.faces-api has a hardcoded dependency on com.sun.faces.util.Util (fixed in 5.0.0) and quarkus-arquillian is for unclear reason pulling and prioritizing a provided dependency over myfaces-api dependency of myfaces-quarkus -->
+            <artifactId>myfaces-api</artifactId>
             <version>4.1.0</version>
             <scope>provided</scope>
         </dependency>
@@ -148,6 +148,12 @@
             <artifactId>jakarta.jakartaee-web-api</artifactId>
             <version>11.0.0</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>jakarta.faces</groupId>
+                    <artifactId>jakarta.faces-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -176,13 +182,13 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.34.0</version>
+            <version>4.38.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
-            <version>6.2.0</version>
+            <version>6.3.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -933,6 +939,61 @@
                                 <glassfish.home>${project.build.directory}/payara7</glassfish.home>
                             </systemPropertyVariables>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Quarkus - MyFaces 4.x integration test profile: mvn verify -P quarkus-myfaces4 -->
+        <profile>
+            <id>quarkus-myfaces4</id>
+            <dependencyManagement>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.quarkus.platform</groupId>
+                        <artifactId>quarkus-bom</artifactId>
+                        <version>3.29.4</version>
+                        <type>pom</type>
+                        <scope>import</scope>
+                    </dependency>
+                </dependencies>
+            </dependencyManagement>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-arc</artifactId>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-arquillian</artifactId>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.myfaces.core.extensions.quarkus</groupId>
+                    <artifactId>myfaces-quarkus</artifactId>
+                    <version>4.1.1</version>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.quarkiverse.omnifaces</groupId>
+                    <artifactId>quarkus-omnifaces</artifactId>
+                    <version>5.0-M6</version>
+                    <scope>test</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.omnifaces</groupId>
+                            <artifactId>omnifaces</artifactId> <!-- Because we provide our own one, namely this very project! -->
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
                     </plugin>
                 </plugins>
             </build>
