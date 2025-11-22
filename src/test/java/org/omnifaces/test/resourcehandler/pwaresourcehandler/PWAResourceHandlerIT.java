@@ -34,7 +34,7 @@ import org.openqa.selenium.support.FindBy;
 public class PWAResourceHandlerIT extends OmniFacesIT {
 
     private static final String EXPECTED_MANIFEST = "{\"categories\":[],\"dir\":\"auto\",\"display\":\"browser\","
-        + "\"icons\":[{\"sizes\":\"512x512\",\"src\":\"\\/PWAResourceHandlerIT\\/jakarta.faces.resource\\/icon.png.xhtml?v=1\",\"type\":\"image\\/png\"}],"
+        + "\"icons\":[{\"sizes\":\"512x512\",\"src\":\"{contextPath}\\/jakarta.faces.resource\\/icon.png.xhtml?v=1\",\"type\":\"image\\/png\"}],"
         + "\"lang\":\"en\",\"name\":\"PWAResourceHandlerIT\",\"prefer_related_applications\":false,\"related_applications\":[],\"screenshots\":[],\"shortcuts\":[],"
         + "\"start_url\":\"{baseURL}\"}";
 
@@ -64,7 +64,7 @@ public class PWAResourceHandlerIT extends OmniFacesIT {
 
         browser.get(manifest.getAttribute("href"));
 
-        assertEquals(EXPECTED_MANIFEST.replace("{baseURL}", baseURL.toString().replace("/", "\\/")), stripTags(browser.getPageSource())
+        assertEquals(EXPECTED_MANIFEST.replace("{contextPath}", contextPath.replace("/", "\\/")).replace("{baseURL}", baseURL.toString().replace("/", "\\/")), stripTags(browser.getPageSource())
             .replaceAll("\\?v=[0-9]{13,}", "?v=1")); // Normalize any version query string on icon resource.
     }
 

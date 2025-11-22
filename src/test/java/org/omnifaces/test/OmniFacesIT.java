@@ -16,6 +16,7 @@ import static java.time.Duration.ofSeconds;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCustomCDNResourceHandler;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
+import static org.omnifaces.util.ResourcePaths.stripTrailingSlash;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -63,6 +64,8 @@ public abstract class OmniFacesIT {
     @ArquillianResource
     protected URL baseURL;
 
+    protected String contextPath;
+
     @BeforeAll
     public void setup() {
         logger.fine(this + "#setup(); " + browser + "; " + baseURL);
@@ -100,6 +103,8 @@ public abstract class OmniFacesIT {
             if (!baseURL.toExternalForm().endsWith("/")) {
                 baseURL = new URL(baseURL + "/"); // And for some reason quarkus-arquillian forgets the trailing slash?
             }
+
+            contextPath = stripTrailingSlash(baseURL.getPath());
         }
         catch (MalformedURLException e) {
             throw new IllegalStateException();
