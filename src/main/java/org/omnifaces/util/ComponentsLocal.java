@@ -27,10 +27,10 @@ import static org.omnifaces.util.Components.VALUE_ATTRIBUTE;
 import static org.omnifaces.util.Components.findComponentsInChildren;
 import static org.omnifaces.util.Components.getClosestParent;
 import static org.omnifaces.util.Events.subscribeToRequestBeforePhase;
-import static org.omnifaces.util.Faces.getApplicationAttribute;
 import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.Faces.setContext;
 import static org.omnifaces.util.FacesLocal.createConverter;
+import static org.omnifaces.util.FacesLocal.getApplicationAttribute;
 import static org.omnifaces.util.FacesLocal.getFaceletContext;
 import static org.omnifaces.util.FacesLocal.getRenderKit;
 import static org.omnifaces.util.FacesLocal.getRequestParameter;
@@ -72,7 +72,6 @@ import jakarta.faces.component.UIForm;
 import jakarta.faces.component.UIInput;
 import jakarta.faces.component.UIMessage;
 import jakarta.faces.component.UIMessages;
-import jakarta.faces.component.UINamingContainer;
 import jakarta.faces.component.UIOutput;
 import jakarta.faces.component.UIParameter;
 import jakarta.faces.component.UIViewRoot;
@@ -1043,8 +1042,8 @@ public final class ComponentsLocal {
     /**
      * Strip UIData/UIRepeat iteration index in pattern <code>:[0-9+]:</code> from given component client ID.
      */
-    private static String stripIterationIndex(FacesContext context, String clientId) {
-        return getIterationIndexPattern(context).matcher(clientId).replaceAll(result -> result.group(1) + result.group(3));
+    static String stripIterationIndex(FacesContext context, String clientId) {
+        return getIterationIndexPattern(context).matcher(clientId).replaceAll(result -> result.group(1));
     }
 
     /**
@@ -1055,9 +1054,9 @@ public final class ComponentsLocal {
     }
 
     private static Pattern getIterationIndexPattern(FacesContext context) {
-        return getApplicationAttribute("omnifaces.IterationIndexPattern", () -> {
-            var quotedSeparatorChar = quote(Character.toString(UINamingContainer.getSeparatorChar(context)));
-            return Pattern.compile("(^|.*" + quotedSeparatorChar + ")([0-9]+" + quotedSeparatorChar + ")(.*)");
+        return getApplicationAttribute(context, "omnifaces.IterationIndexPattern", () -> {
+            var quotedSeparatorChar = quote(Character.toString(context.getNamingContainerSeparatorChar()));
+            return Pattern.compile("(" + quotedSeparatorChar + "|^)([0-9]+" + quotedSeparatorChar + ")");
         });
     }
 
