@@ -19,10 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 
+@DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "jakarta.enterprise.context.ContextNotActiveException: ViewScoped context was not active when trying to obtain a bean instance for a client proxy of CLASS bean [class=org.omnifaces.test.cdi.eager.EagerITEagerViewScopedBean]")
 public class EagerIT extends OmniFacesIT {
 
     @FindBy(id="lazyApplicationScopedBean")

@@ -22,6 +22,7 @@ import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 
+@DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "Ambiguous dependencies exceptions on following @Param fields: stringParam, requiredStringParam and paramWithConverterId")
 public class ParamIT extends OmniFacesIT {
 
     @FindBy(id="stringParam")

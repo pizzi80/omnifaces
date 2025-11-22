@@ -42,12 +42,14 @@ public class CheckNestedFormsIT extends OmniFacesIT {
 
     @Test
     @DisabledIfSystemProperty(named = "profile.id", matches = "piranha-.*", disabledReason = "piranha doesn't correctly interpret error-page in web.xml and instead uses own one")
+    @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "quarkus test mode ignores error-page in web.xml and instead uses own one (works in non-test)")
     void testNestedForm() {
         verify500("NestedForm.xhtml");
     }
 
     @Test
     @DisabledIfSystemProperty(named = "profile.id", matches = "piranha-.*", disabledReason = "piranha doesn't correctly interpret error-page in web.xml and instead uses own one")
+    @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "quarkus test mode ignores error-page in web.xml and instead uses own one (works in non-test)")
     void testNestedDialogForm() {
         verify500("NestedDialogForm.xhtml");
     }

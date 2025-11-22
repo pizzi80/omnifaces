@@ -20,6 +20,7 @@ import java.util.List;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -83,6 +84,7 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
     }
 
     @Test
+    @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "omnifaces.js is not returned an instance of CDNResource but others are? not a MyFaces-related problem as it works in tomcat-myfaces")
     void nonAjaxCDN() {
         open("CORSAwareResourceRendererIT.xhtml?skipCDN=false");
         verifyElements(true);
@@ -103,6 +105,7 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
     }
 
     @Test
+    @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "omnifaces.js is not returned an instance of CDNResource but others are? not a MyFaces-related problem as it works in tomcat-myfaces")
     void ajaxCDN() {
         open("CORSAwareResourceRendererIT.xhtml?skipCDN=false");
         verifyElements(true);
