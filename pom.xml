@@ -944,9 +944,9 @@
             </build>
         </profile>
 
-        <!-- Quarkus - MyFaces 4.x integration test profile: mvn verify -P quarkus-myfaces4 -->
+        <!-- Quarkus - MyFaces integration test profile: mvn verify -P quarkus-myfaces -->
         <profile>
-            <id>quarkus-myfaces4</id>
+            <id>quarkus-myfaces</id>
             <dependencyManagement>
                 <dependencies>
                     <dependency>
@@ -967,6 +967,11 @@
                 <dependency>
                     <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-arquillian</artifactId>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-hibernate-validator</artifactId>
                     <scope>test</scope>
                 </dependency>
                 <dependency>
