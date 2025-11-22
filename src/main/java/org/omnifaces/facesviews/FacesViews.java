@@ -341,7 +341,6 @@ public final class FacesViews {
         ServletRegistration facesServletRegistration = getFacesServletRegistration(servletContext);
 
         if (facesServletRegistration != null) {
-            System.out.println(facesServletRegistration.getName());
             Collection<String> existingMappings = facesServletRegistration.getMappings();
 
             for (String mapping : mappings) {
@@ -541,8 +540,6 @@ public final class FacesViews {
 
         for (String resourcePath : resourcePaths) {
             var normalizedResourcePath = normalizeResourcePath(servletContext, resourcePath);
-
-            System.out.println("FacesViews.scanViews() --> " + resourcePath + " == " + normalizedResourcePath);
 
             if (isDirectory(normalizedResourcePath)) {
                 if (canScanDirectory(rootPath, normalizedResourcePath)) {
