@@ -240,6 +240,7 @@ public final class FacesViews {
     // Constants ------------------------------------------------------------------------------------------------------
 
     private static final String[] RESTRICTED_DIRECTORIES = { "/WEB-INF/", "/META-INF/", "/resources/" };
+    private static final String WEB_FRAGMENT_RESOURCE_DIRECTORY = "/META-INF/resources/";
 
     // TODO: those should be properties of an @ApplicationScoped bean.
     private static final String SCAN_PATHS = "org.omnifaces.facesviews.scan_paths";
@@ -253,6 +254,7 @@ public final class FacesViews {
     private static final String ENCOUNTERED_EXTENSIONS = "org.omnifaces.facesviews.encountered_extensions";
     private static final String MAPPED_WELCOME_FILES = "org.omnifaces.facesviews.mapped_welcome_files";
     private static final String MULTIVIEWS_WELCOME_FILE = "org.omnifaces.facesviews.multiviews_welcome_file";
+    private static final String FACES_SERVLET_NAME = "org.omnifaces.facesviews.faces_servlet_name";
 
     private static Boolean facesViewsEnabled;
     private static Boolean multiViewsEnabled;
@@ -339,6 +341,7 @@ public final class FacesViews {
         ServletRegistration facesServletRegistration = getFacesServletRegistration(servletContext);
 
         if (facesServletRegistration != null) {
+            System.out.println(facesServletRegistration.getName());
             Collection<String> existingMappings = facesServletRegistration.getMappings();
 
             for (String mapping : mappings) {
@@ -537,13 +540,17 @@ public final class FacesViews {
         boolean hasMultiViewsWelcomeFile = hasMultiViewsWelcomeFile(servletContext);
 
         for (String resourcePath : resourcePaths) {
-            if (isDirectory(resourcePath)) {
-                if (canScanDirectory(rootPath, resourcePath)) {
-                    scanViews(servletContext, rootPath, servletContext.getResourcePaths(resourcePath), collectedViews, extensionToScan, collectedExtensions);
+            var normalizedResourcePath = normalizeResourcePath(servletContext, resourcePath);
+
+            System.out.println("FacesViews.scanViews() --> " + resourcePath + " == " + normalizedResourcePath);
+
+            if (isDirectory(normalizedResourcePath)) {
+                if (canScanDirectory(rootPath, normalizedResourcePath)) {
+                    scanViews(servletContext, rootPath, servletContext.getResourcePaths(normalizedResourcePath), collectedViews, extensionToScan, collectedExtensions);
                 }
             }
-            else if (canScanResource(resourcePath, extensionToScan)) {
-                scanView(servletContext, rootPath, resourcePath, collectedViews, collectedExtensions, hasMultiViewsWelcomeFile);
+            else if (canScanResource(normalizedResourcePath, extensionToScan)) {
+                scanView(servletContext, rootPath, normalizedResourcePath, collectedViews, collectedExtensions, hasMultiViewsWelcomeFile);
             }
         }
     }
@@ -588,6 +595,32 @@ public final class FacesViews {
     private static String normalizeRootPath(String rootPath) {
         boolean excludePath = isExcludePath(rootPath);
         return addTrailingSlashIfNecessary((excludePath ? "!" : "") + addLeadingSlashIfNecessary(rootPath.substring(excludePath ? 1 : 0)));
+    }
+
+    /**
+     * ServletContext#getResourcePaths seems broken in quarkus-arquillian.
+     * - It contains full path prefix like /tmp/quarkus-arquillian-test123456798/app/META-INF/resources, so it had to be stripped off manually.
+     * - Directories does not contain the trailing / in contrary to what {@link ServletContext#getResourcePaths(String)}) javadoc says, so it had to be added manually.
+     */
+    private static String normalizeResourcePath(ServletContext servletContext, String resourcePath) {
+        var webFragmentResource = resourcePath.indexOf(WEB_FRAGMENT_RESOURCE_DIRECTORY);
+
+        if (webFragmentResource > -1) {
+            var normalizedResourcePath = resourcePath.substring(webFragmentResource + WEB_FRAGMENT_RESOURCE_DIRECTORY.length() - 1);
+
+            try {
+                if (servletContext.getResource(normalizedResourcePath) == null) {
+                    normalizedResourcePath += "/";
+                }
+            }
+            catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+
+            return normalizedResourcePath;
+        }
+
+        return resourcePath;
     }
 
     private static boolean isExcludePath(String rootPath) {
@@ -763,6 +796,10 @@ public final class FacesViews {
 
     static String getMultiViewsWelcomeFile(ServletContext servletContext) {
         return getApplicationAttribute(servletContext, MULTIVIEWS_WELCOME_FILE);
+    }
+
+    static String getFacesServletName(ServletContext servletContext) {
+        return getApplicationAttribute(servletContext, FACES_SERVLET_NAME);
     }
 
 

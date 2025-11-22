@@ -12,6 +12,8 @@
  */
 package org.omnifaces.facesviews;
 
+import static org.omnifaces.facesviews.FacesViews.getFacesServletName;
+
 import jakarta.servlet.http.HttpServletMapping;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
@@ -50,7 +52,7 @@ public class UriExtensionRequestWrapper extends HttpServletRequestWrapper {
         String[] parts = servletPath.split("\\.", 2);
         final String pattern = "*." + parts[1];
         final String matchValue = parts[0];
-        final String servletName = request.getHttpServletMapping().getServletName();
+        final String servletName = getFacesServletName(getServletContext());
 
         this.mapping = new HttpServletMapping() {
 
