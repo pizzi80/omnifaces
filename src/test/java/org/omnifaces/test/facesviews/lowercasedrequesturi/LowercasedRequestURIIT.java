@@ -143,17 +143,17 @@ public class LowercasedRequestURIIT extends OmniFacesIT {
 
     private void verify200(String title, String path) {
         assertEquals(title, browser.getTitle());
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(browser.getCurrentUrl()));
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(linkWithExtensionOutcome.getAttribute("href")));
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(linkWithExtensionlessOutcome.getAttribute("href")));
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(lowercasedLinkWithExtensionOutcome.getAttribute("href")));
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(lowercasedLinkWithExtensionlessOutcome.getAttribute("href")));
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(form.getAttribute("action")));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(browser.getCurrentUrl()));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(linkWithExtensionOutcome.getAttribute("href")));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(linkWithExtensionlessOutcome.getAttribute("href")));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(lowercasedLinkWithExtensionOutcome.getAttribute("href")));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(lowercasedLinkWithExtensionlessOutcome.getAttribute("href")));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(form.getAttribute("action")));
     }
 
     private void verify404(String path) {
         assertEquals("404", browser.getTitle());
-        assertEquals("/LowercasedRequestURIIT/" + path, stripHostAndJsessionid(browser.getCurrentUrl()));
+        assertEquals(contextPath + "/" + path, stripHostAndJsessionid(browser.getCurrentUrl()));
     }
 
 }

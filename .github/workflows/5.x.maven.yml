@@ -33,7 +33,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        server: [ wildfly-mojarra, glassfish-mojarra, tomcat-mojarra, tomcat-myfaces, payara-mojarra ]
+        server: [ wildfly-mojarra, glassfish-mojarra, tomcat-mojarra, tomcat-myfaces, payara-mojarra, quarkus-myfaces ]
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 21 (Payara doesn't support 17)

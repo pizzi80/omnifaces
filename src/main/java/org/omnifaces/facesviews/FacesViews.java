@@ -605,13 +605,15 @@ public final class FacesViews {
         if (webFragmentResource > -1) {
             var normalizedResourcePath = resourcePath.substring(webFragmentResource + WEB_FRAGMENT_RESOURCE_DIRECTORY.length() - 1);
 
-            try {
-                if (servletContext.getResource(normalizedResourcePath) == null) {
-                    normalizedResourcePath += "/";
+            if (!isDirectory(normalizedResourcePath)) {
+                try {
+                    if (servletContext.getResource(normalizedResourcePath) == null) {
+                        normalizedResourcePath += "/";
+                    }
                 }
-            }
-            catch (Exception e) {
-                throw new IllegalStateException(e);
+                catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
             }
 
             return normalizedResourcePath;

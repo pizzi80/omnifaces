@@ -70,32 +70,25 @@ public class SocketIT extends OmniFacesIT {
     void test() {
         testOnopen();
 
-        var applicationScopedSocketCount = isQuarkusUsed() ? 2 : 1; // TODO: for some reason quarkus creates an additional socket for application and session scope?
-        var sessionScopedSocketCount = isQuarkusUsed() ? 2 : 1;
-        var viewScopedSocketCount = 1;
+        assertEquals(pushApplicationScopedServerEvent(), "1," + applicationScopedServerEventMessage.getText());
+        assertEquals(pushSessionScopedUserTargeted(), "1," + sessionScopedUserTargetedMessage.getText());
+        assertEquals(pushViewScopedAjaxAware(), "1," + viewScopedAjaxAwareMessage.getText());
 
-        assertEquals(pushApplicationScopedServerEvent(), applicationScopedSocketCount + "," + applicationScopedServerEventMessage.getText());
-        assertEquals(pushSessionScopedUserTargeted(), sessionScopedSocketCount + "," + sessionScopedUserTargetedMessage.getText());
-        assertEquals(pushViewScopedAjaxAware(), viewScopedSocketCount + "," + viewScopedAjaxAwareMessage.getText());
-
-        assertEquals(pushApplicationScopedServerEvent(), applicationScopedSocketCount + "," + applicationScopedServerEventMessage.getText());
-        assertEquals(pushSessionScopedUserTargeted(), sessionScopedSocketCount + "," + sessionScopedUserTargetedMessage.getText());
-        assertEquals(pushViewScopedAjaxAware(), viewScopedSocketCount + "," + viewScopedAjaxAwareMessage.getText());
+        assertEquals(pushApplicationScopedServerEvent(), "1," + applicationScopedServerEventMessage.getText());
+        assertEquals(pushSessionScopedUserTargeted(), "1," + sessionScopedUserTargetedMessage.getText());
+        assertEquals(pushViewScopedAjaxAware(), "1," + viewScopedAjaxAwareMessage.getText());
 
         String firstTab = browser.getWindowHandle();
         openNewTab(newtab);
         testOnopen();
 
-        applicationScopedSocketCount++;
-        sessionScopedSocketCount++;
+        assertEquals(pushApplicationScopedServerEvent(), "2," + applicationScopedServerEventMessage.getText());
+        assertEquals(pushSessionScopedUserTargeted(), "2," + sessionScopedUserTargetedMessage.getText());
+        assertEquals(pushViewScopedAjaxAware(), "1," + viewScopedAjaxAwareMessage.getText());
 
-        assertEquals(pushApplicationScopedServerEvent(), applicationScopedSocketCount + "," + applicationScopedServerEventMessage.getText());
-        assertEquals(pushSessionScopedUserTargeted(), sessionScopedSocketCount + "," + sessionScopedUserTargetedMessage.getText());
-        assertEquals(pushViewScopedAjaxAware(), viewScopedSocketCount + "," + viewScopedAjaxAwareMessage.getText());
-
-        assertEquals(pushApplicationScopedServerEvent(), applicationScopedSocketCount + "," + applicationScopedServerEventMessage.getText());
-        assertEquals(pushSessionScopedUserTargeted(), sessionScopedSocketCount + "," + sessionScopedUserTargetedMessage.getText());
-        assertEquals(pushViewScopedAjaxAware(), viewScopedSocketCount + "," + viewScopedAjaxAwareMessage.getText());
+        assertEquals(pushApplicationScopedServerEvent(), "2," + applicationScopedServerEventMessage.getText());
+        assertEquals(pushSessionScopedUserTargeted(), "2," + sessionScopedUserTargetedMessage.getText());
+        assertEquals(pushViewScopedAjaxAware(), "1," + viewScopedAjaxAwareMessage.getText());
 
         // Unfortunately Selenium doesn't (seem to?) support starting a new HTTP session within the same IT, so
         // application, session and user sockets can't be tested more extensively. If possible somehow, it's expected

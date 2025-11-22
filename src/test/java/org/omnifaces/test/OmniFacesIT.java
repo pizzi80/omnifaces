@@ -13,6 +13,7 @@
 package org.omnifaces.test;
 
 import static java.time.Duration.ofSeconds;
+import static java.util.stream.Collectors.joining;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withCustomCDNResourceHandler;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
@@ -22,7 +23,9 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -32,6 +35,7 @@ import java.util.logging.Logger;
 import org.apache.http.client.utils.URIBuilder;
 import org.jboss.arquillian.junit5.ArquillianExtension;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.jupiter.api.AfterAll;
@@ -259,6 +263,7 @@ public abstract class OmniFacesIT {
 
         private final WebArchive archive;
         private final boolean treatWarAsWebFragmentJar;
+        private final Map<String, String> quarkusProperties = new HashMap<>();
         private boolean facesConfigSet;
         private boolean webXmlSet;
         private boolean primeFacesSet;
@@ -329,6 +334,10 @@ public abstract class OmniFacesIT {
             addWebResource(name, name);
         }
 
+        private void addQuarkusPropertyIfNecessary(String name, String value) {
+            quarkusProperties.put(name, value);
+        }
+
         public ArchiveBuilder withFacesConfig(FacesConfig facesConfig) {
             if (facesConfigSet) {
                 throw new IllegalStateException("There can be only one faces-config.xml");
@@ -356,6 +365,7 @@ public abstract class OmniFacesIT {
 
             switch (webXml) {
                 case withDevelopmentStage:
+                    addQuarkusPropertyIfNecessary("jakarta.faces.PROJECT_STAGE", "Development");
                 case withErrorPage:
                     addWebResource("WEB-INF/500.xhtml");
                     break;
@@ -390,6 +400,10 @@ public abstract class OmniFacesIT {
 
             if (!webXmlSet) {
                 withWebXml(WebXml.basic);
+            }
+
+            if (isQuarkusUsed() && !quarkusProperties.isEmpty()) {
+                archive.addAsResource(new StringAsset(quarkusProperties.entrySet().stream().map(entry -> entry.getKey() + "=" + entry.getValue()).collect(joining("\n"))), "application.properties");
             }
 
             return archive;
