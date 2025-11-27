@@ -326,6 +326,8 @@ public final class ComponentsLocal {
             else {
                 addScriptResourceToBody(context, libraryName, resourceName);
             }
+
+            context.getApplication().getResourceHandler().markResourceRendered(context, resourceName, libraryName);
         }
     }
 
