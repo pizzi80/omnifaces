@@ -315,6 +315,7 @@ public final class ComponentsLocal {
         if (!context.getApplication().getResourceHandler().isResourceRendered(context, resourceName, libraryName)) {
             if (isAjaxRequestWithPartialRendering(context)) {
                 load(context, libraryName, resourceName);
+                context.getApplication().getResourceHandler().markResourceRendered(context, resourceName, libraryName);
             }
             else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
                 addScriptResourceToHead(context, libraryName, resourceName);
@@ -326,8 +327,6 @@ public final class ComponentsLocal {
             else {
                 addScriptResourceToBody(context, libraryName, resourceName);
             }
-
-            context.getApplication().getResourceHandler().markResourceRendered(context, resourceName, libraryName);
         }
     }
 
