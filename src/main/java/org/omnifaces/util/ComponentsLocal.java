@@ -314,7 +314,8 @@ public final class ComponentsLocal {
     public static void addScriptResource(FacesContext context, String libraryName, String resourceName) {
         if (!context.getApplication().getResourceHandler().isResourceRendered(context, resourceName, libraryName)) {
             if (isAjaxRequestWithPartialRendering(context)) {
-                load(context, libraryName, resourceName);
+                load(context, libraryName, resourceName); // Because component resources are rendered BEFORE components and thus addScriptResource would be too late.
+                addScriptResourceToBody(context, libraryName, resourceName); // Just to register it in the component tree as we need to mark it rendered.
                 context.getApplication().getResourceHandler().markResourceRendered(context, resourceName, libraryName);
             }
             else if (context.getCurrentPhaseId() != RENDER_RESPONSE) {
