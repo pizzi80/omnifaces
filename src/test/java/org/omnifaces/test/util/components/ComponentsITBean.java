@@ -29,6 +29,10 @@ public class ComponentsITBean {
         expressions = Components.getActionExpressionsAndListeners(Components.getCurrentActionSource());
     }
 
+    public void addScriptResource() {
+        Components.addScriptResource("omnifaces", "omnifaces.js");
+    }
+
     public List<String> getExpressions() {
         return expressions;
     }

@@ -13,6 +13,8 @@
 package org.omnifaces.test.util.components;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -37,6 +39,9 @@ public class ComponentsIT extends OmniFacesIT {
 
     @FindBy(id="form:primeFacesCommandButtonActionListener")
     private WebElement primeFacesCommandButtonActionListener;
+
+    @FindBy(id="form:addScriptResource")
+    private WebElement addScriptResource;
 
     @FindBy(id="expressions")
     private WebElement expressions;
@@ -76,6 +81,26 @@ public class ComponentsIT extends OmniFacesIT {
     void testPrimeFacesCommandButtonActionListener() {
         guardPrimeFacesAjax(primeFacesCommandButtonActionListener::click);
         assertEquals("[#{componentsITBean.submit()}]", expressions.getText());
+    }
+
+    @Test
+    void testAddScriptResource() {
+        assertFalse((Boolean) executeScript("return !!window.OmniFaces"));
+
+        guardAjax(addScriptResource::click);
+        assertEquals(0, consoleErrors.size());
+        assertTrue((Boolean) executeScript("return !!window.OmniFaces"));
+        var responseBody = getResponseBody();
+        assertTrue(responseBody.contains("<partial-response"));
+        assertTrue(responseBody.contains("<eval"));
+
+        guardAjax(addScriptResource::click);
+        assertEquals(0, consoleErrors.size());
+        assertTrue((Boolean) executeScript("return !!window.OmniFaces"));
+        assertEquals(1, networkResponses.size());
+        responseBody = getResponseBody();
+        assertTrue(responseBody.contains("<partial-response"));
+        assertFalse(responseBody.contains("<eval"));
     }
 
 }

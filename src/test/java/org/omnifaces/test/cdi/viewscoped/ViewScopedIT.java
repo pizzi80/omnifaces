@@ -53,6 +53,9 @@ public class ViewScopedIT extends OmniFacesIT {
     @FindBy(id="ajax:navigate")
     private WebElement ajaxNavigate;
 
+    @FindBy(id="form:conditionallyRenderViewScopedIT")
+    private WebElement conditionallyRenderViewScopedIT;
+
     @Deployment(testable=false)
     public static WebArchive createDeployment() {
         return buildWebArchive(ViewScopedIT.class)
@@ -173,6 +176,26 @@ public class ViewScopedIT extends OmniFacesIT {
         assertNotEquals(previousBean, previousBean = bean.getText());
         assertEquals("navigate destroy init", getMessagesText());
 
+        guardAjax(ajaxSubmit::click);
+        assertEquals(previousBean, previousBean = bean.getText());
+        assertEquals("submit", getMessagesText());
+
+        guardHttp(unload::click);
+        assertNotEquals(previousBean, previousBean = bean.getText());
+        assertEquals("unload init", getMessagesText());
+    }
+
+    @Test
+    void conditionallyRenderViewScopedIT() {
+        open("ViewScopedITWithConditionalRendering.xhtml");
+        assertEquals("", getMessagesText());
+
+        // Trigger view scoped creation during conditional render.
+        guardAjax(conditionallyRenderViewScopedIT::click);
+        var previousBean = bean.getText();
+        assertEquals("init", getMessagesText());
+
+        // Submit then unload.
         guardAjax(ajaxSubmit::click);
         assertEquals(previousBean, previousBean = bean.getText());
         assertEquals("submit", getMessagesText());
