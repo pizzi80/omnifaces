@@ -182,13 +182,25 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.24.0</version>
+            <version>4.38.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.38.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-devtools-v140</artifactId>
+            <version>4.38.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
-            <version>6.1.0</version>
+            <version>6.3.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -494,7 +506,7 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <rerunFailingTestsCount>2</rerunFailingTestsCount>
+                        <rerunFailingTestsCount>0</rerunFailingTestsCount>
                         <systemPropertyVariables>
                             <profile.id>${project.activeProfiles[0].id}</profile.id>
                             <omnifaces.jar>${project.build.directory}/${project.build.finalName}.jar</omnifaces.jar>

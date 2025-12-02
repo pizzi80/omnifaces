@@ -13,13 +13,19 @@
 package org.omnifaces.test;
 
 import static java.time.Duration.ofSeconds;
+import static java.util.Optional.empty;
 import static org.jboss.shrinkwrap.api.ShrinkWrap.create;
 import static org.omnifaces.test.OmniFacesIT.FacesConfig.withMessageBundle;
 
 import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -43,6 +49,8 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.devtools.v140.log.Log;
+import org.openqa.selenium.devtools.v140.network.Network;
 import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -53,6 +61,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 public abstract class OmniFacesIT {
 
     protected WebDriver browser;
+    protected Map<String, String> networkResponses = new LinkedHashMap<>();
+    protected List<String> consoleErrors = new ArrayList<>();
 
     @ArquillianResource
     protected URL baseURL;
@@ -66,6 +76,29 @@ public abstract class OmniFacesIT {
                 WebDriverManager.chromedriver().setup();
                 var chrome = new ChromeDriver(new ChromeOptions().addArguments("--no-sandbox", "--headless"));
                 chrome.setLogLevel(Level.INFO);
+
+                var devTools = chrome.getDevTools();
+                devTools.createSession();
+                devTools.send(Network.enable(empty(), empty(), empty(), empty()));
+                devTools.addListener(Network.responseReceived(), event -> {
+                    String body;
+
+                    try {
+                        body = devTools.send(Network.getResponseBody(event.getRequestId())).getBody();
+                    }
+                    catch (Exception e) {
+                        body = e.toString();
+                    }
+
+                    networkResponses.put(stripHostAndJsessionid(event.getResponse().getUrl()), body);
+                });
+                devTools.send(Log.enable());
+                devTools.addListener(Log.entryAdded(), entry -> {
+                    if ("error".equalsIgnoreCase(entry.getLevel().toString())) {
+                        consoleErrors.add(entry.getText());
+                    }
+                });
+
                 browser = chrome;
                 break;
             default:
@@ -90,6 +123,8 @@ public abstract class OmniFacesIT {
     }
 
     protected void open(String pageName) {
+        networkResponses.clear();
+        consoleErrors.clear();
         browser.get(baseURL + pageName);
     }
 
@@ -128,12 +163,16 @@ public abstract class OmniFacesIT {
     }
 
     protected void guardHttp(Runnable action) {
+        networkResponses.clear();
+        consoleErrors.clear();
         executeScript("window.$http=true");
         action.run();
         waitUntil(() -> executeScript("return !window.$http && document.readyState=='complete'"));
     }
 
     protected void guardAjax(Runnable action) {
+        networkResponses.clear();
+        consoleErrors.clear();
         var uuid = UUID.randomUUID().toString();
         executeScript("window.$ajax=true;(window.jsf?jsf:faces).ajax.addOnEvent(data=>{if(data.status=='complete')window.$ajax='" + uuid + "'})");
         action.run();
@@ -141,6 +180,8 @@ public abstract class OmniFacesIT {
     }
 
     protected void guardPrimeFacesAjax(Runnable action) {
+        networkResponses.clear();
+        consoleErrors.clear();
         action.run();
         waitUntil(() -> executeScript("return !!window.PrimeFaces && PrimeFaces.ajax.Queue.isEmpty()"));
     }
@@ -152,6 +193,10 @@ public abstract class OmniFacesIT {
         clearTextContent(messages);
         guardAjax(action);
         waitUntilTextContent(messages);
+    }
+
+    protected String getResponseBody() {
+        return networkResponses.entrySet().stream().filter(entry -> browser.getCurrentUrl().endsWith(entry.getKey())).map(Entry::getValue).findFirst().orElseThrow();
     }
 
     private void waitUntil(Supplier<Boolean> predicate) {
