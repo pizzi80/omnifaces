@@ -69,7 +69,6 @@ public abstract class OnloadParam extends UIViewParameter {
 
             // This is supposed to be declared via @ResourceDependency. But this bugs in Mojarra with NPE on
             // ViewMetadata#createMetadataView because UIViewRoot is null at the moment the f:metadata is processed.
-            // Also, JSF 3 and Faces 4 use a different script resource name which cannot be resolved statically.
             addFacesScriptResource(context); // Required for faces.ajax.request.
             addScriptResource(context, OMNIFACES_LIBRARY_NAME, OMNIFACES_SCRIPT_NAME);
 

@@ -58,7 +58,7 @@ import org.omnifaces.renderer.DeferredScriptRenderer;
  * @see ScriptFamily
  */
 @FacesComponent(DeferredScript.COMPONENT_TYPE)
-@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head")
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically DeferredScript.ts.
 @ListenerFor(systemEventClass=PostAddToViewEvent.class)
 @ListenerFor(systemEventClass=PostRestoreStateEvent.class)
 public class DeferredScript extends ScriptFamily {

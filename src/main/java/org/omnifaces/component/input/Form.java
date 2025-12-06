@@ -114,7 +114,7 @@ import org.omnifaces.util.State;
  * @see ActionURLDecorator
  */
 @FacesComponent(Form.COMPONENT_TYPE)
-@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head")
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically Form.ts.
 public class Form extends HtmlForm {
 
     // Constants ------------------------------------------------------------------------------------------------------

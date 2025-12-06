@@ -738,7 +738,7 @@ import org.omnifaces.util.State;
  */
 @FacesComponent(Socket.COMPONENT_TYPE)
 @ListenerFor(systemEventClass=PostAddToViewEvent.class)
-@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head")
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically Socket.ts.
 public class Socket extends ScriptFamily implements ClientBehaviorHolder {
 
     // Public constants -----------------------------------------------------------------------------------------------

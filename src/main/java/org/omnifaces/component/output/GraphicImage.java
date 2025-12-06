@@ -204,7 +204,7 @@ import org.omnifaces.util.State;
  * @see MethodReference
  */
 @FacesComponent(GraphicImage.COMPONENT_TYPE)
-@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically graphicimage.js.
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically GraphicImage.ts.
 public class GraphicImage extends HtmlGraphicImage {
 
     // Constants ------------------------------------------------------------------------------------------------------

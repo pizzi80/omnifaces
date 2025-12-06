@@ -12,21 +12,19 @@
  */
 package org.omnifaces.component.script;
 
-import static jakarta.faces.event.PhaseId.RENDER_RESPONSE;
+import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_LIBRARY_NAME;
+import static jakarta.faces.application.ResourceHandler.FACES_SCRIPT_RESOURCE_NAME;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static org.omnifaces.config.OmniFaces.OMNIFACES_LIBRARY_NAME;
 import static org.omnifaces.config.OmniFaces.OMNIFACES_SCRIPT_NAME;
-import static org.omnifaces.util.ComponentsLocal.addFacesScriptResource;
-import static org.omnifaces.util.ComponentsLocal.addScriptResource;
 import static org.omnifaces.util.ComponentsLocal.getCurrentForm;
-import static org.omnifaces.util.Events.subscribeToRequestBeforePhase;
-import static org.omnifaces.util.Faces.getContext;
 
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
+import jakarta.faces.application.ResourceDependency;
 import jakarta.faces.component.FacesComponent;
 import jakarta.faces.component.UIForm;
 import jakarta.faces.component.UIInput;
@@ -81,6 +79,8 @@ import org.omnifaces.util.State;
  * @see ScriptFamily
  */
 @FacesComponent(Highlight.COMPONENT_TYPE)
+@ResourceDependency(library=FACES_SCRIPT_LIBRARY_NAME, name=FACES_SCRIPT_RESOURCE_NAME, target="head") // Required for faces.ajax.request.
+@ResourceDependency(library=OMNIFACES_LIBRARY_NAME, name=OMNIFACES_SCRIPT_NAME, target="head") // Specifically Highlight.ts.
 public class Highlight extends OnloadScript {
 
     // Public constants -----------------------------------------------------------------------------------------------
@@ -103,23 +103,6 @@ public class Highlight extends OnloadScript {
     // Variables ------------------------------------------------------------------------------------------------------
 
     private final State state = new State(getStateHelper());
-
-    // Init -----------------------------------------------------------------------------------------------------------
-
-    /**
-     * The constructor instructs Faces to register all scripts during the render response phase if necessary.
-     */
-    public Highlight() {
-        subscribeToRequestBeforePhase(RENDER_RESPONSE, this::registerScriptsIfNecessary);
-    }
-
-    private void registerScriptsIfNecessary() {
-        // This is supposed to be declared via @ResourceDependency, but JSF 3 and Faces 4 use a different script
-        // resource name which cannot be resolved statically.
-        var context = getContext();
-        addFacesScriptResource(context); // Required for faces.ajax.request.
-        addScriptResource(context, OMNIFACES_LIBRARY_NAME, OMNIFACES_SCRIPT_NAME);
-    }
 
     // Actions --------------------------------------------------------------------------------------------------------
 
