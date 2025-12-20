@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
@@ -217,11 +216,10 @@ public class InputFileIT extends OmniFacesIT {
     }
 
     @Test
-    @DisabledIfSystemProperty(named = "arquillian.browser", matches = "chrome", disabledReason = "triggerOnchange doesn't work?")
     void uploadSingleMaxsizeClient() throws IOException {
         var txtFile = createTempFile("file", "txt", "hello world");
         uploadSingleMaxsizeClientFile.sendKeys(txtFile.getAbsolutePath());
-        triggerOnchange(uploadSingleMaxsizeClientFile, "uploadSingleMaxsizeClient:message");
+        waitUntilTextContent("uploadSingleMaxsizeClient:message");
         assertTrue(uploadSingleMaxsizeClientFile.getText().isEmpty());
         var message = uploadSingleMaxsizeClientMessage.getText();
         assertTrue(message.startsWith("label: ") && message.endsWith(" larger than 10 B"));
@@ -270,13 +268,12 @@ public class InputFileIT extends OmniFacesIT {
     }
 
     @Test
-    @DisabledIfSystemProperty(named = "arquillian.browser", matches = "chrome", disabledReason = "triggerOnchange doesn't work?")
     void uploadMultipleMaxsizeClient() throws IOException {
         var txtFile1 = createTempFile("file1", "txt", "hello hello");
         var txtFile2 = createTempFile("file2", "txt", "world");
         uploadMultipleMaxsizeClientFile1.sendKeys(txtFile1.getAbsolutePath());
         uploadMultipleMaxsizeClientFile2.sendKeys(txtFile2.getAbsolutePath());
-        triggerOnchange(uploadMultipleMaxsizeClientFile1, "uploadMultipleMaxsizeClient:message");
+        waitUntilTextContent("uploadMultipleMaxsizeClient:message");
         assertTrue(uploadMultipleMaxsizeClientFile1.getText().isEmpty());
         var message = uploadMultipleMaxsizeClientMessage.getText();
         assertTrue(message.startsWith("label: ") && message.endsWith(" larger than 10 B"));

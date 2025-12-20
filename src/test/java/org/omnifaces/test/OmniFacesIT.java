@@ -191,15 +191,6 @@ public abstract class OmniFacesIT {
         browser.switchTo().window(tabToSwitch);
     }
 
-    /**
-     * Work around because Selenium WebDriver API doesn't support triggering JS events.
-     */
-    protected void triggerOnchange(WebElement input, String messagesId) {
-        clearTextContent(messagesId);
-        guardAjax(() -> executeScript("document.getElementById('" + input.getAttribute("id") + "').onchange();"));
-        waitUntilTextContent(messagesId);
-    }
-
     protected void guardHttp(Runnable action) {
         networkResponses.clear();
         consoleErrors.clear();
