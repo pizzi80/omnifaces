@@ -183,7 +183,7 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
     private Optional<Boolean> checkSingleRole(SecurityContext identity) {
         var roleValue = role.getValue();
 
-        if (roleValue == null || roleValue.isEmpty()) {
+        if (roleValue == null || roleValue.isBlank()) {
             return empty();
         }
 
@@ -191,27 +191,27 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
             throw new TagAttributeException(role, "The role attribute expects a single role, not multiple comma-separated roles");
         }
 
-        return of(identity.isCallerInRole(roleValue));
+        return of(identity.isCallerInRole(roleValue.strip()));
     }
 
     private Optional<Boolean> checkAnyRole(FaceletContext context, SecurityContext identity) {
         var rolesValue = anyRole.getValue(context);
 
-        if (rolesValue == null || rolesValue.trim().isEmpty()) {
+        if (rolesValue == null || rolesValue.isBlank()) {
             return empty();
         }
 
-        return of(stream(rolesValue.split(",")).map(String::trim).anyMatch(identity::isCallerInRole));
+        return of(stream(rolesValue.split(",")).map(String::strip).anyMatch(identity::isCallerInRole));
     }
 
     private Optional<Boolean> checkAllRoles(FaceletContext context, SecurityContext identity) {
         var allRolesValue = allRoles.getValue(context);
 
-        if (allRolesValue == null || allRolesValue.trim().isEmpty()) {
+        if (allRolesValue == null || allRolesValue.isBlank()) {
             return empty();
         }
 
-        return of(stream(allRolesValue.split(",")).map(String::trim).allMatch(identity::isCallerInRole));
+        return of(stream(allRolesValue.split(",")).map(String::strip).allMatch(identity::isCallerInRole));
     }
 
     private void setVarIfSpecified(FaceletContext context, boolean authorized) {
