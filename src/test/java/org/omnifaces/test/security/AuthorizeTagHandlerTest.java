@@ -213,6 +213,29 @@ class AuthorizeTagHandlerTest extends BaseSecurityTagHandlerTest {
     }
 
     @Test
+    void testBlankRoleValue_noException() throws Throwable {
+        mockAttribute("role", " ");
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler, never()).apply(any(), any());
+        });
+    }
+
+    @Test
+    void testRoleWithWhitespace_processedCorrectly() throws Throwable {
+        mockAttribute("role", " ADMIN ");
+        when(securityContext.isCallerInRole("ADMIN")).thenReturn(true);
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler).apply(faceletContext, parent);
+        });
+    }
+
+    @Test
     void testAnyRoleWithWhitespace_processedCorrectly() throws Throwable {
         mockAttribute("anyRole", " ADMIN , USER ");
         when(securityContext.isCallerInRole("ADMIN")).thenReturn(false);
