@@ -1,0 +1,229 @@
+/*
+ * Copyright OmniFaces
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+package org.omnifaces.security;
+
+import static java.util.Arrays.stream;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+import jakarta.faces.component.UIComponent;
+import jakarta.faces.view.facelets.FaceletContext;
+import jakarta.faces.view.facelets.TagAttribute;
+import jakarta.faces.view.facelets.TagAttributeException;
+import jakarta.faces.view.facelets.TagConfig;
+import jakarta.security.enterprise.SecurityContext;
+
+/**
+ * <p>
+ * The <code>&lt;sec:authorize&gt;</code> tag conditionally renders its content based on role-based access control
+ * using {@link SecurityContext}. It provides three mutually exclusive ways to check user roles: single role check,
+ * any-of-roles check, or all-of-roles check.
+ *
+ *
+ * <h2 id="usage"><a href="#usage">Usage</a></h2>
+ * <p>
+ * To use the security taglib, declare the <code>omnifaces.security</code> namespace in your Facelets view:
+ * <pre>
+ * &lt;html xmlns:sec="omnifaces.security"&gt;
+ * </pre>
+ * <p>
+ * The <code>&lt;sec:authorize&gt;</code> tag requires exactly one of the following attributes:
+ * <strong><code>role</code></strong>, <strong><code>anyRole</code></strong>, or <strong><code>allRoles</code></strong>.
+ *
+ *
+ * <h2 id="single-role"><a href="#single-role">Single role check</a></h2>
+ * <p>
+ * Use the <strong><code>role</code></strong> attribute to check if the user has a specific role. The content will
+ * only be rendered if the user has the specified role.
+ * <pre>
+ * &lt;sec:authorize role="ADMIN"&gt;
+ *     &lt;h:link value="Admin Panel" outcome="/admin" /&gt;
+ * &lt;/sec:authorize&gt;
+ * </pre>
+ *
+ *
+ * <h2 id="any-role"><a href="#any-role">Any-of-roles check</a></h2>
+ * <p>
+ * Use the <strong><code>anyRole</code></strong> attribute with comma-separated role names to check if the user has
+ * at least one of the specified roles. The content will be rendered if the user has <em>any</em> of the roles.
+ * <pre>
+ * &lt;sec:authorize anyRole="ADMIN, MODERATOR, EDITOR"&gt;
+ *     &lt;h:link value="Content Management" outcome="/cms" /&gt;
+ * &lt;/sec:authorize&gt;
+ * </pre>
+ *
+ *
+ * <h2 id="all-roles"><a href="#all-roles">All-of-roles check</a></h2>
+ * <p>
+ * Use the <strong><code>allRoles</code></strong> attribute with comma-separated role names to check if the user has
+ * all of the specified roles. The content will only be rendered if the user has <em>all</em> of the roles.
+ * <pre>
+ * &lt;sec:authorize allRoles="ADMIN, AUDITOR"&gt;
+ *     &lt;h:link value="Audit Logs" outcome="/audit" /&gt;
+ * &lt;/sec:authorize&gt;
+ * </pre>
+ *
+ *
+ * <h2 id="var"><a href="#var">Exposing authorization result</a></h2>
+ * <p>
+ * The optional <strong><code>var</code></strong> attribute exposes the boolean authorization result as a view-scoped
+ * variable. This is useful when you need to use the authorization result in multiple places without repeating the
+ * role check.
+ * <pre>
+ * &lt;sec:authorize role="ADMIN" var="isAdmin" /&gt;
+ *
+ * &lt;h:panelGroup rendered="#{isAdmin}"&gt;
+ *     &lt;h:link value="Admin Panel" outcome="/admin" /&gt;
+ * &lt;/h:panelGroup&gt;
+ *
+ * &lt;h:outputText value="Welcome, Administrator!" rendered="#{isAdmin}" /&gt;
+ * </pre>
+ * <p>
+ * The variable is always set regardless of whether the content inside the tag is rendered or not.
+ *
+ *
+ * <h2 id="configuration"><a href="#configuration">Configuration</a></h2>
+ * <p>
+ * This tag requires {@link SecurityContext} from <code>jakarta.security.enterprise</code> to be available. If the
+ * security context is not available, a warning will be logged and no content will be rendered. Make sure your
+ * application has Jakarta Security properly configured.
+ *
+ * @see AnonymousTagHandler
+ * @see AuthenticatedTagHandler
+ * @author Leonardo Bernardes (@redddcyclone)
+ * @author Bauke Scholtz
+ * @since 5.0
+ */
+public class AuthorizeTagHandler extends BaseSecurityTagHandler {
+
+    private final TagAttribute role, anyRole, allRoles, var;
+
+    /**
+     * Constructor for the TagHandler
+     *
+     * @param config TagConfig
+     */
+    public AuthorizeTagHandler(TagConfig config) {
+        super(config);
+        role = getAttribute("role");
+        anyRole = getAttribute("anyRole");
+        allRoles = getAttribute("allRoles");
+        var = getAttribute("var");
+    }
+
+    @Override
+    public void apply(FaceletContext context, UIComponent parent) throws IOException {
+        var optionalIdentity = getSecurityContext();
+
+        if (optionalIdentity.isEmpty()) {
+            return;
+        }
+
+        validateExactlyOneAttribute();
+
+        var identity = optionalIdentity.get();
+        var optionalAuthorized = determineAuthorization(context, identity);
+
+        if (optionalAuthorized.isEmpty()) {
+            return;
+        }
+
+        var authorized = optionalAuthorized.get();
+
+        if (authorized) {
+            this.nextHandler.apply(context, parent);
+        }
+
+        setVarIfSpecified(context, authorized);
+    }
+
+    private void validateExactlyOneAttribute() {
+        var count = Stream.of(role, anyRole, allRoles).filter(Objects::nonNull).count();
+
+        if (count == 0) {
+            throw new TagAttributeException(null, "One of the following attributes must be specified: role, anyRole, or allRoles");
+        }
+
+        if (count > 1) {
+            throw new TagAttributeException(null, "Only one of the following attributes may be specified: role, anyRole, or allRoles");
+        }
+    }
+
+    private Optional<Boolean> determineAuthorization(FaceletContext context, SecurityContext identity) {
+        if (role != null) {
+            return checkSingleRole(identity);
+        }
+
+        if (anyRole != null) {
+            return checkAnyRole(context, identity);
+        }
+
+        if (allRoles !=null) {
+            return checkAllRoles(context, identity);
+        }
+
+        throw new IllegalStateException();
+    }
+
+    private Optional<Boolean> checkSingleRole(SecurityContext identity) {
+        var roleValue = role.getValue();
+
+        if (roleValue == null || roleValue.isEmpty()) {
+            return empty();
+        }
+
+        if (roleValue.contains(",")) {
+            throw new TagAttributeException(role, "The role attribute expects a single role, not multiple comma-separated roles");
+        }
+
+        return of(identity.isCallerInRole(roleValue));
+    }
+
+    private Optional<Boolean> checkAnyRole(FaceletContext context, SecurityContext identity) {
+        var rolesValue = anyRole.getValue(context);
+
+        if (rolesValue == null || rolesValue.trim().isEmpty()) {
+            return empty();
+        }
+
+        return of(stream(rolesValue.split(",")).map(String::trim).anyMatch(identity::isCallerInRole));
+    }
+
+    private Optional<Boolean> checkAllRoles(FaceletContext context, SecurityContext identity) {
+        var allRolesValue = allRoles.getValue(context);
+
+        if (allRolesValue == null || allRolesValue.trim().isEmpty()) {
+            return empty();
+        }
+
+        return of(stream(allRolesValue.split(",")).map(String::trim).allMatch(identity::isCallerInRole));
+    }
+
+    private void setVarIfSpecified(FaceletContext context, boolean authorized) {
+        if (var == null) {
+            return;
+        }
+
+        var varValue = var.getValue();
+
+        if (varValue != null && !varValue.isEmpty()) {
+            context.setAttribute(varValue, authorized);
+        }
+    }
+
+}
