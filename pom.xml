@@ -69,7 +69,7 @@
 
         <!-- Test server versions. -->
         <test.wildfly-mojarra.version>38.0.1.Final</test.wildfly-mojarra.version> <!-- https://mvnrepository.com/artifact/org.wildfly/wildfly-preview-dist -->
-        <test.glassfish-mojarra.version>8.0.0-M15</test.glassfish-mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish -->
+        <test.glassfish-mojarra.version>8.0.0-M12</test.glassfish-mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish --> <!-- NOTE: M13-M15 are failing with 'Could not locate admin-cli.jar module' -->
         <test.tomcat.version>11.0.15</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
         <test.payara-mojarra.version>7.2025.2</test.payara-mojarra.version> <!-- https://mvnrepository.com/artifact/fish.payara.distributions/payara-web -->
         <test.quarkus.version>3.30.4</test.quarkus.version> <!-- https://mvnrepository.com/artifact/io.quarkus.platform/quarkus-bom -->
@@ -640,7 +640,7 @@
                 <dependency>
                     <groupId>org.omnifaces.arquillian</groupId>
                     <artifactId>arquillian-glassfish-server-managed</artifactId>
-                    <version>1.6</version>
+                    <version>1.8</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
