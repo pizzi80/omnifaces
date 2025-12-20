@@ -13,13 +13,10 @@
 package org.omnifaces.security;
 
 import static java.util.Arrays.stream;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
+import static java.util.stream.Stream.of;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.view.facelets.FaceletContext;
@@ -136,14 +133,7 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
 
         validateExactlyOneAttribute();
 
-        var identity = optionalIdentity.get();
-        var optionalAuthorized = determineAuthorization(context, identity);
-
-        if (optionalAuthorized.isEmpty()) {
-            return;
-        }
-
-        var authorized = optionalAuthorized.get();
+        var authorized = determineAuthorization(context, optionalIdentity.get());
 
         if (authorized) {
             this.nextHandler.apply(context, parent);
@@ -153,7 +143,7 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
     }
 
     private void validateExactlyOneAttribute() {
-        var count = Stream.of(role, anyRole, allRoles).filter(Objects::nonNull).count();
+        var count = of(role, anyRole, allRoles).filter(Objects::nonNull).count();
 
         if (count == 0) {
             throw new TagAttributeException(null, "One of the following attributes must be specified: role, anyRole, or allRoles");
@@ -164,7 +154,7 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
         }
     }
 
-    private Optional<Boolean> determineAuthorization(FaceletContext context, SecurityContext identity) {
+    private boolean determineAuthorization(FaceletContext context, SecurityContext identity) {
         if (role != null) {
             return checkSingleRole(identity);
         }
@@ -173,45 +163,45 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
             return checkAnyRole(context, identity);
         }
 
-        if (allRoles !=null) {
+        if (allRoles != null) {
             return checkAllRoles(context, identity);
         }
 
         throw new IllegalStateException();
     }
 
-    private Optional<Boolean> checkSingleRole(SecurityContext identity) {
+    private boolean checkSingleRole(SecurityContext identity) {
         var roleValue = role.getValue();
 
         if (roleValue == null || roleValue.isBlank()) {
-            return empty();
+            return false;
         }
 
         if (roleValue.contains(",")) {
             throw new TagAttributeException(role, "The role attribute expects a single role, not multiple comma-separated roles");
         }
 
-        return of(identity.isCallerInRole(roleValue.strip()));
+        return identity.isCallerInRole(roleValue.strip());
     }
 
-    private Optional<Boolean> checkAnyRole(FaceletContext context, SecurityContext identity) {
+    private boolean checkAnyRole(FaceletContext context, SecurityContext identity) {
         var rolesValue = anyRole.getValue(context);
 
         if (rolesValue == null || rolesValue.isBlank()) {
-            return empty();
+            return false;
         }
 
-        return of(stream(rolesValue.split(",")).map(String::strip).anyMatch(identity::isCallerInRole));
+        return stream(rolesValue.split(",")).map(String::strip).anyMatch(identity::isCallerInRole);
     }
 
-    private Optional<Boolean> checkAllRoles(FaceletContext context, SecurityContext identity) {
+    private boolean checkAllRoles(FaceletContext context, SecurityContext identity) {
         var allRolesValue = allRoles.getValue(context);
 
         if (allRolesValue == null || allRolesValue.isBlank()) {
-            return empty();
+            return false;
         }
 
-        return of(stream(allRolesValue.split(",")).map(String::strip).allMatch(identity::isCallerInRole));
+        return stream(allRolesValue.split(",")).map(String::strip).allMatch(identity::isCallerInRole);
     }
 
     private void setVarIfSpecified(FaceletContext context, boolean authorized) {

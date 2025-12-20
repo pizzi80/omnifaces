@@ -248,6 +248,58 @@ class AuthorizeTagHandlerTest extends BaseSecurityTagHandlerTest {
         });
     }
 
+    @Test
+    void testEmptyRoleValue_varStillSet() throws Throwable {
+        mockAttribute("role", "");
+        mockAttribute("var", "hasRole");
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler, never()).apply(any(), any());
+            verify(faceletContext).setAttribute("hasRole", false);
+        });
+    }
+
+    @Test
+    void testBlankRoleValue_varStillSet() throws Throwable {
+        mockAttribute("role", "   ");
+        mockAttribute("var", "hasRole");
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler, never()).apply(any(), any());
+            verify(faceletContext).setAttribute("hasRole", false);
+        });
+    }
+
+    @Test
+    void testEmptyAnyRoleValue_varStillSet() throws Throwable {
+        mockAttribute("anyRole", "");
+        mockAttribute("var", "hasAnyRole");
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler, never()).apply(any(), any());
+            verify(faceletContext).setAttribute("hasAnyRole", false);
+        });
+    }
+
+    @Test
+    void testEmptyAllRolesValue_varStillSet() throws Throwable {
+        mockAttribute("allRoles", "");
+        mockAttribute("var", "hasAllRoles");
+        var handler = new AuthorizeTagHandler(tagConfig);
+
+        withMockedCDI(() -> {
+            assertDoesNotThrow(() -> handler.apply(faceletContext, parent));
+            verify(nextHandler, never()).apply(any(), any());
+            verify(faceletContext).setAttribute("hasAllRoles", false);
+        });
+    }
+
     private void mockAttribute(String name, String value) {
         var attr = mock(TagAttribute.class);
         lenient().when(attr.getValue()).thenReturn(value);
