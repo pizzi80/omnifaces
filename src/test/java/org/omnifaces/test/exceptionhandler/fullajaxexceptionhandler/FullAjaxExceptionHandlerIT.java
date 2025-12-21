@@ -195,7 +195,6 @@ public class FullAjaxExceptionHandlerIT extends OmniFacesIT {
     }
 
     @Test
-    @DisabledIfSystemProperty(named = "profile.id", matches = "liberty-.*", disabledReason = "It fails with java.lang.IllegalStateException: setBufferSize() called after first write to Output Stream/Writer")
     @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "quarkus test mode ignores error-page in web.xml and instead uses own one (works in non-test)")
     void throwNonAjaxDuringRenderResponse() {
         assertAllResourcesRendered();
