@@ -24,6 +24,7 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -249,6 +250,16 @@ public abstract class OmniFacesIT {
 
     protected void waitUntilTextContains(WebElement element, String expectedString) {
         waitUntil(() -> element.getText().contains(expectedString));
+    }
+
+    protected void waitFor(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Wait interrupted", e);
+        }
     }
 
     @SuppressWarnings("unchecked")
