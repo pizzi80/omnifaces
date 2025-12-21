@@ -21,7 +21,8 @@
         <feature>cdi-4.1</feature>
         <feature>websocket-2.2</feature>
         <feature>validation-3.1</feature>
-        <!-- NOTE: jakartaee-11.0 is not yet available in 26.0.0.1-beta; once available, all of above can be replaced -->
+        <feature>jsonp-2.1</feature> <!-- Not for OmniFaces itself, but for ScriptParamIT test case -->
+        <!-- NOTE: jakartaee-11.0 is not yet available in 26.0.0.1-beta; once available, all of above can be replaced with a single jakartaee-11.0 feature -->
         <feature>localConnector-1.0</feature>
     </featureManager>
     <applicationMonitor updateTrigger="mbean" />
