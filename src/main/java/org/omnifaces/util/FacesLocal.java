@@ -16,7 +16,6 @@ import static jakarta.faces.view.facelets.FaceletContext.FACELET_CONTEXT_KEY;
 import static java.util.Arrays.asList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toUnmodifiableList;
 import static org.omnifaces.exceptionhandler.ViewExpiredExceptionHandler.FLASH_ATTRIBUTE_VIEW_EXPIRED;
 import static org.omnifaces.util.Beans.getReference;
 import static org.omnifaces.util.Components.findComponentsInChildren;
@@ -788,7 +787,7 @@ public final class FacesLocal {
     public static Map<String, ResourceBundle> getResourceBundles(FacesContext context) {
         var resourceBundles = FacesConfigXml.instance().getResourceBundles();
         var map = new HashMap<String, ResourceBundle>(resourceBundles.size(), 1);
-        resourceBundles.keySet().forEach(var -> map.put(var, getResourceBundle(context, var)));
+        resourceBundles.keySet().forEach(varName -> map.put(varName, getResourceBundle(context, varName)));
         return map;
     }
 
@@ -1065,7 +1064,7 @@ public final class FacesLocal {
      */
     public static Collection<Part> getRequestParts(FacesContext context, String name) {
         try {
-            return getRequest(context).getParts().stream().filter(part -> name.equals(part.getName())).collect(toUnmodifiableList());
+            return getRequest(context).getParts().stream().filter(part -> name.equals(part.getName())).toList();
         }
         catch (ServletException | IOException e) {
             throw new FacesException(e);

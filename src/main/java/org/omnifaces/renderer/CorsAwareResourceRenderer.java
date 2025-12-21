@@ -12,8 +12,8 @@
  */
 package org.omnifaces.renderer;
 
-import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.FacesLocal.createResource;
+import static org.omnifaces.util.FacesLocal.getInitParameter;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.isOneOf;
 
@@ -39,7 +39,6 @@ import org.omnifaces.renderkit.OmniRenderKitFactory;
 import org.omnifaces.resourcehandler.CDNResource;
 import org.omnifaces.resourcehandler.CombinedResourceHandler;
 import org.omnifaces.resourcehandler.ResourceIdentifier;
-import org.omnifaces.util.FacesLocal;
 
 /**
  * <p>
@@ -113,9 +112,6 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      */
     public CorsAwareResourceRenderer(Renderer<?> wrapped) {
         super(wrapped);
-        var context = getContext();
-        crossorigin = getCrossorigin(context);
-        needsIntegrity = isNeedsIntegrity(context);
     }
 
     /**
@@ -139,12 +135,12 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
     public void encodeBegin(FacesContext context, UIComponent component) throws IOException {
         var passThroughAttributes = component.getPassThroughAttributes();
 
-        if (!crossorigin.isEmpty()
+        if (!getCrossorigin(context).isEmpty()
                 && component.getAttributes().get("name") != null
                 && passThroughAttributes.get("integrity") == null
                 && isOneOf(passThroughAttributes.get("crossorigin"), null, DEFAULT_CROSSORIGIN))
         {
-            passThroughAttributes.put("crossorigin", crossorigin);
+            passThroughAttributes.put("crossorigin", getCrossorigin(context));
             var integrity = getIntegrityIfNecessary(context, createResource(context, component));
 
             if (!integrity.isEmpty()) {
@@ -162,7 +158,7 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      */
     public static String getCrossorigin(FacesContext context) {
         if (crossorigin == null) {
-            crossorigin = coalesce(FacesLocal.getInitParameter(context, PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
+            crossorigin = coalesce(getInitParameter(context, PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
         }
 
         return crossorigin;

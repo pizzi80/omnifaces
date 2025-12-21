@@ -136,8 +136,8 @@ public class OutputFormat extends HtmlOutputFormat {
      * Sets the variable name which exposes the captured output into the request scope.
      * @param var The variable name which exposes the captured output into the request scope.
      */
-    public void setVar(String var) {
-        state.put(PropertyKeys.var, var);
+    public void setVar(String varValue) {
+        state.put(PropertyKeys.var, varValue);
     }
 
 }

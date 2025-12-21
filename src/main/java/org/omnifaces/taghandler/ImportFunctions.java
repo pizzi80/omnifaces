@@ -179,18 +179,18 @@ public class ImportFunctions extends TagHandler {
         private static final Comparator<Method> METHOD_PARAM_COUNT_COMPARATOR = Comparator.comparingInt(Method::getParameterCount);
 
         private final FunctionMapper originalFunctionMapper;
-        private final String var;
+        private final String varName;
         private final Class<?> type;
 
-        public ImportFunctionsMapper(FunctionMapper originalFunctionMapper, String var, Class<?> type) {
+        public ImportFunctionsMapper(FunctionMapper originalFunctionMapper, String varName, Class<?> type) {
             this.originalFunctionMapper = originalFunctionMapper;
-            this.var = var;
+            this.varName = varName;
             this.type = type;
         }
 
         @Override
         public Method resolveFunction(String prefix, String name) {
-            if (var.equals(prefix)) {
+            if (varName.equals(prefix)) {
                 String key = type + "." + name;
                 Method function = FUNCTIONS_CACHE.get(key);
 

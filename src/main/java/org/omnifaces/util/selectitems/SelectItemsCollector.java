@@ -66,10 +66,8 @@ public final class SelectItemsCollector {
             if (child instanceof UISelectItem uiSelectItem) {
                 selectItems.add(getFromUISelectItem(uiSelectItem));
             }
-            else if (child instanceof UISelectItems uiSelectItems) {
-                if (uiSelectItems.getValue() != null) {
-                    selectItems.addAll(collectFromUISelectItems(context, uiSelectItems));
-                }
+            else if (child instanceof UISelectItems uiSelectItems && uiSelectItems.getValue() != null) {
+                selectItems.addAll(collectFromUISelectItems(context, uiSelectItems));
             }
         }
 

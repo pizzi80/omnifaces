@@ -120,8 +120,8 @@ public final class Json {
         else if (object instanceof Class<?> clazz) {
             encodeString(clazz.getName(), builder);
         }
-        else if (object instanceof Record record) {
-            encodeRecord(record, builder, propertyNameFormatter);
+        else if (object instanceof Record instance) {
+            encodeRecord(instance, builder, propertyNameFormatter);
         }
         else {
             encodeBean(object, builder, propertyNameFormatter);
@@ -194,19 +194,19 @@ public final class Json {
     /**
      * Encode a Java record as JS object.
      */
-    private static void encodeRecord(Record record, StringBuilder builder, UnaryOperator<String> propertyNameFormatter) {
+    private static void encodeRecord(Record instance, StringBuilder builder, UnaryOperator<String> propertyNameFormatter) {
         builder.append('{');
         int i = 0;
 
-        for (RecordComponent component : record.getClass().getRecordComponents()) {
+        for (RecordComponent component : instance.getClass().getRecordComponents()) {
             Object value;
 
             try {
-                value = component.getAccessor().invoke(record);
+                value = component.getAccessor().invoke(instance);
             }
             catch (Exception e) {
                 throw new IllegalArgumentException(
-                    format(ERROR_INVALID_GETTER, component.getName(), record.getClass()), e);
+                    format(ERROR_INVALID_GETTER, component.getName(), instance.getClass()), e);
             }
 
             if (value != null) {
