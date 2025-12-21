@@ -146,8 +146,8 @@ public final class AjaxLocal {
                     renderIds.add(format("%s%c%s%c%d%c%s", parentId, separator, tableId, separator, index, separator, cell.getId()));
                 }
             }
-            else if (column instanceof UIData) { // <p:columns>.
-                updateRowCells((UIData) column, renderIds, tableId, index, separator);
+            else if (column instanceof UIData columns) { // <p:columns>.
+                updateRowCells(columns, renderIds, tableId, index, separator);
             }
         }
     }
@@ -209,9 +209,9 @@ public final class AjaxLocal {
     private static UIColumn findColumn(UIData table, int index) {
         var columnIndex = 0;
 
-        for (UIComponent column : table.getChildren()) {
-            if (column instanceof UIColumn && columnIndex++ == index) {
-                return (UIColumn) column;
+        for (UIComponent child : table.getChildren()) {
+            if (child instanceof UIColumn column && columnIndex++ == index) {
+                return column;
             }
         }
 

@@ -460,8 +460,8 @@ public final class ComponentsLocal {
 
             var component = findComponentIgnoringIAE(context, viewRoot, name);
 
-            if (component instanceof UIForm) {
-                return (UIForm) component;
+            if (component instanceof UIForm form) {
+                return form;
             }
             else if (component != null) {
                 var form = getClosestParent(component, UIForm.class);
@@ -480,7 +480,7 @@ public final class ComponentsLocal {
      */
     public static UICommand getCurrentCommand(FacesContext context) {
         var source = getCurrentActionSource(context);
-        return source instanceof UICommand ? (UICommand) source : null;
+        return source instanceof UICommand found ? found : null;
     }
 
     /**
@@ -698,7 +698,7 @@ public final class ComponentsLocal {
      * @see Components#resetForm(UIComponent)
      */
     public static void resetForm(FacesContext context, UIComponent component) {
-        var form = component instanceof UIForm ? (UIForm) component : getClosestParent(component, UIForm.class);
+        var form = component instanceof UIForm found ? found : getClosestParent(component, UIForm.class);
 
         if (form == null) {
             throw new IllegalArgumentException(format(ERROR_MISSING_PARENT, component.getClass(), UIForm.class));
@@ -795,8 +795,7 @@ public final class ComponentsLocal {
     public static String getRenderedValue(FacesContext context, ValueHolder holder) {
         Object value = null;
 
-        if (holder instanceof EditableValueHolder) {
-            var editableValueHolder = (EditableValueHolder) holder;
+        if (holder instanceof EditableValueHolder editableValueHolder) {
             var submittedValue = editableValueHolder.getSubmittedValue();
 
             if (submittedValue != null) {
@@ -836,12 +835,11 @@ public final class ComponentsLocal {
         for (var relativeClientId : relativeClientIds) {
             var component = findComponentRelatively(context, root, relativeClientId);
 
-            if (!(component instanceof UIInput)) {
+            if (!(component instanceof UIInput input)) {
                 var type = component == null ? "null" : component.getClass().getName();
                 throw new IllegalArgumentException(format(ERROR_ILLEGAL_UIINPUT, relativeClientId, type));
             }
 
-            var input = (UIInput) component;
             var fullClientId = input.getClientId();
 
             if (!needsVisit) {
@@ -1001,7 +999,7 @@ public final class ComponentsLocal {
 
         for (var child : component.getChildren()) {
             if (!childType.isAssignableFrom(child.getClass())) {
-                if (childClassNames.length() > 0) {
+                if (!childClassNames.isEmpty()) {
                     childClassNames.append(", ");
                 }
 
@@ -1009,7 +1007,7 @@ public final class ComponentsLocal {
             }
         }
 
-        if (childClassNames.length() > 0) {
+        if (!childClassNames.isEmpty()) {
             throw new IllegalStateException(format(
                     ERROR_ILLEGAL_CHILDREN, component.getClass().getSimpleName(), childType, childClassNames));
         }
@@ -1027,7 +1025,7 @@ public final class ComponentsLocal {
             var childClassNames = new StringBuilder();
 
             for (var child : component.getChildren()) {
-                if (childClassNames.length() > 0) {
+                if (!childClassNames.isEmpty()) {
                     childClassNames.append(", ");
                 }
 

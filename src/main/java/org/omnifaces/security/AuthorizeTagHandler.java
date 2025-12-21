@@ -109,7 +109,10 @@ import jakarta.security.enterprise.SecurityContext;
  */
 public class AuthorizeTagHandler extends BaseSecurityTagHandler {
 
-    private final TagAttribute role, anyRole, allRoles, varAttribute;
+    private final TagAttribute role;
+    private final TagAttribute anyRole;
+    private final TagAttribute allRoles;
+    private final TagAttribute varAttribute;
 
     /**
      * Constructor for the TagHandler

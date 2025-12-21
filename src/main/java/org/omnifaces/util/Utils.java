@@ -208,17 +208,17 @@ public final class Utils {
         if (value == null) {
             return true;
         }
-        else if (value instanceof String) {
-            return ((String) value).isEmpty();
+        else if (value instanceof String string) {
+            return string.isEmpty();
         }
-        else if (value instanceof Collection) {
-            return ((Collection<?>) value).isEmpty();
+        else if (value instanceof Collection<?> collection) {
+            return collection.isEmpty();
         }
-        else if (value instanceof Map) {
-            return ((Map<?, ?>) value).isEmpty();
+        else if (value instanceof Map<?, ?> map) {
+            return map.isEmpty();
         }
-        else if (value instanceof Part) {
-            return isEmpty((Part) value);
+        else if (value instanceof Part part) {
+            return isEmpty(part);
         }
         else if (value.getClass().isArray()) {
             return Array.getLength(value) == 0;
@@ -396,11 +396,11 @@ public final class Utils {
         if (object == null) {
             return Thread.currentThread().getContextClassLoader();
         }
-        else if (object instanceof ClassLoader) {
-            return (ClassLoader) object;
+        else if (object instanceof ClassLoader classLoader) {
+            return classLoader;
         }
-        else if (object instanceof Class) {
-            return ((Class<?>) object).getClassLoader();
+        else if (object instanceof Class<?> clazz) {
+            return clazz.getClassLoader();
         }
         else {
             return object.getClass().getClassLoader();
@@ -830,12 +830,12 @@ public final class Utils {
         if (date == null || date instanceof Long || date instanceof Date) {
             return ZoneId.systemDefault();
         }
-        else if (date instanceof Calendar) {
-            return ((Calendar) date).getTimeZone().toZoneId();
+        else if (date instanceof Calendar calendar) {
+            return calendar.getTimeZone().toZoneId();
         }
         else if (date instanceof Temporal temporal) {
             if (temporal.isSupported(ChronoField.OFFSET_SECONDS)) {
-                return ZoneId.from((Temporal) date);
+                return ZoneId.from(temporal);
             }
             else if (temporal.isSupported(ChronoField.CLOCK_HOUR_OF_DAY)) {
                 return ZoneId.systemDefault();
@@ -865,14 +865,14 @@ public final class Utils {
         if (timezone == null) {
             return ZoneId.systemDefault();
         }
-        else if (timezone instanceof ZoneId) {
-            return (ZoneId) timezone;
+        else if (timezone instanceof ZoneId zoneId) {
+            return zoneId;
         }
-        else if (timezone instanceof TimeZone) {
-            return ((TimeZone) timezone).toZoneId();
+        else if (timezone instanceof TimeZone utilTimeZone) {
+            return utilTimeZone.toZoneId();
         }
-        else if (timezone instanceof String) {
-            return ZoneId.of((String) timezone);
+        else if (timezone instanceof String string) {
+            return ZoneId.of(string);
         }
         else {
             throw new IllegalArgumentException(ERROR_UNSUPPORTED_TIMEZONE);
@@ -895,41 +895,41 @@ public final class Utils {
 
         var zone = getZoneId(date);
 
-        if (date instanceof Long) {
-            return ZonedDateTime.ofInstant(Instant.ofEpochMilli((Long) date), zone);
+        if (date instanceof Long millis) {
+            return ZonedDateTime.ofInstant(Instant.ofEpochMilli(millis), zone);
         }
-        else if (date instanceof java.util.Date) {
-            return ZonedDateTime.ofInstant(Instant.ofEpochMilli(((java.util.Date) date).getTime()), zone);
+        else if (date instanceof java.util.Date utilDate) {
+            return ZonedDateTime.ofInstant(Instant.ofEpochMilli(utilDate.getTime()), zone);
         }
-        else if (date instanceof Calendar) {
-            return ((Calendar) date).toInstant().atZone(zone);
+        else if (date instanceof Calendar calendar) {
+            return calendar.toInstant().atZone(zone);
         }
-        else if (date instanceof Instant) {
-            return ((Instant) date).atZone(zone);
+        else if (date instanceof Instant instant) {
+            return instant.atZone(zone);
         }
-        else if (date instanceof ZonedDateTime) {
-            return (ZonedDateTime) date;
+        else if (date instanceof ZonedDateTime zonedDateTime) {
+            return zonedDateTime;
         }
-        else if (date instanceof OffsetDateTime) {
-            return ((OffsetDateTime) date).toZonedDateTime();
+        else if (date instanceof OffsetDateTime offsetDateTime) {
+            return offsetDateTime.toZonedDateTime();
         }
-        else if (date instanceof LocalDateTime) {
-            return ((LocalDateTime) date).atZone(zone);
+        else if (date instanceof LocalDateTime localDateTime) {
+            return localDateTime.atZone(zone);
         }
-        else if (date instanceof LocalDate) {
-            return ((LocalDate) date).atStartOfDay(zone);
+        else if (date instanceof LocalDate localDate) {
+            return localDate.atStartOfDay(zone);
         }
-        else if (date instanceof OffsetTime) {
-            return ((OffsetTime) date).atDate(LocalDate.now()).toZonedDateTime();
+        else if (date instanceof OffsetTime offsetTime) {
+            return offsetTime.atDate(LocalDate.now()).toZonedDateTime();
         }
-        else if (date instanceof LocalTime) {
-            return ((LocalTime) date).atDate(LocalDate.now()).atZone(zone);
+        else if (date instanceof LocalTime localTime) {
+            return localTime.atDate(LocalDate.now()).atZone(zone);
         }
-        else if (date instanceof TemporalDate) {
-            return ((TemporalDate) date).getZonedDateTime();
+        else if (date instanceof TemporalDate temporalDate) {
+            return temporalDate.getZonedDateTime();
         }
-        else if (date instanceof Temporal) {
-            return fromTemporalToZonedDateTime((Temporal) date, zone);
+        else if (date instanceof Temporal temporal) {
+            return fromTemporalToZonedDateTime(temporal, zone);
         }
         else {
             throw new IllegalArgumentException(ERROR_UNSUPPORTED_DATE);

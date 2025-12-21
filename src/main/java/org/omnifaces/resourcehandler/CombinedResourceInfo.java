@@ -222,7 +222,7 @@ public final class CombinedResourceInfo {
      */
     @Override
     public boolean equals(Object other) {
-        return other instanceof CombinedResourceInfo && ((CombinedResourceInfo) other).id.equals(id);
+        return other instanceof CombinedResourceInfo otherInfo && otherInfo.id.equals(id);
     }
 
     /**

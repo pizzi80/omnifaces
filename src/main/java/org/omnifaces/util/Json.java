@@ -102,26 +102,26 @@ public final class Json {
         else if (object instanceof CharSequence || object instanceof Enum<?>) {
             encodeString(object.toString(), builder);
         }
-        else if (object instanceof Date) {
-            builder.append('"').append(Utils.formatRFC1123((Date) object)).append('"');
+        else if (object instanceof Date date) {
+            builder.append('"').append(Utils.formatRFC1123(date)).append('"');
         }
         else if (object instanceof Temporal) {
             builder.append('"').append(Utils.toZonedDateTime(object).format(RFC_1123_DATE_TIME)).append('"');
         }
-        else if (object instanceof Collection<?>) {
-            encodeCollection((Collection<?>) object, builder, propertyNameFormatter);
+        else if (object instanceof Collection<?> collection) {
+            encodeCollection(collection, builder, propertyNameFormatter);
         }
         else if (object.getClass().isArray()) {
             encodeArray(object, builder, propertyNameFormatter);
         }
-        else if (object instanceof Map<?, ?>) {
-            encodeMap((Map<?, ?>) object, builder, propertyNameFormatter);
+        else if (object instanceof Map<?, ?> map) {
+            encodeMap(map, builder, propertyNameFormatter);
         }
-        else if (object instanceof Class<?>) {
-            encodeString(((Class<?>) object).getName(), builder);
+        else if (object instanceof Class<?> clazz) {
+            encodeString(clazz.getName(), builder);
         }
-        else if (object instanceof Record) {
-            encodeRecord((Record) object, builder, propertyNameFormatter);
+        else if (object instanceof Record record) {
+            encodeRecord(record, builder, propertyNameFormatter);
         }
         else {
             encodeBean(object, builder, propertyNameFormatter);

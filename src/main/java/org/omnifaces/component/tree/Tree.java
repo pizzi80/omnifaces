@@ -276,9 +276,8 @@ public class Tree extends TreeFamily implements NamingContainer {
      */
     @Override
     public void broadcast(FacesEvent event) {
-        if (event instanceof TreeFacesEvent) {
+        if (event instanceof TreeFacesEvent treeEvent) {
             var context = FacesContext.getCurrentInstance();
-            var treeEvent = (TreeFacesEvent) event;
             var wrapped = treeEvent.getWrapped();
 
             process(context, treeEvent.getNode(), () -> {

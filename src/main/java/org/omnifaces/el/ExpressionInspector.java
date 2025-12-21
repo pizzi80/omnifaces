@@ -326,8 +326,8 @@ public final class ExpressionInspector {
                 // If we get called with a FinalBaseHolder, which was set in the next to last node,
                 // we know we're done and can set the base and property as the final ones.
                 // A property can also be a FinalBaseHolder when it is a dynamic property (brace notation).
-                lastBase = base instanceof FinalBaseHolder ? ((FinalBaseHolder) base).getBase() : base;
-                lastProperty = property instanceof FinalBaseHolder ? ((FinalBaseHolder) property).getBase() : property;
+                lastBase = base instanceof FinalBaseHolder finalBase ? finalBase.getBase() : base;
+                lastProperty = property instanceof FinalBaseHolder finalProperty ? finalProperty.getBase() : property;
 
                 context.setPropertyResolved(true);
                 return ValueExpressionType.PROPERTY;

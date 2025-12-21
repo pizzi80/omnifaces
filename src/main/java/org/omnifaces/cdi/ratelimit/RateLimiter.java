@@ -96,7 +96,7 @@ public class RateLimiter {
 
     // Constants ------------------------------------------------------------------------------------------------------
 
-    private static final Logger logger = Logger.getLogger(RateLimitInterceptor.class.getName());
+    private static final Logger logger = Logger.getLogger(RateLimiter.class.getName());
 
     private static final String THREAD_ID = "omnifaces.RateLimiter.executorService";
 

@@ -185,7 +185,7 @@ public class DateProducer {
         @Override
         public boolean equals(Object other) {
             return other == this
-                || (other instanceof TemporalDate && zonedDateTime.equals(((TemporalDate) other).getZonedDateTime()));
+                || (other instanceof TemporalDate otherTemporalDate && zonedDateTime.equals(otherTemporalDate.getZonedDateTime()));
         }
 
         /**

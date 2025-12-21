@@ -1004,7 +1004,7 @@ public final class Servlets {
 
         for (var i = 0; i < paramValues.length; i++) {
             var paramValue = paramValues[i];
-            encodedParams[i] = paramValue instanceof String ? encodeURL((String) paramValue) : paramValue;
+            encodedParams[i] = paramValue instanceof String string ? encodeURL(string) : paramValue;
         }
 
         return format(redirectURL, encodedParams);

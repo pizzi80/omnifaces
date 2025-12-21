@@ -115,7 +115,7 @@ public class LoadBundle extends TagHandler {
      * @return The locale associated with the given component.
      */
     private static Locale getLocale(FaceletContext context, UIComponent component) {
-        UIViewRoot view = (component instanceof UIViewRoot) ? (UIViewRoot) component : getClosestParent(component, UIViewRoot.class);
+        UIViewRoot view = (component instanceof UIViewRoot found) ? found : getClosestParent(component, UIViewRoot.class);
 
         if (view != null) {
             Locale locale = view.getLocale();

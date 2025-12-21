@@ -172,8 +172,8 @@ public final class Components {
      * @since 4.5
      */
     public static void setAttribute(UIComponent component, String name, Object value) {
-        if (value instanceof ValueExpression) {
-            component.setValueExpression(name, (ValueExpression) value);
+        if (value instanceof ValueExpression expression) {
+            component.setValueExpression(name, expression);
         }
         else if (value != null) {
             component.getAttributes().put(name, value);
