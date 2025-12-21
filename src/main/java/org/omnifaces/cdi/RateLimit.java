@@ -12,9 +12,9 @@ import jakarta.enterprise.util.Nonbinding;
 import jakarta.interceptor.InterceptorBinding;
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.omnifaces.cdi.ratelimit.RateLimitExceededException;
 import org.omnifaces.cdi.ratelimit.RateLimitInterceptor;
 import org.omnifaces.cdi.ratelimit.RateLimiter;
-import org.omnifaces.cdi.ratelimit.RateLimiter.RateLimitExceededException;
 
 /**
  * <p>
@@ -83,7 +83,7 @@ public @interface RateLimit {
      * (Optional) The client identifier to check, whether client IP, user ID, API key, etc.
      * Defaults to client IP address associated with the current {@link HttpServletRequest}.
      * <p>
-     * Note thus that when you cannot guarantee that a {@link HttpServletRequest} is available in the 
+     * Note thus that when you cannot guarantee that a {@link HttpServletRequest} is available in the
      * context of the annotated method, then you'll definitely need to explicitly provide a client ID,
      * otherwise the {@link RateLimitInterceptor} will throw an {@link IllegalArgumentException}.
      * @return The client identifier to check, whether client IP, user ID, API key, etc.

@@ -54,7 +54,7 @@ import org.omnifaces.util.JNDI;
  *     }
  * }
  * </pre>
- * 
+ *
  * <p>
  * For more fine grained usage, or when you have a variable rate limit parameter which therefore cannot be set as an
  * annotation attribute, then you can inject this CDI bean in any CDI managed artifact and explicitly invoke either
@@ -73,12 +73,12 @@ import org.omnifaces.util.JNDI;
  *         var maxRequestsPerTimeWindow = determineMaxRequestsBasedOn(request);
  *         var timeWindowInSeconds = determineTimeWindowBasedOn(request);
  *         var maxRetries = 0;
- *         
+ *
  *         try {
  *             rateLimiter.checkRateLimit(request, maxRequestsPerTimeWindow, Duration.ofSeconds(timeWindowInSeconds), maxRetries);
  *             chain.doFilter(request, response);
  *         }
- *         catch (RateLimiter.RateLimitExceededException e) {
+ *         catch (RateLimitExceededException e) {
  *             response.sendError(429); // Too Many Requests
  *         }
  *     }
@@ -100,14 +100,12 @@ public class RateLimiter {
 
     private static final String THREAD_ID = "omnifaces.RateLimiter.executorService";
 
-    private static final String WARNING_RETRY = 
+    private static final String WARNING_RETRY =
             "Rate limit exceeded for client ID '%s'; now retry attempt #%d ...";
-    private static final String WARNING_INTERRUPTED = 
+    private static final String WARNING_INTERRUPTED =
             "Rate limit delay interrupted for client ID '%s'; continuing with retry ...";
-    private static final String WARNING_UNEXPECTED_ERROR = 
+    private static final String WARNING_UNEXPECTED_ERROR =
             "Unexpected error during rate limit delay for client ID '%s'.";
-    private static final String ERROR_RATE_LIMIT_EXCEEDED =
-            "Rate limit exceeded for client ID '%s'";
 
     // Variables ------------------------------------------------------------------------------------------------------
 
@@ -182,7 +180,7 @@ public class RateLimiter {
                 checkRateLimit(clientId, maxRequestsPerTimeWindow, timeWindow);
                 return;
             }
-            catch (RateLimiter.RateLimitExceededException e) {
+            catch (RateLimitExceededException e) {
                 if (attempt.incrementAndGet() > maxRetries) {
                     throw e;
                 }
@@ -225,7 +223,7 @@ public class RateLimiter {
     }
 
     /**
-     * If the scheduled executor service was created with help of {@link Executors#newSingleThreadExecutor()}, 
+     * If the scheduled executor service was created with help of {@link Executors#newSingleThreadExecutor()},
      * then attempt to orderly shut down it. If it's still not shut down after 5 seconds, then terminate it.
      */
     @PreDestroy
@@ -262,25 +260,6 @@ public class RateLimiter {
         public RequestCounter increment() {
             count++;
             return this;
-        }
-    }
-
-    /**
-     * Thrown when rate limit has exceeded according to {@link RateLimiter}.
-     */
-    public static class RateLimitExceededException extends RuntimeException {
-
-        private static final long serialVersionUID = 1L;
-
-        private final long recommendedDelayInMillis;
-
-        public RateLimitExceededException(String clientId, long recommendedDelayInMillis) {
-            super(ERROR_RATE_LIMIT_EXCEEDED.formatted(clientId));
-            this.recommendedDelayInMillis = recommendedDelayInMillis;
-        }
-
-        public long getRecommendedDelayInMillis() {
-            return recommendedDelayInMillis;
         }
     }
 }

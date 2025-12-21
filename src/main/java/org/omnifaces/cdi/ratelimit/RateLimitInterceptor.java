@@ -15,7 +15,6 @@ import jakarta.interceptor.InvocationContext;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.omnifaces.cdi.RateLimit;
-import org.omnifaces.cdi.ratelimit.RateLimiter.RateLimitExceededException;
 import org.omnifaces.util.Beans;
 import org.omnifaces.util.Faces;
 import org.omnifaces.util.Servlets;
