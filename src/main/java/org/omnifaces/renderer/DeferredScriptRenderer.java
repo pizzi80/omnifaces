@@ -12,8 +12,8 @@
  */
 package org.omnifaces.renderer;
 
-import static org.omnifaces.renderer.CORSAwareResourceRenderer.getCrossorigin;
-import static org.omnifaces.renderer.CORSAwareResourceRenderer.getIntegrityIfNecessary;
+import static org.omnifaces.renderer.CorsAwareResourceRenderer.getCrossorigin;
+import static org.omnifaces.renderer.CorsAwareResourceRenderer.getIntegrityIfNecessary;
 import static org.omnifaces.resourcehandler.DefaultResourceHandler.RES_NOT_FOUND;
 import static org.omnifaces.util.FacesLocal.createResource;
 import static org.omnifaces.util.FacesLocal.isOutputHtml5Doctype;

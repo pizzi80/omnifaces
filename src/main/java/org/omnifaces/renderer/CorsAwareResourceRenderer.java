@@ -42,7 +42,7 @@ import org.omnifaces.resourcehandler.ResourceIdentifier;
 
 /**
  * <p>
- * The {@link CORSAwareResourceRenderer} is intended as an extension to the standard script and stylesheet resource renderer
+ * The {@link CorsAwareResourceRenderer} is intended as an extension to the standard script and stylesheet resource renderer
  * in order to add the <code>crossorigin</code> and <code>integrity</code> attributes as a pass-through attribute.
  * By default, the <code>crossorigin</code> attribute will always be set to <code>anonymous</code> and the
  * <code>integrity</code> attribute is only set when the {@link ResourceHandler#createResource(String)} returns an
@@ -61,7 +61,7 @@ import org.omnifaces.resourcehandler.ResourceIdentifier;
  * <h2>Configuration</h2>
  * <p>
  * Currently only the following context parameter is available:
- * <code>{@value org.omnifaces.renderer.CORSAwareResourceRenderer#PARAM_NAME_CROSSORIGIN}</code>.
+ * <code>{@value org.omnifaces.renderer.CorsAwareResourceRenderer#PARAM_NAME_CROSSORIGIN}</code>.
  * This sets the desired value of <code>crossorigin</code> attribute of combined script resources. Supported values are
  * specified in <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin">MDN</a>. An empty
  * string is also allowed, it will then completely skip the task of the current renderer. The default value when the
@@ -84,14 +84,14 @@ import org.omnifaces.resourcehandler.ResourceIdentifier;
  * @see <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity">https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity</a>
  */
 @ListenerFor(systemEventClass = PostAddToViewEvent.class)
-public class CORSAwareResourceRenderer extends RendererWrapper implements ComponentSystemEventListener {
+public class CorsAwareResourceRenderer extends RendererWrapper implements ComponentSystemEventListener {
 
     /** The default value of the 'crossorigin' attribute. */
     public static final String DEFAULT_CROSSORIGIN = "anonymous";
 
     /**
      * The context parameter name to specify the value of the 'crossorigin' attribute for all resources.
-     * The value defaults to {@value CORSAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
+     * The value defaults to {@value CorsAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
      */
     public static final String PARAM_NAME_CROSSORIGIN = "org.omnifaces.DEFAULT_CROSSORIGIN";
 
@@ -102,7 +102,7 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
      * Do not use this constructor. It's merely there for {@link ComponentSystemEventListener}.
      */
     @SuppressWarnings("deprecation")
-    public CORSAwareResourceRenderer() {
+    public CorsAwareResourceRenderer() {
         // Keep default c'tor alive for ComponentSystemEventListener.
     }
 
@@ -110,7 +110,7 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
      * Creates a new instance of this CORS resource renderer which wraps the given resource renderer.
      * @param wrapped The resource renderer to be wrapped.
      */
-    public CORSAwareResourceRenderer(Renderer<?> wrapped) {
+    public CorsAwareResourceRenderer(Renderer<?> wrapped) {
         super(wrapped);
         crossorigin = coalesce(getInitParameter(PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
         needsIntegrity = DEFAULT_CROSSORIGIN.equals(crossorigin);
@@ -154,7 +154,7 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
     }
 
     /**
-     * Returns the configured crossorigin. Defaults to {@value CORSAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
+     * Returns the configured crossorigin. Defaults to {@value CorsAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
      * @param context The involved faces context.
      * @return The configured crossorigin.
      */
@@ -165,7 +165,7 @@ public class CORSAwareResourceRenderer extends RendererWrapper implements Compon
     /**
      * Returns the integrity of the given resource if necessary. It will only return a base64 encoded sha384 hash when
      * the given resource is an instance of {@link CDNResource} and the {@link #getCrossorigin(FacesContext)} equals to
-     * {@value CORSAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
+     * {@value CorsAwareResourceRenderer#DEFAULT_CROSSORIGIN}.
      * @param context The involved faces context.
      * @param resource The resource to get integrity for.
      * @return The integrity of the given resource if necessary.

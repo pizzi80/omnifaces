@@ -14,8 +14,8 @@ package org.omnifaces.resourcehandler;
 
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.format;
-import static org.omnifaces.renderer.CORSAwareResourceRenderer.getCrossorigin;
-import static org.omnifaces.renderer.CORSAwareResourceRenderer.getIntegrityIfNecessary;
+import static org.omnifaces.renderer.CorsAwareResourceRenderer.getCrossorigin;
+import static org.omnifaces.renderer.CorsAwareResourceRenderer.getIntegrityIfNecessary;
 import static org.omnifaces.util.Components.isRendered;
 import static org.omnifaces.util.Events.subscribeToApplicationEvent;
 import static org.omnifaces.util.Faces.evaluateExpressionGet;
@@ -50,7 +50,7 @@ import jakarta.faces.event.SystemEventListener;
 
 import org.omnifaces.component.script.DeferredScript;
 import org.omnifaces.component.stylesheet.CriticalStylesheet;
-import org.omnifaces.renderer.CORSAwareResourceRenderer;
+import org.omnifaces.renderer.CorsAwareResourceRenderer;
 import org.omnifaces.renderer.CriticalStylesheetRenderer;
 import org.omnifaces.renderer.DeferredScriptRenderer;
 import org.omnifaces.renderer.InlineResourceRenderer;
@@ -225,7 +225,7 @@ import org.omnifaces.util.cache.Cache;
  * Historical note: before 5.0, the {@link CombinedResourceHandler} also added <code>crossorigin</code> and
  * <code>integrity</code> attributes to every combined resource, but it also unnecessarily did that when the resource is
  * not a CDN resource, and all non-combined resources were ignored. Hence this task has since 5.0 been split into
- * {@link CORSAwareResourceRenderer} on which the job was improved.
+ * {@link CorsAwareResourceRenderer} on which the job was improved.
  *
  *
  * @author Bauke Scholtz

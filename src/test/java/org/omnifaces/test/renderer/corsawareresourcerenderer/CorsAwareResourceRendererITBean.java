@@ -17,9 +17,9 @@ import jakarta.inject.Named;
 
 import org.omnifaces.util.Faces;
 
-@Named("CORSAwareResourceRendererITBean")
+@Named
 @RequestScoped
-public class CORSAwareResourceRendererITBean {
+public class CorsAwareResourceRendererITBean {
 
     public void rebuild() {
         Faces.setViewRoot(Faces.getViewId());

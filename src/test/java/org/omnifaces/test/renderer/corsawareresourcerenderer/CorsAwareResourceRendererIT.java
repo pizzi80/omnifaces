@@ -25,7 +25,7 @@ import org.omnifaces.test.OmniFacesIT;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 
-public class CORSAwareResourceRendererIT extends OmniFacesIT {
+public class CorsAwareResourceRendererIT extends OmniFacesIT {
 
     @FindBy(css="script[src]")
     private List<WebElement> scripts;
@@ -68,14 +68,14 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
 
     @Deployment(testable=false)
     public static WebArchive createDeployment() {
-        return buildWebArchive(CORSAwareResourceRendererIT.class)
+        return buildWebArchive(CorsAwareResourceRendererIT.class)
             .withFacesConfig(withCustomCDNResourceHandler)
             .createDeployment();
     }
 
     @Test
     void nonAjaxLocal() {
-        open("CORSAwareResourceRendererIT.xhtml?skipCDN=true");
+        open("CorsAwareResourceRendererIT.xhtml?skipCDN=true");
         verifyElements(false);
         guardHttp(nonAjaxSubmit::click);
         verifyElements(false);
@@ -86,7 +86,7 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
     @Test
     @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "omnifaces.js is not returned an instance of CDNResource but others are? not a MyFaces-related problem as it works in tomcat-myfaces")
     void nonAjaxCDN() {
-        open("CORSAwareResourceRendererIT.xhtml?skipCDN=false");
+        open("CorsAwareResourceRendererIT.xhtml?skipCDN=false");
         verifyElements(true);
         guardHttp(nonAjaxSubmit::click);
         verifyElements(true);
@@ -96,7 +96,7 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
 
     @Test
     void ajaxLocal() {
-        open("CORSAwareResourceRendererIT.xhtml?skipCDN=true");
+        open("CorsAwareResourceRendererIT.xhtml?skipCDN=true");
         verifyElements(false);
         guardAjax(ajaxSubmit::click);
         verifyElements(false);
@@ -107,7 +107,7 @@ public class CORSAwareResourceRendererIT extends OmniFacesIT {
     @Test
     @DisabledIfSystemProperty(named = "profile.id", matches = "quarkus-.*", disabledReason = "omnifaces.js is not returned an instance of CDNResource but others are? not a MyFaces-related problem as it works in tomcat-myfaces")
     void ajaxCDN() {
-        open("CORSAwareResourceRendererIT.xhtml?skipCDN=false");
+        open("CorsAwareResourceRendererIT.xhtml?skipCDN=false");
         verifyElements(true);
         guardAjax(ajaxSubmit::click);
         verifyElements(true);
