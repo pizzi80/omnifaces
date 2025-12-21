@@ -529,11 +529,11 @@ public class Tree extends TreeFamily implements NamingContainer {
 
     /**
      * Sets the name of the request attribute which exposes the wrapped data of the current node of the tree model.
-     * @param var The name of the request attribute which exposes the wrapped data of the current node of the tree
+     * @param varName The name of the request attribute which exposes the wrapped data of the current node of the tree
      * model.
      */
-    public void setVar(String varValue) {
-        state.put(PropertyKeys.var, varValue);
+    public void setVar(String varName) {
+        state.put(PropertyKeys.var, varName);
     }
 
     /**

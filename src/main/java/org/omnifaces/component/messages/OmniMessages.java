@@ -174,10 +174,10 @@ public class OmniMessages extends HtmlMessages {
 
     /**
      * Sets the name of the request attribute which exposes the current faces message.
-     * @param var The name of the request attribute which exposes the current faces message.
+     * @param varName The name of the request attribute which exposes the current faces message.
      */
-    public void setVar(String varValue) {
-        state.put(PropertyKeys.var, varValue);
+    public void setVar(String varName) {
+        state.put(PropertyKeys.var, varName);
     }
 
     /**

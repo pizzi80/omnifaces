@@ -222,10 +222,10 @@ public class Url extends OutputFamily {
 
     /**
      * Sets the variable name which exposes the URL into the request scope.
-     * @param var The variable name which exposes the URL into the request scope.
+     * @param varName The variable name which exposes the URL into the request scope.
      */
-    public void setVar(String varValue) {
-        state.put(PropertyKeys.var, varValue);
+    public void setVar(String varName) {
+        state.put(PropertyKeys.var, varName);
     }
 
     /**
