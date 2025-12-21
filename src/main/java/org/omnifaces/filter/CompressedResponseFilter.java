@@ -19,6 +19,7 @@ import static org.omnifaces.util.Utils.splitAndTrim;
 import static org.omnifaces.util.Utils.unmodifiableSet;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.zip.DeflaterOutputStream;
@@ -48,7 +49,7 @@ import org.omnifaces.servlet.HttpServletResponseOutputWrapper;
  * in Tomcat, or <code>&lt;property name="compression" value="on"&gt;</code> in GlassFish), this filter allows a servlet
  * container independent way of configuring HTTP response compression and also allows enabling HTTP response compression
  * anyway on 3rd party hosts where you have no control over servlet container configuration.
- * 
+ *
  * <h2>Compression algorithms</h2>
  * <p>
  * Currently three compression algorithms are supported: Brotli, GZIP and Deflate. When the client supports Brotli
@@ -235,15 +236,27 @@ public class CompressedResponseFilter extends HttpFilter {
         (HttpServletRequest request, HttpServletResponse response, HttpSession session, FilterChain chain)
             throws ServletException, IOException
     {
-        var acceptedAlgorithm = algorithm == null ? Algorithm.find(request).orElse(null) : algorithm.accepts(request) ? algorithm : null;
+        var acceptedAlgorithm = findAcceptedAlgorithm(request);
 
-        if (acceptedAlgorithm != null) {
-            var compressedResponse = new CompressedHttpServletResponse(response, acceptedAlgorithm, threshold, mimetypes);
+        if (acceptedAlgorithm.isPresent()) {
+            var compressedResponse = new CompressedHttpServletResponse(response, acceptedAlgorithm.get(), threshold, mimetypes);
             chain.doFilter(request, compressedResponse);
             compressedResponse.close(); // Mandatory for the case the threshold limit hasn't been reached.
         }
         else {
             chain.doFilter(request, response);
+        }
+    }
+
+    private Optional<Algorithm> findAcceptedAlgorithm(HttpServletRequest request) {
+        if (algorithm == null) {
+            return Algorithm.find(request);
+        }
+        else if (algorithm.accepts(request)) {
+            return Optional.of(algorithm);
+        }
+        else {
+            return Optional.empty();
         }
     }
 

@@ -112,8 +112,8 @@ public class SelectItemGroups extends UISelectItems {
 
     private <S extends SelectItem> void createSelectItems(UIComponent component, Object values, Supplier<S> supplier, Consumer<S> callback) {
         Map<String, Object> attributes = component.getAttributes();
-        String var = coalesce((String) attributes.get("var"), "item");
-        forEach(values, value -> ScopedRunner.forEach(getFacesContext(), var, value, () -> callback.accept(createSelectItem(component, getItemValue(attributes, value), supplier))));
+        String varName = coalesce((String) attributes.get("var"), "item");
+        forEach(values, value -> ScopedRunner.forEach(getFacesContext(), varName, value, () -> callback.accept(createSelectItem(component, getItemValue(attributes, value), supplier))));
     }
 
     private static <S extends SelectItem> S createSelectItem(UIComponent component, Object value, Supplier<S> supplier) {

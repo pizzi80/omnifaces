@@ -13,7 +13,6 @@
 package org.omnifaces.resourcehandler;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 import static org.omnifaces.util.FacesLocal.getContextAttribute;
 import static org.omnifaces.util.FacesLocal.getRequest;
 import static org.omnifaces.util.FacesLocal.getRequestServletPath;
@@ -116,7 +115,7 @@ public class ViewResourceHandler extends DefaultResourceHandler {
         if (facesServletRegistration != null) {
             Collection<String> existingMappings = facesServletRegistration.getMappings();
 
-            for (String viewResource : splitAndTrim(viewResourcesParam, ",").collect(toList())) {
+            for (String viewResource : splitAndTrim(viewResourcesParam, ",").toList()) {
                 if (!viewResource.startsWith("/")) {
                     throw new IllegalArgumentException(format(ERROR_MISSING_FORWARD_SLASH, viewResource));
                 }

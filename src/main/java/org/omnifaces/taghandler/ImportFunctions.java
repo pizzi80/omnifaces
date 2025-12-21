@@ -124,10 +124,10 @@ public class ImportFunctions extends TagHandler {
     @Override
     public void apply(FaceletContext context, UIComponent parent) throws IOException {
         String type = typeAttribute.getValue(context);
-        String var = (varValue != null) ? varValue : type.substring(type.lastIndexOf('.') + 1);
+        String varName = (varValue != null) ? varValue : type.substring(type.lastIndexOf('.') + 1);
         ClassLoader loader = getClassLoader(context, loaderAttribute);
         FunctionMapper originalFunctionMapper = context.getFunctionMapper();
-        context.setFunctionMapper(new ImportFunctionsMapper(originalFunctionMapper, var, toClass(type, loader)));
+        context.setFunctionMapper(new ImportFunctionsMapper(originalFunctionMapper, varName, toClass(type, loader)));
     }
 
     // Helpers --------------------------------------------------------------------------------------------------------

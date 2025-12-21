@@ -14,7 +14,6 @@ package org.omnifaces.util;
 
 import static java.util.logging.Level.FINE;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
-import static java.util.stream.Collectors.toList;
 import static org.omnifaces.util.Reflection.toClassOrNull;
 
 import java.lang.annotation.Annotation;
@@ -84,12 +83,12 @@ public final class Beans {
 
     private static final Logger logger = Logger.getLogger(Beans.class.getName());
 
-    private static final List<Class<?>> PROXY_INTERFACES = Stream.of(
+    private static final List<Class<Object>> PROXY_INTERFACES = Stream.of(
         toClassOrNull("org.jboss.weld.proxy.WeldConstruct"),
         toClassOrNull("org.apache.webbeans.proxy.OwbNormalScopeProxy"),
         toClassOrNull("io.quarkus.arc.ClientProxy"),
         toClassOrNull("io.quarkus.arc.Subclass")
-    ).filter(Objects::nonNull).collect(toList());
+    ).filter(Objects::nonNull).toList();
 
     // Both Weld and OWB generate proxy class names as "BeanClassName[...]$$[...]Proxy[...]" with a "$$" and "Proxy" in it.
     // Hopefully unknown CDI proxy implementations follow the same de-facto standard.

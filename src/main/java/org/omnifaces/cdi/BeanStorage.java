@@ -73,9 +73,8 @@ public class BeanStorage implements Serializable {
         // NOTE: beans.computeIfAbsent() won't work for nested beans, see also #887
         var id = getBeanId(type);
         return ofNullable((T) beans.get(id)).orElseGet(() -> {
-            var lock = locks.computeIfAbsent(id, $ -> new ReentrantLock());
             try {
-                return executeAtomically(lock, () -> ofNullable((T) beans.get(id)).orElseGet(() -> {
+                return executeAtomically(locks.computeIfAbsent(id, $ -> new ReentrantLock()), () -> ofNullable((T) beans.get(id)).orElseGet(() -> {
                     var bean = (Serializable) type.create(context);
                     return (T) coalesce(beans.putIfAbsent(id, bean), bean);
                 }));

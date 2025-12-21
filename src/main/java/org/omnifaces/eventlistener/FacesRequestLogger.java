@@ -21,7 +21,6 @@ import static java.lang.System.nanoTime;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
-import static java.util.stream.Collectors.toList;
 import static org.omnifaces.config.OmniFaces.OMNIFACES_EVENT_PARAM_NAME;
 import static org.omnifaces.util.ComponentsLocal.getActionExpressionsAndListeners;
 import static org.omnifaces.util.ComponentsLocal.getCurrentActionSource;
@@ -253,7 +252,7 @@ public class FacesRequestLogger extends DefaultPhaseListener {
     }
 
     private static Consumer<? super String> collectMessageSummariesByClientId(FacesContext context, Map<String, List<String>> facesMessages) {
-        return clientId -> facesMessages.put(coalesce(clientId, ""), context.getMessageList(clientId).stream().map(FacesMessage::getSummary).collect(toList()));
+        return clientId -> facesMessages.put(coalesce(clientId, ""), context.getMessageList(clientId).stream().map(FacesMessage::getSummary).toList());
     }
 
     private static PhaseTimer getPhaseTimer(FacesContext context) {

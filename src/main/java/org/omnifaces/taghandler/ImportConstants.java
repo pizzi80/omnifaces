@@ -159,15 +159,15 @@ public class ImportConstants extends TagHandler {
             CONSTANTS_CACHE.put(type, constants);
         }
 
-        var var = varValue;
+        var varName = varValue;
 
-        if (var == null) {
+        if (varName == null) {
             var innerClass = type.lastIndexOf('$');
             var outerClass = type.lastIndexOf('.');
-            var = type.substring(max(innerClass, outerClass) + 1);
+            varName = type.substring(max(innerClass, outerClass) + 1);
         }
 
-        context.setAttribute(var, constants);
+        context.setAttribute(varName, constants);
     }
 
     // Helpers --------------------------------------------------------------------------------------------------------

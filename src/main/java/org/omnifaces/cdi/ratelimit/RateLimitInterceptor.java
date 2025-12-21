@@ -45,8 +45,12 @@ public class RateLimitInterceptor {
     private static final String ERROR_CLIENT_ID_REQUIRED = "Please specify clientId on @RateLimit;"
             + " the fallback of HttpServletRequest isn't available in the current context.";
 
+    private final RateLimiter rateLimiter;
+
     @Inject
-    private RateLimiter rateLimiter;
+    public RateLimitInterceptor(RateLimiter rateLimiter) {
+        this.rateLimiter = rateLimiter;
+    }
 
     @AroundInvoke
     public Object limitRate(InvocationContext context) throws Exception {

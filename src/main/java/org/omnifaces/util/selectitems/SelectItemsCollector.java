@@ -63,13 +63,10 @@ public final class SelectItemsCollector {
 
         // Iterate over all children of the parent component. Non-UISelectItem/s children are automatically skipped.
         for (UIComponent child : parent.getChildren()) {
-            if (child instanceof UISelectItem) {
-                UISelectItem uiSelectItem = (UISelectItem) child;
+            if (child instanceof UISelectItem uiSelectItem) {
                 selectItems.add(getFromUISelectItem(uiSelectItem));
             }
-            else if (child instanceof UISelectItems) {
-                UISelectItems uiSelectItems = (UISelectItems) child;
-
+            else if (child instanceof UISelectItems uiSelectItems) {
                 if (uiSelectItems.getValue() != null) {
                     selectItems.addAll(collectFromUISelectItems(context, uiSelectItems));
                 }
@@ -134,7 +131,7 @@ public final class SelectItemsCollector {
 
         List<SelectItem> selectItems = new ArrayList<>();
         Map<String, Object> attributes = uiSelectItems.getAttributes();
-        String var = (String) attributes.get("var");
+        String varName = (String) attributes.get("var");
 
         // Helper class that's used to set the item value in (EL) scope using the name set by "var" during the iteration.
         // If during each iteration the value of this is changed, any value expressions in the attribute
@@ -154,8 +151,8 @@ public final class SelectItemsCollector {
                 continue;
             }
 
-            if (!isEmpty(var)) {
-                scopedRunner.with(var, item);
+            if (!isEmpty(varName)) {
+                scopedRunner.with(varName, item);
             }
 
             // During each iteration, just resolve all attributes again.

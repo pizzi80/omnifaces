@@ -12,7 +12,7 @@
  */
 package org.omnifaces.renderer;
 
-import static org.omnifaces.util.Faces.getInitParameter;
+import static org.omnifaces.util.Faces.getContext;
 import static org.omnifaces.util.FacesLocal.createResource;
 import static org.omnifaces.util.Utils.coalesce;
 import static org.omnifaces.util.Utils.isOneOf;
@@ -39,6 +39,7 @@ import org.omnifaces.renderkit.OmniRenderKitFactory;
 import org.omnifaces.resourcehandler.CDNResource;
 import org.omnifaces.resourcehandler.CombinedResourceHandler;
 import org.omnifaces.resourcehandler.ResourceIdentifier;
+import org.omnifaces.util.FacesLocal;
 
 /**
  * <p>
@@ -95,8 +96,8 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      */
     public static final String PARAM_NAME_CROSSORIGIN = "org.omnifaces.DEFAULT_CROSSORIGIN";
 
-    private static String crossorigin = DEFAULT_CROSSORIGIN;
-    private static boolean needsIntegrity = true;
+    private static String crossorigin;
+    private static Boolean needsIntegrity;
 
     /**
      * Do not use this constructor. It's merely there for {@link ComponentSystemEventListener}.
@@ -112,8 +113,9 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      */
     public CorsAwareResourceRenderer(Renderer<?> wrapped) {
         super(wrapped);
-        crossorigin = coalesce(getInitParameter(PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
-        needsIntegrity = DEFAULT_CROSSORIGIN.equals(crossorigin);
+        var context = getContext();
+        crossorigin = getCrossorigin(context);
+        needsIntegrity = isNeedsIntegrity(context);
     }
 
     /**
@@ -140,7 +142,7 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
         if (!crossorigin.isEmpty()
                 && component.getAttributes().get("name") != null
                 && passThroughAttributes.get("integrity") == null
-                && isOneOf(passThroughAttributes.get("crossorigin"), null, "anonymous"))
+                && isOneOf(passThroughAttributes.get("crossorigin"), null, DEFAULT_CROSSORIGIN))
         {
             passThroughAttributes.put("crossorigin", crossorigin);
             var integrity = getIntegrityIfNecessary(context, createResource(context, component));
@@ -159,7 +161,24 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      * @return The configured crossorigin.
      */
     public static String getCrossorigin(FacesContext context) {
+        if (crossorigin == null) {
+            crossorigin = coalesce(FacesLocal.getInitParameter(context, PARAM_NAME_CROSSORIGIN), DEFAULT_CROSSORIGIN);
+        }
+
         return crossorigin;
+    }
+
+    /**
+     * Returns whether the integrity is needed. Defaults to {@code true}.
+     * @param context The involved faces context.
+     * @return Whether the integrity is needed.
+     */
+    public static boolean isNeedsIntegrity(FacesContext context) {
+        if (needsIntegrity == null) {
+            needsIntegrity = DEFAULT_CROSSORIGIN.equals(getCrossorigin(context));
+        }
+
+        return needsIntegrity;
     }
 
     /**
@@ -171,6 +190,6 @@ public class CorsAwareResourceRenderer extends RendererWrapper implements Compon
      * @return The integrity of the given resource if necessary.
      */
     public static String getIntegrityIfNecessary(FacesContext context, Resource resource) {
-        return resource instanceof CDNResource && needsIntegrity ? new ResourceIdentifier(resource).getIntegrity(context) : "";
+        return resource instanceof CDNResource && isNeedsIntegrity(context) ? new ResourceIdentifier(resource).getIntegrity(context) : "";
     }
 }

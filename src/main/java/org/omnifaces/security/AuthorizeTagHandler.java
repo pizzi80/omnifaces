@@ -109,7 +109,7 @@ import jakarta.security.enterprise.SecurityContext;
  */
 public class AuthorizeTagHandler extends BaseSecurityTagHandler {
 
-    private final TagAttribute role, anyRole, allRoles, var;
+    private final TagAttribute role, anyRole, allRoles, varAttribute;
 
     /**
      * Constructor for the TagHandler
@@ -121,7 +121,7 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
         role = getAttribute("role");
         anyRole = getAttribute("anyRole");
         allRoles = getAttribute("allRoles");
-        var = getAttribute("var");
+        varAttribute = getAttribute("var");
     }
 
     @Override
@@ -206,11 +206,11 @@ public class AuthorizeTagHandler extends BaseSecurityTagHandler {
     }
 
     private void setVarIfSpecified(FaceletContext context, boolean authorized) {
-        if (var == null) {
+        if (varAttribute == null) {
             return;
         }
 
-        var varValue = var.getValue();
+        var varValue = varAttribute.getValue();
 
         if (varValue != null && !varValue.isEmpty()) {
             context.setAttribute(varValue, authorized);

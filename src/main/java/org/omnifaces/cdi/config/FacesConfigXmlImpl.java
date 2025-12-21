@@ -151,9 +151,9 @@ class FacesConfigXmlImpl implements FacesConfigXml {
 
         for (int i = 0; i < resourceBundleNodes.getLength(); i++) {
             var node = resourceBundleNodes.item(i);
-            var var = xpath.compile(XPATH_VAR).evaluate(node).trim();
+            var varName = xpath.compile(XPATH_VAR).evaluate(node).trim();
             var baseName = xpath.compile(XPATH_BASE_NAME).evaluate(node).trim();
-            resourceBundles.computeIfAbsent(var, k -> baseName);
+            resourceBundles.computeIfAbsent(varName, k -> baseName);
         }
 
         return unmodifiableMap(resourceBundles);

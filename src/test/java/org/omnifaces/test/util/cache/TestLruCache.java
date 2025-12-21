@@ -1,7 +1,6 @@
 package org.omnifaces.test.util.cache;
 
 import static java.util.concurrent.CompletableFuture.runAsync;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 import static java.util.stream.IntStream.rangeClosed;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -50,8 +49,8 @@ class TestLruCache {
         if (evicted.size() == ITERATIONS - SIZE + 1) {
             // Very sometimes the last existing key is evicted while put by another thread, just inevitable nature of the test using overlapping keys, we'll want to remove the known key from the eviction set.
             var keyOfLastIteration = "k" + LAST_EXISTING_KEY;
-            List<String> leftIntersecting = evicted.stream().filter(lruCache::containsKey).collect(toList());
-            List<String> rightIntersecting = lruCache.keySet().stream().filter(evicted::contains).collect(toList());
+            List<String> leftIntersecting = evicted.stream().filter(lruCache::containsKey).toList();
+            List<String> rightIntersecting = lruCache.keySet().stream().filter(evicted::contains).toList();
 
             if (leftIntersecting.size() == 1 && leftIntersecting.contains(keyOfLastIteration) && leftIntersecting.equals(rightIntersecting)) { // Just to ensure it's indeed that one.
                 logger.warning("Last existing key evicted while put by another thread: " + keyOfLastIteration);

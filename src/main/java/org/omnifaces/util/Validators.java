@@ -16,7 +16,6 @@ import static jakarta.faces.validator.BeanValidator.VALIDATOR_FACTORY_KEY;
 import static java.lang.String.format;
 import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static org.omnifaces.util.Beans.unwrapIfNecessary;
 import static org.omnifaces.util.Faces.getApplicationAttribute;
 import static org.omnifaces.util.Faces.getLocale;
@@ -141,8 +140,7 @@ public final class Validators {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public static Set<ConstraintViolation<?>> validateBean(Object bean, Class<?>... groups) {
         Set violationsRaw = getBeanValidator().validate(bean, groups);
-        Set<ConstraintViolation<?>> violations = violationsRaw;
-        return violations;
+        return violationsRaw;
     }
 
     /**
@@ -156,8 +154,7 @@ public final class Validators {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public static Set<ConstraintViolation<?>> validateBeanProperty(Class<?> beanType, String propertyName, Object value, Class<?>... groups) {
         Set violationsRaw = getBeanValidator().validateValue(beanType, propertyName, value, groups);
-        Set<ConstraintViolation<?>> violations = violationsRaw;
-        return violations;
+        return violationsRaw;
     }
 
     /**
@@ -229,7 +226,7 @@ public final class Validators {
      * @return A list of property path nodes from the given constraint violation.
      */
     public static List<Node> getPropertyNodes(ConstraintViolation<?> violation) {
-        return StreamSupport.stream(violation.getPropertyPath().spliterator(), false).collect(toList());
+        return StreamSupport.stream(violation.getPropertyPath().spliterator(), false).toList();
     }
 
     // Helpers --------------------------------------------------------------------------------------------------------
@@ -288,7 +285,7 @@ public final class Validators {
     }
 
     private static Object accessIndex(Object base, Node node) {
-        int index = node.getIndex().intValue();
+        int index = node.getIndex();
 
         if (base instanceof List<?>) {
             return ((List<?>) base).get(index);
