@@ -29,7 +29,6 @@ import static org.omnifaces.util.FacesLocal.isAjaxRequestWithPartialRendering;
 import static org.omnifaces.util.FacesLocal.isPostback;
 
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -188,7 +187,7 @@ public class ViewScopeManager {
                 var viewRoot = context.getViewRoot();
 
                 if (viewRoot.isTransient()) {
-                    logger.log(Level.WARNING, format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), viewRoot.getViewId()));
+                    logger.warning(() -> format(WARNING_UNSUPPORTED_STATE_SAVING, beanClass.getName(), viewRoot.getViewId()));
                 }
                 else {
                     registerUnloadScript(context, beanStorageId);

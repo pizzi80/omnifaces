@@ -13,7 +13,6 @@
 package org.omnifaces.eventlistener;
 
 import static java.lang.String.format;
-import static java.util.logging.Level.FINER;
 
 import java.util.logging.Logger;
 
@@ -105,10 +104,8 @@ public class BeanValidationEventListener implements SystemEventListener {
 
         beanValidator.setValidationGroups(newValidationGroups);
 
-        if (LOGGER.isLoggable(FINER)) {
-            LOGGER.finer(format(LOG_VALIDATION_GROUPS_OVERRIDDEN,
-                component.getClientId(), originalValidationGroups, newValidationGroups));
-        }
+        LOGGER.finer(() -> format(LOG_VALIDATION_GROUPS_OVERRIDDEN,
+            component.getClientId(), originalValidationGroups, newValidationGroups));
     }
 
     /**

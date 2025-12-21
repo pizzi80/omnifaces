@@ -199,7 +199,7 @@ public class CompressedResponseFilter extends HttpFilter {
 
         if (algorithm == null || algorithm == BROTLI) {
             if (Algorithm.BROTLI.isAvailable()) {
-                logger.info(format(LOG_BROTLI_AVAILABLE, Algorithm.BROTLI.getOutputStreamClass()));
+                logger.info(() -> format(LOG_BROTLI_AVAILABLE, Algorithm.BROTLI.getOutputStreamClass()));
             }
             else if (algorithm == null) {
                 logger.info(LOG_BROTLI_UNAVAILABLE);

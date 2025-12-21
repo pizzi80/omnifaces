@@ -768,8 +768,8 @@ public final class ComponentsLocal {
         if (converter != null) {
             final UIComponent component;
 
-            if (holder instanceof UIComponent) {
-                component = (UIComponent) holder;
+            if (holder instanceof UIComponent parent) {
+                component = parent;
             }
             else if (holder instanceof ParamHolder) {
                 var parameter = new UIParameter();

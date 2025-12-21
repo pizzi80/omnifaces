@@ -124,7 +124,7 @@ public class ResolveComponent extends UtilFamily implements FaceletContextConsum
                 throw new IllegalArgumentException(format(ERROR_COMPONENT_NOT_FOUND, forValue, getId()));
             }
 
-            var scope = getScope();  // TODO: refactor "scope" to a reusable enum, together with those of a.o. Cache.
+            var scope = getScope();
 
             if (DEFAULT_SCOPE.equals(scope)) {
                 // Component will be resolved again dynamically when the value expression is evaluated.

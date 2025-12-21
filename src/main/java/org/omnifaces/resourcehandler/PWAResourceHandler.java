@@ -324,7 +324,7 @@ public class PWAResourceHandler extends DefaultResourceHandler {
                     addScript(context, format(SCRIPT_INIT, getServiceWorkerUrl(context), getServiceWorkerScope(context)));
                 }
                 else {
-                    logger.warning(format(WARNING_NO_CACHEABLE_VIEW_IDS, manifest.getClass().getName()));
+                    logger.warning(() -> format(WARNING_NO_CACHEABLE_VIEW_IDS, manifest.getClass().getName()));
                 }
             }
 
@@ -436,7 +436,7 @@ public class PWAResourceHandler extends DefaultResourceHandler {
     			collectCacheableResources(context, viewId, viewHandler, viewDeclarationLanguage, cacheableResources);
     		}
     		else {
-    			logger.warning(format(viewId.equals(manifest.getOfflineViewId()) ? WARNING_INVALID_OFFLINE_VIEW_ID : WARNING_INVALID_CACHEABLE_VIEW_ID, viewId, manifest.getClass().getName()));
+    			logger.warning(() -> format(viewId.equals(manifest.getOfflineViewId()) ? WARNING_INVALID_OFFLINE_VIEW_ID : WARNING_INVALID_CACHEABLE_VIEW_ID, viewId, manifest.getClass().getName()));
     		}
         }
 
