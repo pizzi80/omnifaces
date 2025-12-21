@@ -57,6 +57,8 @@ public final class Xml {
 
     private static final Logger logger = Logger.getLogger(Xml.class.getName());
 
+    private static final String APACHE_FEATURE_DISALLOW_DOCTYPE_DECL = "http://apache.org/xml/features/disallow-doctype-decl";
+
     // Constructors ---------------------------------------------------------------------------------------------------
 
     private Xml() {
@@ -94,6 +96,7 @@ public final class Xml {
 
         try {
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature(APACHE_FEATURE_DISALLOW_DOCTYPE_DECL, true);
             unsetAttributeIgnoringIAE(factory, XMLConstants.ACCESS_EXTERNAL_DTD);
             unsetAttributeIgnoringIAE(factory, XMLConstants.ACCESS_EXTERNAL_SCHEMA);
             return factory.newDocumentBuilder();
