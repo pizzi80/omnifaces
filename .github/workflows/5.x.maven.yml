@@ -33,10 +33,10 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        server: [ wildfly-mojarra, glassfish-mojarra, tomcat-mojarra, tomcat-myfaces, payara-mojarra, quarkus-myfaces ]
+        server: [ wildfly-mojarra, liberty-myfaces, glassfish-mojarra, tomcat-mojarra, tomcat-myfaces, payara-mojarra, quarkus-myfaces ]
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21 (Payara doesn't support 17)
+    - name: Set up JDK 21 (GlassFish/Payara doesn't support 17)
       uses: actions/setup-java@v4
       with:
         java-version: '21'
