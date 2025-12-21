@@ -13,7 +13,6 @@
 package org.omnifaces.cdi.eager;
 
 import static java.lang.String.format;
-import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.omnifaces.util.Beans.getReference;
 import static org.omnifaces.util.Utils.isAnyEmpty;
@@ -93,7 +92,7 @@ public class EagerBeansRepository {
             }
         }
         catch (Exception e) {
-            logger.log(WARNING, format(WARNING_POSSIBLY_APPLICATION_SCOPE_NOT_ACTIVE), e);
+            logger.log(WARNING, WARNING_POSSIBLY_APPLICATION_SCOPE_NOT_ACTIVE, e);
             instance = null; // Trigger to add listeners anyway as it may be available at later point.
         }
 
@@ -200,9 +199,8 @@ public class EagerBeansRepository {
             if (!Utils.isEmpty(viewId)) {
                 getByViewId(viewId).add(bean);
             }
-            else if (logger.isLoggable(SEVERE)) {
-                logger.log(SEVERE, format(MISSING_VIEW_ID, bean.getBeanClass().getName()));
-            }
+
+            logger.severe(() -> format(MISSING_VIEW_ID, bean.getBeanClass().getName()));
         }
 
         void addByRequestURIOrViewId(Bean<?> bean, String requestURI, String viewId) {
@@ -212,9 +210,8 @@ public class EagerBeansRepository {
             else if (!Utils.isEmpty(viewId)) {
                 getByViewId(viewId).add(bean);
             }
-            else if (logger.isLoggable(SEVERE)) {
-                logger.log(SEVERE, format(MISSING_REQUEST_URI_OR_VIEW_ID, bean.getBeanClass().getName()));
-            }
+
+            logger.severe(() -> format(MISSING_REQUEST_URI_OR_VIEW_ID, bean.getBeanClass().getName()));
         }
 
         private List<Bean<?>> getByViewId(String viewId) {

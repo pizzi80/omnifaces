@@ -14,7 +14,6 @@ package org.omnifaces.resourcehandler;
 
 import static java.lang.String.format;
 import static java.util.logging.Level.FINEST;
-import static java.util.logging.Level.WARNING;
 import static org.omnifaces.resourcehandler.CombinedResourceHandler.LIBRARY_NAME;
 import static org.omnifaces.util.FacesLocal.createResource;
 import static org.omnifaces.util.FacesLocal.isDevelopment;
@@ -187,10 +186,7 @@ public final class CombinedResourceInfo {
             var resource = createResource(context, resourceIdentifier.getLibrary(), resourceIdentifier.getName());
 
             if (resource == null) {
-                if (logger.isLoggable(WARNING)) {
-                    logger.log(WARNING, format(LOG_RESOURCE_NOT_FOUND, resourceIdentifier, id));
-                }
-
+                logger.warning(() -> format(LOG_RESOURCE_NOT_FOUND, resourceIdentifier, id));
                 resources.clear();
                 return;
             }
