@@ -252,16 +252,24 @@
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
                 <version>4.6</version>
-                <configuration>
-                    <licenseSets>
-                        <licenseSet>
-                            <header>license.txt</header>
-                            <excludes>
-                                <exclude>*.*</exclude>
-                            </excludes>
-                        </licenseSet>
-                    </licenseSets>
-                </configuration>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                        <configuration>
+                            <licenseSets>
+                                <licenseSet>
+                                    <header>license.txt</header>
+                                    <excludes>
+                                       <exclude>*.*</exclude> <!-- excludes files in root folder -->
+                                    </excludes>
+                                </licenseSet>
+                            </licenseSets>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Configure the TypeScript compiler and packer for omnifaces.js. -->
