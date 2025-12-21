@@ -15,6 +15,7 @@ package org.omnifaces.cdi.push;
 import static java.util.Collections.singleton;
 import static org.omnifaces.cdi.push.SocketChannelManager.EMPTY_SCOPE;
 import static org.omnifaces.cdi.push.SocketChannelManager.getChannelId;
+import static org.omnifaces.util.Beans.getReference;
 import static org.omnifaces.util.Beans.isActive;
 import static org.omnifaces.util.Faces.hasContext;
 
@@ -52,8 +53,8 @@ public class SocketPushContext implements PushContext {
     private final String channel;
     private final Map<String, String> sessionScopedChannels;
     private final Map<String, String> viewScopedChannels;
-    private final SocketSessionManager socketSessions;
-    private final SocketUserManager socketUsers;
+    private transient SocketSessionManager socketSessions;
+    private transient SocketUserManager socketUsers;
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
@@ -75,7 +76,7 @@ public class SocketPushContext implements PushContext {
 
     @Override
     public Set<Future<Void>> send(Object message) {
-        return socketSessions.send(getChannelId(channel, sessionScopedChannels, viewScopedChannels), Json.encode(message));
+        return getSocketSessions().send(getChannelId(channel, sessionScopedChannels, viewScopedChannels), Json.encode(message));
     }
 
     @Override
@@ -89,11 +90,11 @@ public class SocketPushContext implements PushContext {
         var json = Json.encode(message);
 
         for (S user : users) {
-            var channelIds = socketUsers.getChannelIds(user, channel);
+            var channelIds = getSocketUsers().getChannelIds(user, channel);
             var results = new HashSet<Future<Void>>(channelIds.size(), 1);
 
             for (var channelId : channelIds) {
-                results.addAll(socketSessions.send(channelId, json));
+                results.addAll(getSocketSessions().send(channelId, json));
             }
 
             resultsByUser.put(user, results);
@@ -102,4 +103,21 @@ public class SocketPushContext implements PushContext {
         return resultsByUser;
     }
 
+    // Lazy getters in case this gets serialized ----------------------------------------------------------------------
+
+    private SocketSessionManager getSocketSessions() {
+        if (socketSessions == null) {
+            socketSessions = getReference(SocketSessionManager.class);
+        }
+
+        return socketSessions;
+    }
+
+    private SocketUserManager getSocketUsers() {
+        if (socketUsers == null) {
+            socketUsers = getReference(SocketUserManager.class);
+        }
+
+        return socketUsers;
+    }
 }
