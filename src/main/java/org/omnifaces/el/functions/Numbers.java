@@ -389,7 +389,18 @@ public final class Numbers {
     }
 
     private static String formatUnit(String value, boolean iec, String unit, int exponent, boolean stripZeroes) {
-        var formatted = stripZeroes ? value.replaceAll("0+$", "").replaceAll("\\D$", "") : value;
+        String formatted = value;
+
+        if (stripZeroes) {
+            while (formatted.endsWith("0")) {
+                formatted = formatted.substring(0, formatted.length() - 1);
+            }
+
+            if (!formatted.isEmpty() && !Character.isDigit(formatted.charAt(formatted.length() - 1))) {
+                formatted = formatted.substring(0, formatted.length() - 1);
+            }
+        }
+
         var separator = unit == null ? "" : " ";
         var unitString = unit == null ? "" : unit;
         return formatted + separator + getUnitPrefix(iec, exponent) + unitString;
