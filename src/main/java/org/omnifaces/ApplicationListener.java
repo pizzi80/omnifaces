@@ -76,6 +76,8 @@ public class ApplicationListener extends DefaultServletContextListener {
 
     private static final String ERROR_FACES_API_UNAVAILABLE =
         "Faces API is not available in this environment.";
+    private static final String ERROR_FACES_API_INCOMPATIBLE =
+        "Faces API of this environment is not Faces 4.1 compatible.";
     private static final String ERROR_CDI_API_UNAVAILABLE =
         "CDI API is not available in this environment.";
     private static final String ERROR_CDI_IMPL_UNAVAILABLE =
@@ -125,7 +127,7 @@ public class ApplicationListener extends DefaultServletContextListener {
     private static void checkFacesAvailable() {
         try {
             checkFacesAPIAvailable();
-            // No need to explicitly check version here because the jakarta.* one is already guaranteed to be minimally 3.0.
+            checkFaces41Compatible();
         }
         catch (Exception | LinkageError e) {
             logger.severe(""
@@ -133,9 +135,9 @@ public class ApplicationListener extends DefaultServletContextListener {
                 + "\n█░▀░░░░▀█▀░░░░░░▀█░░░░░░▀█▀░░░░░▀█                                             ▐"
                 + "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█ OmniFaces failed to initialize!             ▐"
                 + "\n█░░▐█▌░░█░░░██░░░█░░██░░░█░░░██░░█                                             ▐"
-                + "\n█░░▐█▌░░█░░░██░░░█░░░░░░▄█░░▄▄▄▄▄█ OmniFaces 4.x requires minimally Faces 3.0, ▐"
+                + "\n█░░▐█▌░░█░░░██░░░█░░░░░░▄█░░▄▄▄▄▄█ OmniFaces 5.x requires minimally Faces 4.1, ▐"
                 + "\n█░░▐█▌░░█░░░██░░░█░░░░████░░░░░░░█ but none was found on this environment.     ▐"
-                + "\n█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█ Downgrade to OmniFaces 3.x, 2.x or 1.x.     ▐"
+                + "\n█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█ Downgrade to OmniFaces 4.x, 3.x, 2.x or 1.x.▐"
                 + "\n████████████████████████████████████████████████████████████████████████████████"
             );
             throw e;
@@ -194,6 +196,15 @@ public class ApplicationListener extends DefaultServletContextListener {
         }
         catch (Exception | LinkageError e) {
             throw new IllegalStateException(ERROR_FACES_API_UNAVAILABLE, e);
+        }
+    }
+
+    private static void checkFaces41Compatible() {
+        try {
+            toClass("jakarta.faces.view.ActionSourceAttachedObjectTarget");
+        }
+        catch (Exception | LinkageError e) {
+            throw new IllegalStateException(ERROR_FACES_API_INCOMPATIBLE, e);
         }
     }
 
