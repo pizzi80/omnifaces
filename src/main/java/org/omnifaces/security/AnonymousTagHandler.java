@@ -87,6 +87,7 @@ import jakarta.security.enterprise.SecurityContext;
  * security context is not available, a warning will be logged and no content will be rendered. Make sure your
  * application has Jakarta Security properly configured.
  *
+ * @see BaseSecurityTagHandler
  * @see AuthenticatedTagHandler
  * @see AuthorizeTagHandler
  * @author Leonardo Bernardes (@redddcyclone)
