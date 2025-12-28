@@ -24,7 +24,6 @@ import static org.omnifaces.util.Reflection.getBeanProperty;
 import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +34,6 @@ import java.util.logging.Logger;
 import java.util.stream.StreamSupport;
 
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ElementKind;
 import jakarta.validation.MessageInterpolator;
 import jakarta.validation.Path.Node;
 import jakarta.validation.Validation;
@@ -125,7 +123,7 @@ public final class Validators {
      * @see Faces#getLocale()
      */
     public static Validator getBeanValidator() {
-        ValidatorFactory validatorFactory = getBeanValidatorFactory();
+        var validatorFactory = getBeanValidatorFactory();
         return validatorFactory.usingContext()
             .messageInterpolator(new FacesLocaleAwareMessageInterpolator(validatorFactory.getMessageInterpolator()))
             .getValidator();
@@ -164,7 +162,7 @@ public final class Validators {
      * @return Violated base from given bean based on given violation.
      */
     public static Object resolveViolatedBase(Object bean, ConstraintViolation<?> violation) {
-        List<Entry<Object, String>> basesAndProperties = resolveViolatedBasesAndProperties(bean, violation);
+        var basesAndProperties = resolveViolatedBasesAndProperties(bean, violation);
         return basesAndProperties.isEmpty() ? null : basesAndProperties.iterator().next().getKey();
     }
 
@@ -176,14 +174,14 @@ public final class Validators {
      * @since 3.14.2
      */
     public static List<Entry<Object, String>> resolveViolatedBasesAndProperties(Object bean, ConstraintViolation<?> violation) {
-        List<Entry<Object, String>> basesAndProperties = new ArrayList<>();
+        var basesAndProperties = new ArrayList<Entry<Object, String>>();
         BiConsumer<Object, String> add = (base, property) -> basesAndProperties.add(0, new AbstractMap.SimpleEntry<>(unwrapIfNecessary(base), property));
 
         try {
-            Object base = bean;
+            var base = bean;
 
-            for (Iterator<Node> iterator = violation.getPropertyPath().iterator(); iterator.hasNext();) {
-                Node node = iterator.next();
+            for (var iterator = violation.getPropertyPath().iterator(); iterator.hasNext();) {
+                var node = iterator.next();
                 add.accept(base, node.toString());
 
                 if (base == null) {
@@ -216,7 +214,7 @@ public final class Validators {
      * @return Violated property from given violation.
      */
     public static String resolveViolatedProperty(ConstraintViolation<?> violation) {
-        List<Node> propertyNodes = getPropertyNodes(violation);
+        var propertyNodes = getPropertyNodes(violation);
         return propertyNodes.get(propertyNodes.size() - 1).getName();
     }
 
@@ -232,35 +230,35 @@ public final class Validators {
     // Helpers --------------------------------------------------------------------------------------------------------
 
     private static Object resolveProperty(Node node, Object base, boolean last) {
-        ElementKind kind = node.getKind();
+        var kind = node.getKind();
 
-        switch (kind) {
-            case BEAN:
-                if (node.getIndex() != null || node.getKey() != null || node.getName() != null) { // In Apache BVal these can be all null, this is then assumed to be the base itself.
-                    return resolveProperty(base, node, last);
-                }
-                else {
-                    return base;
-                }
+        return switch (kind) {
+            case BEAN -> resolvePropertyFromBean(base, node, last);
+            case CONTAINER_ELEMENT -> resolvePropertyFromContainerElement(base, node, last); // List, Map, Array, etc
+            case PROPERTY -> resolveActualProperty(base, node, last);
+            default -> throw new UnsupportedOperationException(node + " kind " + kind + " is not supported.");
+        };
+    }
 
-            case CONTAINER_ELEMENT: // List, Map, Array, etc
-                return resolveProperty(base, node, last);
-
-            case PROPERTY:
-                if (!last || (node.getIndex() != null || node.getKey() != null)) { // PROPERTY may not be the last one unless contained in a CONTAINER_ELEMENT (which has index or key).
-                    return resolveProperty(base, node, last);
-                }
-                else {
-                    return base;
-                }
-
-            default:
-                // Rest is applicable to property validations.
-                throw new UnsupportedOperationException(node + " kind " + kind + " is not supported.");
+    private static Object resolvePropertyFromBean(Object base, Node node, boolean last) {
+        if (node.getIndex() != null || node.getKey() != null || node.getName() != null) { // In Apache BVal these can be all null, this is then assumed to be the base itself.
+            return resolvePropertyFromContainerElement(base, node, last);
+        }
+        else {
+            return base;
         }
     }
 
-    private static Object resolveProperty(Object base, Node node, boolean last) {
+    private static Object resolveActualProperty(Object base, Node node, boolean last) {
+        if (!last || (node.getIndex() != null || node.getKey() != null)) { // PROPERTY may not be the last one unless contained in a CONTAINER_ELEMENT (which has index or key).
+            return resolvePropertyFromContainerElement(base, node, last);
+        }
+        else {
+            return base;
+        }
+    }
+
+    private static Object resolvePropertyFromContainerElement(Object base, Node node, boolean last) {
         Object value;
 
         if (node.getIndex() != null) {
@@ -299,7 +297,7 @@ public final class Validators {
     }
 
     private static Object accessKey(Object base, Node node) {
-        Object key = node.getKey();
+        var key = node.getKey();
 
         if (base instanceof Map<?, ?>) {
             return ((Map<?, ?>) base).get(key);

@@ -122,12 +122,12 @@ public class SocketChannelManager implements Serializable {
      * @throws IllegalArgumentException When the scope is invalid or when channel already exists on a different scope.
      */
     protected String register(String channel, String scope, Serializable user) {
-        switch (Scope.of(scope, user)) {
-            case APPLICATION: return register(null, channel, APPLICATION_SCOPE, sessionScopedChannels, getViewScopedChannels(false));
-            case SESSION: return register(user, channel, sessionScopedChannels, APPLICATION_SCOPE, getViewScopedChannels(false));
-            case VIEW: return register(user, channel, getViewScopedChannels(true), APPLICATION_SCOPE, sessionScopedChannels);
-            default: throw new UnsupportedOperationException();
-        }
+        return switch (Scope.of(scope, user)) {
+            case APPLICATION -> register(null, channel, APPLICATION_SCOPE, sessionScopedChannels, getViewScopedChannels(false));
+            case SESSION -> register(user, channel, sessionScopedChannels, APPLICATION_SCOPE, getViewScopedChannels(false));
+            case VIEW -> register(user, channel, getViewScopedChannels(true), APPLICATION_SCOPE, sessionScopedChannels);
+            default -> throw new UnsupportedOperationException();
+        };
     }
 
     @SafeVarargs
