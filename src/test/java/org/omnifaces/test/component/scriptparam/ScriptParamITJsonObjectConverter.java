@@ -23,7 +23,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 
 @FacesConverter(forClass = JsonObject.class)
-public class ScriptParamITJsobObjectConverter implements Converter<JsonObject> {
+public class ScriptParamITJsonObjectConverter implements Converter<JsonObject> {
 
     @Override
     public String getAsString(FacesContext context, UIComponent component, JsonObject modelValue) {
