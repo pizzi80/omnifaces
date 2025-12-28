@@ -8,11 +8,11 @@
 
     <groupId>org.omnifaces</groupId>
     <artifactId>omnifaces</artifactId>
-    <version>5.0-SNAPSHOT</version>
+    <version>5.0</version>
     <packaging>jar</packaging>
 
     <name>OmniFaces</name>
-    <description>Jakarta Faces 4.0+ utility library</description>
+    <description>Jakarta Faces 4.1+ utility library</description>
     <url>https://omnifaces.org</url>
     <organization>
         <name>OmniFaces</name>
