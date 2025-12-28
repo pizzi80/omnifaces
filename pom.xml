@@ -310,51 +310,49 @@
 
             <!-- Configure the JavaScript minifier. -->
             <plugin>
-                <groupId>com.samaxes.maven</groupId>
-                <artifactId>minify-maven-plugin</artifactId>
-                <version>1.7.6</version> <!-- Old, but we can't migrate to closure-compiler-maven-plugin because it enforces 'use strict' -->
+                <groupId>com.github.blutorange</groupId>
+                <artifactId>closure-compiler-maven-plugin</artifactId>
+                <version>2.32.0</version>
                 <configuration>
-                    <jsTargetDir>META-INF/resources/omnifaces</jsTargetDir>
-                    <nosuffix>true</nosuffix>
-                    <jsEngine>CLOSURE</jsEngine>
+                    <closureLanguageOut>ECMASCRIPT_2020</closureLanguageOut>
+                    <closureEmitUseStrict>false</closureEmitUseStrict>
+                    <closureCreateSourceMap>false</closureCreateSourceMap>
+                    <skipMerge>true</skipMerge>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.codehaus.plexus</groupId>
-                        <artifactId>plexus-utils</artifactId>
-                        <version>4.0.1</version>
-                    </dependency>
-                </dependencies>
                 <executions>
                     <execution>
                         <id>minify-omnifaces</id>
-                        <configuration>
-                            <webappSourceDir>${project.build.directory}</webappSourceDir>
-                            <webappTargetDir>${project.build.outputDirectory}</webappTargetDir>
-                            <jsSourceDir>tsc</jsSourceDir>
-                            <jsSourceFiles>
-                                <jsSourceFile>omnifaces.unminified.js</jsSourceFile>
-                            </jsSourceFiles>
-                            <jsFinalFile>omnifaces.js</jsFinalFile>
-                        </configuration>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>minify</goal>
                         </goals>
+                        <configuration>
+                            <baseSourceDir>${project.build.directory}</baseSourceDir>
+                            <sourceDir>tsc</sourceDir>
+                            <baseTargetDir>${project.build.outputDirectory}</baseTargetDir>
+                            <targetDir>META-INF/resources/omnifaces</targetDir>
+                            <includes>
+                                <include>omnifaces.unminified.js</include>
+                            </includes>
+                            <outputFilename>omnifaces.js</outputFilename>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>minify-sw</id>
-                        <configuration>
-                            <webappSourceDir>${basedir}/src/main/resources</webappSourceDir>
-                            <webappTargetDir>${project.build.outputDirectory}</webappTargetDir>
-                            <jsSourceDir>META-INF/resources/omnifaces</jsSourceDir>
-                            <jsSourceFiles>
-                                <jsSourceFile>sw.unminified.js</jsSourceFile>
-                            </jsSourceFiles>
-                            <jsFinalFile>sw.js</jsFinalFile>
-                        </configuration>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>minify</goal>
                         </goals>
+                        <configuration>
+                            <baseSourceDir>${project.basedir}/src/main/resources</baseSourceDir>
+                            <sourceDir>META-INF/resources/omnifaces</sourceDir>
+                            <baseTargetDir>${project.build.outputDirectory}</baseTargetDir>
+                            <targetDir>META-INF/resources/omnifaces</targetDir>
+                            <includes>
+                                <include>sw.unminified.js</include>
+                            </includes>
+                            <outputFilename>sw.js</outputFilename>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
