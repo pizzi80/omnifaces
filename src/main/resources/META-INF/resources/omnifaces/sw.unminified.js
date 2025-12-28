@@ -80,20 +80,26 @@ self.addEventListener("fetch", function(event) {
                     if (navigated) {
                         sendOnlineEvent();
                     }
-                    
+
                     return response;
                 }
-                
+
                 function unableToResolve(error) {
-                    if (navigated) {
-                        sendOfflineEvent(error);
-                        
-                        if (offlineResource) {
-                            return caches.match(offlineResource);
+                    if (!navigator.onLine) {
+                        if (navigated) {
+                            sendOfflineEvent(error);
+
+                            if (offlineResource) {
+                                return caches.match(offlineResource);
+                            }
                         }
+
+                        return cached;
                     }
-                    
-                    return cached;
+                    else { // Invalidate cache and let browser handle the error.
+                        caches.open(cacheName).then(cache => cache.delete(url));
+                        throw error;
+                    }
                 }
             }));
         }
