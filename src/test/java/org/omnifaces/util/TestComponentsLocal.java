@@ -49,7 +49,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_simpleCase() {
         // Given: A client ID with one iteration index
-        String clientId = "form:table:0:input";
+        var clientId = "form:table:0:input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -61,7 +61,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_multipleIterationIndices() {
         // Given: A client ID with multiple iteration indices (nested UIData)
-        String clientId = "form:outerTable:5:innerTable:12:input";
+        var clientId = "form:outerTable:5:innerTable:12:input";
 
         // When: Stripping iteration indices
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -73,7 +73,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_noIterationIndex() {
         // Given: A client ID without any iteration index
-        String clientId = "form:input:button";
+        var clientId = "form:input:button";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -85,7 +85,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_iterationIndexAtEnd() {
         // Given: A client ID ending with an iteration index
-        String clientId = "form:table:99:";
+        var clientId = "form:table:99:";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -97,7 +97,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_iterationIndexAtStart() {
         // Given: A client ID starting with an iteration index
-        String clientId = "0:table:input";
+        var clientId = "0:table:input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -109,7 +109,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_largeIterationIndex() {
         // Given: A client ID with a large iteration number
-        String clientId = "form:table:123456:input";
+        var clientId = "form:table:123456:input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -121,7 +121,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_emptyString() {
         // Given: An empty client ID
-        String clientId = "";
+        var clientId = "";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -133,7 +133,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_singleComponent() {
         // Given: A single component name without separators
-        String clientId = "input";
+        var clientId = "input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -145,7 +145,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_componentNamesWithDigits() {
         // Given: Component names containing digits (not iteration indices)
-        String clientId = "form1:table2:input3";
+        var clientId = "form1:table2:input3";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -157,7 +157,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_componentNamesWithDigitsAndIterationIndex() {
         // Given: Component names with digits AND an iteration index
-        String clientId = "form1:table2:5:input3";
+        var clientId = "form1:table2:5:input3";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -169,7 +169,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_componentNamesWithDigitsAndMultipleIterationIndices() {
         // Given: Component names with digits AND multiple iteration indices
-        String clientId = "form1:outerTable2:7:innerTable3:99:input4";
+        var clientId = "form1:outerTable2:7:innerTable3:99:input4";
 
         // When: Stripping iteration indices
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -181,7 +181,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_allDigitComponentName() {
         // Given: A component name that is all digits (but part of the name, not an iteration index)
-        String clientId = "form:component123:button";
+        var clientId = "form:component123:button";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -193,7 +193,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_digitPrefixAndSuffix() {
         // Given: Component names with digit prefixes and suffixes
-        String clientId = "1form:2table:3:button4";
+        var clientId = "1form:2table:3:button4";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -205,7 +205,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_consecutiveDigitsInComponentName() {
         // Given: Component name with consecutive digits
-        String clientId = "form:table123abc:0:input";
+        var clientId = "form:table123abc:0:input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -217,7 +217,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_mixedScenario() {
         // Given: Complex scenario with component names containing digits and iteration indices
-        String clientId = "myForm1:dataTable2:15:column3:nested4:42:outputText5";
+        var clientId = "myForm1:dataTable2:15:column3:nested4:42:outputText5";
 
         // When: Stripping iteration indices
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);
@@ -229,7 +229,7 @@ class TestComponentsLocal {
     @Test
     void testStripIterationIndex_startingWithDigitComponentName() {
         // Given: Component starting with digits followed by letters (not an iteration index)
-        String clientId = "123form:456table:7:input";
+        var clientId = "123form:456table:7:input";
 
         // When: Stripping iteration index
         String result = ComponentsLocal.stripIterationIndex(mockedFacesContext, clientId);

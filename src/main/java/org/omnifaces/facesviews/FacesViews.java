@@ -306,13 +306,13 @@ public final class FacesViews {
         }
         else {
             // Map the forwarding filter to all the resources we found.
-            for (String mapping : collectedViews.keySet()) {
+            for (var mapping : collectedViews.keySet()) {
                 filterRegistration.addMappingForUrlPatterns(EnumSet.of(REQUEST, FORWARD), filterAfterDeclaredFilters, mapping);
             }
 
             // Additionally map the filter to all paths that were scanned and which are also directly accessible.
             // This is to give the filter an opportunity to block these.
-            for (String path : getPublicRootPaths(servletContext)) {
+            for (var path : getPublicRootPaths(servletContext)) {
                 filterRegistration.addMappingForUrlPatterns(null, false, path + "*");
             }
         }
@@ -343,7 +343,7 @@ public final class FacesViews {
         if (facesServletRegistration != null) {
             Collection<String> existingMappings = facesServletRegistration.getMappings();
 
-            for (String mapping : mappings) {
+            for (var mapping : mappings) {
                 if (!existingMappings.contains(mapping)) {
                     facesServletRegistration.addMapping(mapping);
                 }
@@ -393,7 +393,7 @@ public final class FacesViews {
 
         if (!collectedViews.isEmpty()) {
             if (isLowercasedRequestURI(servletContext)) {
-                for (Entry<String, String> mapping : new HashSet<>(collectedViews.entrySet())) {
+                for (var mapping : new HashSet<>(collectedViews.entrySet())) {
                     String resourceName = mapping.getKey();
                     String lowercasedResourceName = resourceName.toLowerCase();
 
@@ -437,7 +437,7 @@ public final class FacesViews {
 
         Set<String> mappedWelcomeFiles = new LinkedHashSet<>();
 
-        for (String welcomeFile : getNodeTextContents(webXml, "welcome-file-list/welcome-file")) {
+        for (var welcomeFile : getNodeTextContents(webXml, "welcome-file-list/welcome-file")) {
             if (isExtensionless(welcomeFile)) {
                 mappedWelcomeFiles.add(addLeadingSlashIfNecessary(stripTrailingSlash(welcomeFile)));
             }
@@ -455,7 +455,7 @@ public final class FacesViews {
             rootPaths.add(new String[] { WEB_INF_VIEWS, null });
             Set<String> multiViewsPaths = new TreeSet<>(Collator.getInstance(ENGLISH)); // Makes sure ! is sorted before /.
 
-            for (String rootPath : csvToList(servletContext.getInitParameter(FACES_VIEWS_SCAN_PATHS_PARAM_NAME))) {
+            for (var rootPath : csvToList(servletContext.getInitParameter(FACES_VIEWS_SCAN_PATHS_PARAM_NAME))) {
                 boolean multiViews = rootPath.endsWith("/*");
 
                 if (multiViews) {
@@ -482,7 +482,7 @@ public final class FacesViews {
         servletContext.setAttribute(ENCOUNTERED_EXTENSIONS, unmodifiableSet(collectedExtensions));
 
         if (!collectedExtensions.isEmpty()) {
-            for (String welcomeFile : getMappedWelcomeFiles(servletContext)) {
+            for (var welcomeFile : getMappedWelcomeFiles(servletContext)) {
                 if (isMultiViewsEnabled(servletContext) && collectedViews.containsKey(welcomeFile + "/*")) {
                     servletContext.setAttribute(MULTIVIEWS_WELCOME_FILE, welcomeFile);
                 }
@@ -538,7 +538,7 @@ public final class FacesViews {
 
         boolean hasMultiViewsWelcomeFile = hasMultiViewsWelcomeFile(servletContext);
 
-        for (String resourcePath : resourcePaths) {
+        for (var resourcePath : resourcePaths) {
             var normalizedResourcePath = normalizeResourcePath(servletContext, resourcePath);
 
             if (isDirectory(normalizedResourcePath)) {
@@ -576,7 +576,7 @@ public final class FacesViews {
 
             // If FacesServlet is explicitly mapped on virtual extensions (e.g. when FacesViews is later enabled on a legacy app with *.jsf),
             // then we need to collect them as well so that these can properly be 301-redirected to extensionless one.
-            for (String facesServletExtension : getFacesServletExtensions(servletContext)) {
+            for (var facesServletExtension : getFacesServletExtensions(servletContext)) {
                 if (!resourcePath.endsWith(facesServletExtension)) {
                     collectedViews.put(extensionlessResource + facesServletExtension, resourcePath);
                 }
@@ -644,9 +644,9 @@ public final class FacesViews {
 
     private static boolean isMultiViewsResource(ServletContext servletContext, String resource) {
         if (isMultiViewsEnabled(servletContext)) {
-            String path = resource + "/";
+            var path = resource + "/";
 
-            for (String multiviewsPath : getMultiViewsPaths(servletContext)) {
+            for (var multiviewsPath : getMultiViewsPaths(servletContext)) {
                 if (path.startsWith(multiviewsPath)) {
                     return true;
                 }
@@ -672,7 +672,7 @@ public final class FacesViews {
     }
 
     static boolean isResourceInPublicPath(ServletContext servletContext, String resource) {
-        for (String path : getPublicRootPaths(servletContext)) {
+        for (var path : getPublicRootPaths(servletContext)) {
             if (resource.startsWith(path)) {
                 return true;
             }
@@ -687,7 +687,7 @@ public final class FacesViews {
      * E.g. <code>https://example.com/foo/bar.xhtml?kaz=1</code> becomes <code>https://example.com/foo/bar?kaz=1</code>
      */
     static String getExtensionlessURLWithQuery(HttpServletRequest request, String resource) {
-        String queryString = (request.getQueryString() == null) ? "" : ("?" + request.getQueryString());
+        var queryString = (request.getQueryString() == null) ? "" : ("?" + request.getQueryString());
         String baseURL = getRequestBaseURL(request);
         return baseURL.substring(0, baseURL.length() - 1) + stripExtension(resource) + queryString;
     }
@@ -696,7 +696,7 @@ public final class FacesViews {
         Set<String> mappedWelcomeFiles = getMappedWelcomeFiles(servletContext);
 
         for (Path path = Paths.get(servletPath); path.getParent() != null; path = path.getParent()) {
-            for (String mappedWelcomeFile : mappedWelcomeFiles) {
+            for (var mappedWelcomeFile : mappedWelcomeFiles) {
                 String subfolderWelcomeFile = path.toString() + mappedWelcomeFile;
 
                 if (resources.containsKey(subfolderWelcomeFile + "/*")) {
@@ -727,7 +727,7 @@ public final class FacesViews {
         if (extensions == null) {
             extensions = new HashSet<>();
 
-            for (String mapping : getFacesServletMappings(servletContext)) {
+            for (var mapping : getFacesServletMappings(servletContext)) {
                 if (mapping.startsWith("*")) {
                     extensions.add(mapping.substring(1));
                 }
@@ -866,7 +866,7 @@ public final class FacesViews {
         Set<String> excludedPaths = getExcludedPaths(servletContext);
 
         if (!isEmpty(excludedPaths)) {
-            String path = extensionlessResource + "/";
+            var path = extensionlessResource + "/";
 
             if (excludedPaths.stream().anyMatch(path::startsWith)) {
                 return false;
@@ -896,7 +896,7 @@ public final class FacesViews {
      * @since 2.5
      */
     public static String stripWelcomeFilePrefix(ServletContext servletContext, String resource) {
-        for (String mappedWelcomeFile : getMappedWelcomeFiles(servletContext)) {
+        for (var mappedWelcomeFile : getMappedWelcomeFiles(servletContext)) {
             if (resource.endsWith(mappedWelcomeFile)) {
                 return addTrailingSlashIfNecessary(resource.substring(0, resource.length() - mappedWelcomeFile.length()));
             }

@@ -16,7 +16,6 @@ import static org.omnifaces.util.Components.getAttribute;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.behavior.ClientBehaviorHolder;
@@ -161,7 +160,7 @@ public final class Renderers {
     public static void writeAttributes(ResponseWriter writer, UIComponent component, String... names)
         throws IOException
     {
-        for (String name : names) {
+        for (var name : names) {
             writeAttribute(writer, name, getAttribute(component, name), name);
         }
     }
@@ -178,7 +177,7 @@ public final class Renderers {
     public static void writeAttributes(ResponseWriter writer, UIComponent component, Map<String, String> names)
         throws IOException
     {
-        for (Entry<String, String> entry : names.entrySet()) {
+        for (var entry : names.entrySet()) {
             String name = entry.getKey();
             String html = entry.getValue();
             writeAttribute(writer, html, getAttribute(component, name), name);

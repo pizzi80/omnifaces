@@ -32,9 +32,9 @@ public class TestBeanStorage {
         var beanStorage = new BeanStorage(10);
         var outerBeanCounter = new AtomicInteger();
         var innerBeanCounter = new AtomicInteger();
-        var outerBean = new Contextual<Object>() {
+        var outerBean = new Contextual<>() {
 
-            Contextual<Object> innerBean = new Contextual<Object>() {
+            Contextual<Object> innerBean = new Contextual<>() {
                 @Override
                 public Object create(CreationalContext<Object> context) {
                     innerBeanCounter.incrementAndGet();
@@ -62,7 +62,7 @@ public class TestBeanStorage {
             public void destroy(Object instance, CreationalContext<Object> context) {}
         };
 
-        var context = new CreationalContext<Object>() {
+        var context = new CreationalContext<>() {
             @Override
             public void push(Object incompleteInstance) {}
 

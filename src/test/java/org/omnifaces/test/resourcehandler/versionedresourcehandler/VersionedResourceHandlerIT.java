@@ -39,7 +39,7 @@ public class VersionedResourceHandlerIT extends OmniFacesIT {
     @Test
     void test() {
         String[] parts = someCss.getAttribute("href").split("\\?", 2);
-        String resourceName = parts[0].split(quote(RESOURCE_IDENTIFIER + "/"), 2)[1].split("\\.xhtml", 2)[0];
+        var resourceName = parts[0].split(quote(RESOURCE_IDENTIFIER + "/"), 2)[1].split("\\.xhtml", 2)[0];
         String queryString = parts[1];
         assertEquals("some.min.css", resourceName);
         assertEquals("before=true&v=3.13.3", queryString);

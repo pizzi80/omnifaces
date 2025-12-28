@@ -159,7 +159,7 @@ public class ScriptParam extends OnloadParam {
     protected String getInitScript(FacesContext context) {
         var scripts = new StringBuilder("{");
 
-        for (ScriptParam scriptParam : getScriptParameters(context)) {
+        for (var scriptParam : getScriptParameters(context)) {
             scripts.append("'").append(scriptParam.getClientId(context)).append("':").append(scriptParam.getScript()).append(',');
         }
 
@@ -179,7 +179,7 @@ public class ScriptParam extends OnloadParam {
     protected void decodeAll(FacesContext context) {
         Set<Object> beans = new HashSet<>();
 
-        for (ScriptParam scriptParam : getScriptParameters(context)) {
+        for (var scriptParam : getScriptParameters(context)) {
             var value = getRequestParameter(context, scriptParam.getClientId(context));
             scriptParam.decodeImmediately(context, value);
             var valueExpression = scriptParam.getValueExpression(VALUE_ATTRIBUTE);
@@ -189,7 +189,7 @@ public class ScriptParam extends OnloadParam {
             }
         }
 
-        for (Object bean : beans) {
+        for (var bean : beans) {
             invokeMethods(bean, PostScriptParam.class);
         }
     }

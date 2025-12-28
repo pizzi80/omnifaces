@@ -191,7 +191,7 @@ public class ImportFunctions extends TagHandler {
         @Override
         public Method resolveFunction(String prefix, String name) {
             if (varName.equals(prefix)) {
-                String key = type + "." + name;
+                var key = type + "." + name;
                 Method function = FUNCTIONS_CACHE.get(key);
 
                 if (function == null) {
@@ -221,7 +221,7 @@ public class ImportFunctions extends TagHandler {
         private static Method findMethod(Class<?> cls, String name) {
             Set<Method> methods = new TreeSet<>(METHOD_PARAM_COUNT_COMPARATOR);
 
-            for (Method method : cls.getDeclaredMethods()) {
+            for (var method : cls.getDeclaredMethods()) {
                 if (method.getName().equals(name) && isPublicStaticNonVoid(method)) {
                     methods.add(method);
                 }

@@ -151,7 +151,7 @@ public final class Reflection {
                 return this.nodes.size() < other.nodes.size() ? -1 : 1;
             }
 
-            for (int index = 0; index < this.nodes.size(); index++) {
+            for (var index = 0; index < this.nodes.size(); index++) {
                 Comparable thisNode = this.nodes.get(index);
                 Comparable otherNode = other.nodes.get(index);
 
@@ -185,7 +185,7 @@ public final class Reflection {
          */
         @Override
         public String toString() {
-            StringBuilder stringBuilder = new StringBuilder();
+            var stringBuilder = new StringBuilder();
 
             for (Comparable<?> node : nodes) {
                 if (node instanceof String) {
@@ -237,7 +237,7 @@ public final class Reflection {
     public static void setProperties(Object bean, Map<String, Object> propertiesToSet) {
         Map<String, PropertyDescriptor> availableProperties = getPropertyDescriptors(bean.getClass());
 
-        for (Entry<String, Object> propertyToSet : propertiesToSet.entrySet()) {
+        for (var propertyToSet : propertiesToSet.entrySet()) {
             setBeanProperty(bean, propertyToSet.getValue(), availableProperties.get(propertyToSet.getKey()));
         }
     }
@@ -272,7 +272,7 @@ public final class Reflection {
      *            the map containing properties and their values to be set on the object
      */
     public static void setPropertiesWithCoercion(Object bean, Map<String, Object> propertiesToSet) {
-        for (PropertyDescriptor property : getPropertyDescriptors(bean.getClass()).values()) {
+        for (var property : getPropertyDescriptors(bean.getClass()).values()) {
             Method setter = property.getWriteMethod();
 
             if (setter == null || !propertiesToSet.containsKey(property.getName())) {
@@ -309,7 +309,7 @@ public final class Reflection {
         Map<PropertyPath, Object> sortedProperties = new TreeMap<>(reverseOrder()); // Reverse order ensures that e.g. "list[4].property" comes before e.g. "list[0].property", so that the code knows how many items to prepopulate.
         sortedProperties.putAll(properties);
 
-        for (Entry<PropertyPath, Object> entry : sortedProperties.entrySet()) {
+        for (var entry : sortedProperties.entrySet()) {
             PropertyPath path = entry.getKey();
 
             if (!path.nodes.isEmpty()) {
@@ -322,7 +322,7 @@ public final class Reflection {
     private static Object getBase(Object bean, PropertyPath path, Map<Class<?>, Map<String, PropertyDescriptor>> cachedDescriptors) {
         Object base = bean;
 
-        for (int index = 0; index < path.nodes.size() - 1; index++) {
+        for (var index = 0; index < path.nodes.size() - 1; index++) {
             Comparable<?> node = path.nodes.get(index);
 
             if (base instanceof List) {
@@ -412,7 +412,7 @@ public final class Reflection {
             Class<?> elementType = (Class<?>) ((ParameterizedType) propertyDescriptor.getReadMethod().getGenericReturnType()).getActualTypeArguments()[0];
             Integer size = ((Integer) nextPropertyNode) + 1;
 
-            for (int index = 0; index < size; index++) {
+            for (var index = 0; index < size; index++) {
                 ((List) value).add(createDefaultValueIfNecessary(elementType));
             }
         }
@@ -423,7 +423,7 @@ public final class Reflection {
             Integer length = ((Integer) nextPropertyNode) + 1;
             value = Array.newInstance(type.getComponentType(), length);
 
-            for (int index = 0; index < length; index++) {
+            for (var index = 0; index < length; index++) {
                 Array.set(value, index, createDefaultValueIfNecessary(type.getComponentType()));
             }
         }
@@ -516,7 +516,7 @@ public final class Reflection {
     }
 
     private static void collectBasePropertyPathsFromList(List<?> list, PropertyPath basePath, Predicate<Method> recursableGetter, Map<Class<?>, Map<String, PropertyDescriptor>> cachedDescriptors, Map<Object, PropertyPath> collectedBasePropertyPaths) {
-        for (int index = 0; index < list.size(); index++) {
+        for (var index = 0; index < list.size(); index++) {
             collectBasePropertyPath(list.get(index), recursableGetter, basePath, cachedDescriptors, collectedBasePropertyPaths, index);
         }
     }
@@ -533,13 +533,13 @@ public final class Reflection {
     }
 
     private static void collectBasePropertyPathsFromArray(Object[] array, PropertyPath basePath, Predicate<Method> recursableGetter, Map<Class<?>, Map<String, PropertyDescriptor>> cachedDescriptors, Map<Object, PropertyPath> collectedBasePropertyPaths) {
-        for (int index = 0; index < array.length; index++) {
+        for (var index = 0; index < array.length; index++) {
             collectBasePropertyPath(array[index], recursableGetter, basePath, cachedDescriptors, collectedBasePropertyPaths, index);
         }
     }
 
     private static void collectBasePropertyPathsFromBean(Object bean, PropertyPath basePath, Predicate<Method> recursableGetter, Map<Class<?>, Map<String, PropertyDescriptor>> cachedDescriptors, Map<Object, PropertyPath> collectedBasePropertyPaths) {
-        for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors(bean.getClass(), cachedDescriptors).values()) {
+        for (var propertyDescriptor : getPropertyDescriptors(bean.getClass(), cachedDescriptors).values()) {
             if (recursableGetter.test(propertyDescriptor.getReadMethod())) {
                 collectBasePropertyPath(getBeanProperty(bean, propertyDescriptor), recursableGetter, basePath, cachedDescriptors, collectedBasePropertyPaths, propertyDescriptor.getName());
             }
@@ -638,7 +638,7 @@ public final class Reflection {
     }
 
     private static void collectMethods(List<Method> methods, Class<?> type, boolean iface, String methodName, Object... params) {
-        for (Method method : type.getDeclaredMethods()) {
+        for (var method : type.getDeclaredMethods()) {
             if ((!iface || method.isDefault()) && method.getName().equals(methodName) && method.getParameterTypes().length == params.length && isNotOverridden(methods, method)) {
                 methods.add(method);
             }
@@ -646,7 +646,7 @@ public final class Reflection {
     }
 
     private static boolean isNotOverridden(List<Method> methodsWithSameName, Method method) {
-        for (Method methodWithSameName : methodsWithSameName) {
+        for (var methodWithSameName : methodsWithSameName) {
             if (Arrays.equals(methodWithSameName.getParameterTypes(), method.getParameterTypes())) {
                 return false;
             }
@@ -656,11 +656,11 @@ public final class Reflection {
     }
 
     private static Method closestMatchingMethod(List<Method> methods, Object... params) {
-        for (Method method : methods) {
+        for (var method : methods) {
             Class<?>[] candidateParamTypes = method.getParameterTypes();
-            boolean match = true;
+            var match = true;
 
-            for (int i = 0; i < params.length; i++) {
+            for (var i = 0; i < params.length; i++) {
                 if (!isAssignable(params[i], candidateParamTypes[i])) {
                     match = false;
                     break;
@@ -689,7 +689,7 @@ public final class Reflection {
         List<Method> methods = new ArrayList<>();
 
         for (Class<?> cls = base.getClass(); cls != null; cls = cls.getSuperclass()) {
-            for (Method method : cls.getDeclaredMethods()) {
+            for (var method : cls.getDeclaredMethods()) {
                 if (method.isAnnotationPresent(annotation) && isNotOverridden(methods, method)) {
                     methods.add(method);
                 }
@@ -876,7 +876,7 @@ public final class Reflection {
     public static <C, T> T accessField(C instance, Class<? extends C> classType, Class<T> fieldType) {
         try {
             for (Class<?> type = classType; type != Object.class; type = type.getSuperclass()) {
-                for (Field field : type.getDeclaredFields()) {
+                for (var field : type.getDeclaredFields()) {
                     if (fieldType.isAssignableFrom(field.getType())) {
                         field.setAccessible(true);
                         return (T) field.get(instance);
@@ -995,7 +995,7 @@ public final class Reflection {
      * @since 3.6
      */
     public static <A extends Annotation> void invokeMethods(Object instance, Class<A> annotation) {
-        for (Method method : findMethods(instance, annotation)) {
+        for (var method : findMethods(instance, annotation)) {
             try {
                 invokeMethod(instance, method);
             }

@@ -122,7 +122,7 @@ public class ToCollectionConverter implements Converter<Collection> {
 
         Collection<Object> collection = instance(coalesce(type, DEFAULT_COLLECTION_TYPE));
 
-        for (String item : submittedValue.split(quote(coalesce(delimiter, DEFAULT_DELIMITER)))) {
+        for (var item : submittedValue.split(quote(coalesce(delimiter, DEFAULT_DELIMITER)))) {
             String trimmed = item.trim();
             collection.add(converter == null ? trimmed : converter.getAsObject(context, component, trimmed));
         }
@@ -137,14 +137,14 @@ public class ToCollectionConverter implements Converter<Collection> {
         }
 
         Application application = context.getApplication();
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
         String specifiedDelimiter = coalesce(delimiter, DEFAULT_DELIMITER);
         Converter specifiedConverter = createConverter(itemConverter);
         Class<?> forClass = null;
         Converter converter = specifiedConverter;
-        int i = 0;
+        var i = 0;
 
-        for (Object item : (Collection<?>) modelValue) {
+        for (var item : (Collection<?>) modelValue) {
             if (i++ > 0) {
                 builder.append(specifiedDelimiter);
             }

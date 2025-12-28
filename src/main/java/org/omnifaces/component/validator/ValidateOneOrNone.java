@@ -53,9 +53,9 @@ public class ValidateOneOrNone extends ValidateMultipleFields {
      */
     @Override
     public boolean validateValues(FacesContext context, List<UIInput> inputs, List<Object> values) {
-        boolean hasValue = false;
+        var hasValue = false;
 
-        for (Object value : values) {
+        for (var value : values) {
             if (!isEmpty(value)) {
                 if (hasValue) {
                     return false;

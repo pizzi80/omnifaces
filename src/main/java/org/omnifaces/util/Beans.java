@@ -413,7 +413,7 @@ public final class Beans {
      * @since 2.1
      */
     public static <A extends Annotation> A getQualifier(InjectionPoint injectionPoint, Class<A> qualifierClass) {
-        for (Annotation annotation : injectionPoint.getQualifiers()) {
+        for (var annotation : injectionPoint.getQualifiers()) {
             if (qualifierClass.isAssignableFrom(annotation.getClass())) {
                 return qualifierClass.cast(annotation);
             }

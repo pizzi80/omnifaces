@@ -66,7 +66,7 @@ public class ListConverter implements Converter<Object> {
 
     @Override
     public Object getAsObject(FacesContext context, UIComponent component, String value) {
-        for (Object listValue : list) {
+        for (var listValue : list) {
             String convertedListValue = getAsString(context, component, listValue);
             if (Objects.equals(value, convertedListValue)) {
                 return listValue;

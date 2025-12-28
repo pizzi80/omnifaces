@@ -87,7 +87,7 @@ public final class Arrays {
             return false;
         }
 
-        for (Object object : array) {
+        for (var object : array) {
             if (object != null && object.toString().equals(item.toString())) {
                 return true;
             }

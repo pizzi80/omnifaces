@@ -222,7 +222,7 @@ public abstract class ValidateMultipleFields extends ValidatorFamily implements 
         if (!validateValues(context, inputs, values)) {
             var i = 0;
 
-            for (UIInput input : inputs) {
+            for (var input : inputs) {
                 if (Components.isRendered(input)) {
                     input.setValid(!isInvalidateAll() && !shouldInvalidateInput(context, input, values.get(i)));
 
@@ -258,8 +258,8 @@ public abstract class ValidateMultipleFields extends ValidatorFamily implements 
         var namingContainerParent = getNamingContainer();
         List<UIInput> inputs = new ArrayList<>();
 
-        for (String clientId : components.split("\\s+")) {
-            for (UIInput input : findInputComponents(namingContainerParent, clientId, PropertyKeys.components)) {
+        for (var clientId : components.split("\\s+")) {
+            for (var input : findInputComponents(namingContainerParent, clientId, PropertyKeys.components)) {
                 if (!input.isValid()) {
                     return Collections.emptyList();
                 }
@@ -279,7 +279,7 @@ public abstract class ValidateMultipleFields extends ValidatorFamily implements 
     protected List<Object> collectValues(List<UIInput> inputs) {
         List<Object> values = new ArrayList<>(inputs.size());
 
-        for (UIInput input : inputs) {
+        for (var input : inputs) {
             var value = isEditable(input) ? getValue(input) : input.getValue();
 
             if (input instanceof UISelectBoolean && Boolean.FALSE.equals(value)) {
@@ -372,12 +372,12 @@ public abstract class ValidateMultipleFields extends ValidatorFamily implements 
             addError(getClientId(context), message, labels);
         }
         else if ("@all".equals(showMessageFor)) {
-            for (UIInput input : inputs) {
+            for (var input : inputs) {
                 addError(input.getClientId(context), message, labels);
             }
         }
         else if ("@invalid".equals(showMessageFor)) {
-            for (UIInput input : inputs) {
+            for (var input : inputs) {
                 if (!input.isValid()) {
                     addError(input.getClientId(context), message, labels);
                 }
@@ -389,7 +389,7 @@ public abstract class ValidateMultipleFields extends ValidatorFamily implements 
         else {
             var namingContainerParent = getNamingContainer();
 
-            for (String clientId : showMessageFor.split("\\s+")) {
+            for (var clientId : showMessageFor.split("\\s+")) {
                 var input = findInputComponent(namingContainerParent, clientId, PropertyKeys.showMessageFor);
                 addError(input.getClientId(context), message, labels);
             }

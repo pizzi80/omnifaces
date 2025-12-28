@@ -118,7 +118,7 @@ public abstract class DynamicResource extends Resource {
 
     @Override
     public boolean userAgentNeedsUpdate(FacesContext context) {
-        String ifModifiedSince = context.getExternalContext().getRequestHeaderMap().get("If-Modified-Since");
+        var ifModifiedSince = context.getExternalContext().getRequestHeaderMap().get("If-Modified-Since");
 
         if (ifModifiedSince != null) {
             try {

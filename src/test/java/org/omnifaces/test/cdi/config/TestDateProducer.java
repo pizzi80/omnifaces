@@ -16,9 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.util.Date;
@@ -29,7 +27,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.omnifaces.cdi.config.DateProducer;
-import org.omnifaces.cdi.config.DateProducer.TemporalDate;
 
 class TestDateProducer {
 
@@ -50,10 +47,10 @@ class TestDateProducer {
 
     @Test
     void testNow() {
-        Date oldNow = new Date();
-        TemporalDate newNow = new DateProducer.TemporalDate();
-        String oldNowAsString = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(oldNow);
-        String newNowAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(newNow);
+        var oldNow = new Date();
+        var newNow = new DateProducer.TemporalDate();
+        var oldNowAsString = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(oldNow);
+        var newNowAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(newNow);
 
         assertEquals(oldNowAsString, newNowAsString, "format");
         assertEquals(testZoneOffset, ZoneOffset.ofTotalSeconds(newNow.get(ChronoField.OFFSET_SECONDS)), "offset");
@@ -61,10 +58,10 @@ class TestDateProducer {
 
     @Test
     void testZonedDateTime() {
-        Date oldNow = new Date();
-        ZonedDateTime newNowAsZoned = new DateProducer.TemporalDate().getZonedDateTime();
-        String oldNowAsString = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(oldNow);
-        String newNowAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(newNowAsZoned);
+        var oldNow = new Date();
+        var newNowAsZoned = new DateProducer.TemporalDate().getZonedDateTime();
+        var oldNowAsString = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(oldNow);
+        var newNowAsString = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(newNowAsZoned);
 
         assertEquals(oldNowAsString, newNowAsString, "format");
         assertEquals(testZoneOffset, newNowAsZoned.getOffset(), "offset");
@@ -72,8 +69,8 @@ class TestDateProducer {
 
     @Test
     void testInstant() {
-        Date oldNow = new Date();
-        Instant newNowAsInstant = new DateProducer.TemporalDate().getInstant();
+        var oldNow = new Date();
+        var newNowAsInstant = new DateProducer.TemporalDate().getInstant();
         long oldTime = oldNow.getTime();
         long newTime = newNowAsInstant.toEpochMilli();
         long timeDiff = Math.abs(oldTime - newTime);
@@ -83,8 +80,8 @@ class TestDateProducer {
 
     @Test
     void testTime() {
-        Date oldNow = new Date();
-        TemporalDate newNow = new DateProducer.TemporalDate();
+        var oldNow = new Date();
+        var newNow = new DateProducer.TemporalDate();
         long oldTime = oldNow.getTime();
         long newTime = newNow.getTime();
         long timeDiff = Math.abs(oldTime - newTime);

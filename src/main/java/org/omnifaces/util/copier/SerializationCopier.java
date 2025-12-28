@@ -39,7 +39,7 @@ public class SerializationCopier implements Copier {
         }
 
         try {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            var outputStream = new ByteArrayOutputStream();
             new ObjectOutputStream(outputStream).writeObject(object);
 
             return new ObjectInputStream(new ByteArrayInputStream(outputStream.toByteArray())).readObject();

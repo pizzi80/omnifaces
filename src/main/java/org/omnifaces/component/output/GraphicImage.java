@@ -270,7 +270,7 @@ public class GraphicImage extends HtmlGraphicImage {
      * @throws IOException When something fails at I/O level.
      */
     protected String getSrc(FacesContext context) throws IOException {
-        String name = (String) getAttributes().get("name");
+        var name = (String) getAttributes().get("name");
         boolean dataURI = isDataURI();
 
         Resource resource;
@@ -294,7 +294,7 @@ public class GraphicImage extends HtmlGraphicImage {
         }
 
         String url = context.getExternalContext().encodeResourceURL(resource.getRequestPath());
-        String fragment = (String) getAttributes().get("fragment");
+        var fragment = (String) getAttributes().get("fragment");
 
         if (dataURI || isEmpty(fragment)) {
             return url;
@@ -304,7 +304,7 @@ public class GraphicImage extends HtmlGraphicImage {
     }
 
     private Resource createGraphicResourceByName(FacesContext context, String name, boolean dataURI) throws IOException {
-        String library = (String) getAttributes().get("library");
+        var library = (String) getAttributes().get("library");
         Resource resource = createResource(context, library, name);
 
         if (resource != null && dataURI && resource.getContentType().startsWith("image")) {
@@ -315,7 +315,7 @@ public class GraphicImage extends HtmlGraphicImage {
     }
 
     private Resource createGraphicResourceByValue(FacesContext context, ValueExpression value, boolean dataURI) {
-        String type = (String) getAttributes().get("type");
+        var type = (String) getAttributes().get("type");
 
         if (dataURI) {
             return new GraphicResource(value.getValue(context.getELContext()), type);

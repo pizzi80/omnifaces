@@ -32,7 +32,7 @@ class TestUtils {
 
     @Test
     void testSerializeURLSafe() {
-        for (String originalString : URL_SAFE_SERIALIZATION_EXAMPLES) {
+        for (var originalString : URL_SAFE_SERIALIZATION_EXAMPLES) {
             var serializedString = Utils.serializeURLSafe(originalString);
             assertTrue(!serializedString.contains("="), "The serialized string '" + serializedString + "' based on '" + originalString + "' may not contain the '=' character");
             var unserializedString = Utils.unserializeURLSafe(serializedString);

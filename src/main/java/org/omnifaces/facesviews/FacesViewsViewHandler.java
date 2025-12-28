@@ -122,8 +122,8 @@ public class FacesViewsViewHandler extends ViewHandlerWrapper {
             // request is extensionless; render the action URL extensionless as well.
             String[] uriAndRest = (lowercasedRequestURI ? actionURL.replaceFirst(viewId, resourceName) : actionURL).split("(?=[?#;])", 2);
             String uri = stripWelcomeFilePrefix(servletContext, removeExtensionIfNecessary(servletContext, uriAndRest[0], viewId));
-            String rest = uriAndRest.length > 1 ? uriAndRest[1] : "";
-            String pathInfo = context.getViewRoot() != null && context.getViewRoot().getViewId().equals(viewId) ? coalesce(getRequestPathInfo(context), "") : "";
+            var rest = uriAndRest.length > 1 ? uriAndRest[1] : "";
+            var pathInfo = context.getViewRoot() != null && context.getViewRoot().getViewId().equals(viewId) ? coalesce(getRequestPathInfo(context), "") : "";
             return (pathInfo.isEmpty() ? uri : (stripTrailingSlash(uri) + pathInfo)) + rest;
         }
 
@@ -155,8 +155,8 @@ public class FacesViewsViewHandler extends ViewHandlerWrapper {
             // This is a MultiViews enabled viewId, so render the path parameters as well, replacing the current ones if any.
             String[] uriAndRest = bookmarkableURL.split("(?=[?#;])", 2);
             String uri = removePathInfoIfNecessary(context, uriAndRest[0]);
-            String rest = uriAndRest.length > 1 ? uriAndRest[1] : "";
-            String pathInfo = pathParams.stream().filter(Objects::nonNull).map(Utils::encodeURI).collect(joining(PATH_SEPARATOR, PATH_SEPARATOR, ""));
+            var rest = uriAndRest.length > 1 ? uriAndRest[1] : "";
+            var pathInfo = pathParams.stream().filter(Objects::nonNull).map(Utils::encodeURI).collect(joining(PATH_SEPARATOR, PATH_SEPARATOR, ""));
             return stripTrailingSlash(uri) + pathInfo + rest;
         }
         else if (isDevelopment(context)) {
@@ -191,7 +191,7 @@ public class FacesViewsViewHandler extends ViewHandlerWrapper {
             }
         }
 
-        for (String extension : extensions) {
+        for (var extension : extensions) {
             if (uri.endsWith(extension)) {
                 return uri.substring(0, uri.length() - extension.length());
             }

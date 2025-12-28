@@ -51,7 +51,7 @@ public class OnDemandResponseBufferFilter extends HttpFilter {
     public void doFilter(HttpServletRequest request, HttpServletResponse response, HttpSession session, FilterChain chain) throws ServletException,
             IOException {
 
-        BufferedHttpServletResponse bufferedResponse = new BufferedHttpServletResponse(response);
+        var bufferedResponse = new BufferedHttpServletResponse(response);
 
         // By default don't buffer, code has to activate this explicitly.
         bufferedResponse.setPassThrough(true);

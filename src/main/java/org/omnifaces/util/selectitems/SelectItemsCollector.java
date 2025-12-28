@@ -62,7 +62,7 @@ public final class SelectItemsCollector {
         List<SelectItem> selectItems = new ArrayList<>();
 
         // Iterate over all children of the parent component. Non-UISelectItem/s children are automatically skipped.
-        for (UIComponent child : parent.getChildren()) {
+        for (var child : parent.getChildren()) {
             if (child instanceof UISelectItem uiSelectItem) {
                 selectItems.add(getFromUISelectItem(uiSelectItem));
             }
@@ -129,14 +129,14 @@ public final class SelectItemsCollector {
 
         List<SelectItem> selectItems = new ArrayList<>();
         Map<String, Object> attributes = uiSelectItems.getAttributes();
-        String varName = (String) attributes.get("var");
+        var varName = (String) attributes.get("var");
 
         // Helper class that's used to set the item value in (EL) scope using the name set by "var" during the iteration.
         // If during each iteration the value of this is changed, any value expressions in the attribute
         // map referring it will resolve to that particular instance.
-        ScopedRunner scopedRunner = new ScopedRunner(facesContext);
+        var scopedRunner = new ScopedRunner(facesContext);
 
-        for (Object item : items) {
+        for (var item : items) {
 
             // If the item is already a SelectItem, take it directly.
             // NOTE: I'm not 100% sure if this is right, since it now allows a collection to consist

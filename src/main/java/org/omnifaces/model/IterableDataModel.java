@@ -128,9 +128,9 @@ public class IterableDataModel<E> extends DataModel<E> {
         DataModelListener[] dataModelListeners = getDataModelListeners();
         if (oldRowIndex != rowIndex && dataModelListeners != null) {
 
-            DataModelEvent dataModelEvent = new DataModelEvent(this, rowIndex, getRowDataOrNull());
+            var dataModelEvent = new DataModelEvent(this, rowIndex, getRowDataOrNull());
 
-            for (DataModelListener dataModelListener : dataModelListeners) {
+            for (var dataModelListener : dataModelListeners) {
                 if (dataModelListener != null) {
                     dataModelListener.rowSelected(dataModelEvent);
                 }

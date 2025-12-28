@@ -52,7 +52,7 @@ public class ValidateOneOrMore extends ValidateMultipleFields {
      */
     @Override
     public boolean validateValues(FacesContext context, List<UIInput> inputs, List<Object> values) {
-        for (Object value : values) {
+        for (var value : values) {
             if (!isEmpty(value)) {
                 return true;
             }

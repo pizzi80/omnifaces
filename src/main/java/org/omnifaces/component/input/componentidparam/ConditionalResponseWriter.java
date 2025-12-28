@@ -243,7 +243,7 @@ public class ConditionalResponseWriter extends ResponseWriterWrapper {
     private void checkParents(UIComponent component) {
         // If current component not rendered because of explicit id match, check if parent is rendered.
         if (!lastRendered) {
-            boolean found = false;
+            var found = false;
 
             for (UIComponent parent = component.getParent(); parent != null; parent = parent.getParent()) {
                 if (renderedIdCache.containsKey(parent.getClientId())) {

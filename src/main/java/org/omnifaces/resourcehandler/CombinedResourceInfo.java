@@ -309,7 +309,7 @@ public final class CombinedResourceInfo {
 
         Set<ResourceIdentifier> resourceIdentifiers = new LinkedHashSet<>();
 
-        for (String resourceIdentifier : resourcesId.split("\\|")) {
+        for (var resourceIdentifier : resourcesId.split("\\|")) {
             resourceIdentifiers.add(new ResourceIdentifier(resourceIdentifier));
         }
 

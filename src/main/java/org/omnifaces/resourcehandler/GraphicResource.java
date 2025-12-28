@@ -39,7 +39,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -49,7 +48,6 @@ import jakarta.enterprise.inject.spi.Bean;
 import jakarta.enterprise.util.AnnotationLiteral;
 import jakarta.faces.FacesException;
 import jakarta.faces.application.Resource;
-import jakarta.faces.component.UIComponent;
 import jakarta.faces.component.UIOutput;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.convert.Converter;
@@ -297,7 +295,7 @@ public class GraphicResource extends DynamicResource {
             Object instance = getReference(beanManager, bean);
             var registered = false;
 
-            for (Method method : beanClass.getMethods()) {
+            for (var method : beanClass.getMethods()) {
                 if (isPublic(method.getModifiers()) && isOneInstanceOf(method.getReturnType(), REQUIRED_RETURN_TYPES)) {
                     var resourceBaseName = getResourceBaseName(beanClass, method);
                     var methodReference = new MethodReference(instance, method);
@@ -341,7 +339,7 @@ public class GraphicResource extends DynamicResource {
      * Guess the image content type based on given base64 encoded content for data URI.
      */
     private static String guessContentType(String base64) {
-        for (Entry<String, String> contentTypeByBase64Header : CONTENT_TYPES_BY_BASE64_HEADER.entrySet()) {
+        for (var contentTypeByBase64Header : CONTENT_TYPES_BY_BASE64_HEADER.entrySet()) {
             if (base64.startsWith(contentTypeByBase64Header.getKey())) {
                 return contentTypeByBase64Header.getValue();
             }
@@ -382,7 +380,7 @@ public class GraphicResource extends DynamicResource {
     private static String[] convertToStrings(FacesContext context, Object[] values, Class<?>[] types) {
         validateParamLength(values, types);
         var strings = new String[values.length];
-        UIComponent dummyComponent = new UIOutput();
+        var dummyComponent = new UIOutput();
 
         for (var i = 0; i < values.length; i++) {
             var value = values[i];
@@ -402,7 +400,7 @@ public class GraphicResource extends DynamicResource {
     private static Object[] convertToObjects(FacesContext context, String[] values, Class<?>[] types) {
         validateParamLength(values, types);
         var objects = new Object[values.length];
-        UIComponent dummyComponent = new UIOutput();
+        var dummyComponent = new UIOutput();
 
         for (var i = 0; i < values.length; i++) {
             var value = isEmpty(values[i]) ? null : values[i];

@@ -58,7 +58,7 @@ class TestNumbers {
             Locale.setDefault(Locale.ENGLISH);
 
             for (String[] numberFormattedAsThousands : NUMBERS_FORMATTED_AS_THOUSANDS) {
-                BigDecimal number = new BigDecimal(numberFormattedAsThousands[0]);
+                var number = new BigDecimal(numberFormattedAsThousands[0]);
                 String expectedResult = numberFormattedAsThousands[1];
                 String actualResult = Numbers.formatThousands(number);
                 assertEquals(expectedResult, actualResult);
@@ -77,7 +77,7 @@ class TestNumbers {
             Locale.setDefault(Locale.GERMAN);
 
             for (String[] numberFormattedAsThousands : NUMBERS_FORMATTED_AS_THOUSANDS) {
-                BigDecimal number = new BigDecimal(numberFormattedAsThousands[0]);
+                var number = new BigDecimal(numberFormattedAsThousands[0]);
                 String expectedResult = numberFormattedAsThousands[1].replace('.', ',');
                 String actualResult = Numbers.formatThousands(number);
                 assertEquals(expectedResult, actualResult);

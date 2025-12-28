@@ -199,7 +199,7 @@ public final class Validators {
             }
         }
         catch (Exception e) {
-            String propertyPath = getPropertyNodes(violation).stream().map(Node::toString).collect(joining("."));
+            var propertyPath = getPropertyNodes(violation).stream().map(Node::toString).collect(joining("."));
             logger.log(WARNING, format(ERROR_RESOLVE_BASE, propertyPath, bean == null ? "null" : bean.getClass()), e);
 
             if (violation.getLeafBean() != null) {

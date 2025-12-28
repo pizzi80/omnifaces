@@ -38,7 +38,6 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -457,7 +456,7 @@ public final class Dates {
             return null; // None of the maps have a null value anyway.
         }
 
-        for (Entry<K, V> entry : map.entrySet()) {
+        for (var entry : map.entrySet()) {
             if (value.equals(entry.getValue())) {
                 return entry.getKey();
             }

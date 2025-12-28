@@ -108,7 +108,7 @@ public class OnloadScript extends ScriptFamily implements SystemEventListener {
         }
 
         pushComponentToEL(context, this);
-        StringWriter buffer = new StringWriter();
+        var buffer = new StringWriter();
         ResponseWriter originalResponseWriter = context.getResponseWriter();
         String encoding = context.getExternalContext().getRequestCharacterEncoding();
         context.getExternalContext().setResponseCharacterEncoding(encoding);

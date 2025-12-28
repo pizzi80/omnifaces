@@ -122,7 +122,7 @@ public class MassAttribute extends TagHandler {
             List<String> classNames = csvToList(target.getValue());
             targetClasses = new Class[classNames.size()];
 
-            for (int i = 0; i < classNames.size(); i++) {
+            for (var i = 0; i < classNames.size(); i++) {
                 String className = classNames.get(i);
                 Class<?> cls = null;
 
@@ -157,7 +157,7 @@ public class MassAttribute extends TagHandler {
     }
 
     private void applyMassAttribute(FaceletContext context, List<UIComponent> children) {
-        for (UIComponent component : children) {
+        for (var component : children) {
             if ((targetClasses == null || isOneInstanceOf(component.getClass(), targetClasses)) && component.getValueExpression(name) == null) {
                 Object literalValue = component.getAttributes().get(name);
 

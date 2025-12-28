@@ -339,7 +339,7 @@ public abstract class OmniFacesIT {
         }
 
         private void addWebResources(File root, String directory) {
-            for (File file : root.listFiles()) {
+            for (var file : root.listFiles()) {
                 var path = directory + "/" + file.getName();
 
                 if (file.isFile()) {

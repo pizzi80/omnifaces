@@ -17,13 +17,11 @@ import static org.omnifaces.util.FacesLocal.getFaceletContext;
 import static org.omnifaces.util.Reflection.invokeMethod;
 
 import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.Function;
 
 import jakarta.el.ELContext;
@@ -121,7 +119,7 @@ final class DeferredTagHandlerHelper {
         var attributes = new DeferredAttributes();
 
         try {
-            for (PropertyDescriptor property : Introspector.getBeanInfo(instance.getClass()).getPropertyDescriptors()) {
+            for (var property : Introspector.getBeanInfo(instance.getClass()).getPropertyDescriptors()) {
                 var setter = property.getWriteMethod();
                 var valueExpression = getValueExpression(context, tag, property.getName(), property.getPropertyType());
 
@@ -199,7 +197,7 @@ final class DeferredTagHandlerHelper {
         }
 
         public void invokeSetters(ELContext elContext, Object object) {
-            for (Entry<String, ValueExpression> entry : attributes.entrySet()) {
+            for (var entry : attributes.entrySet()) {
                 try {
                     var value = entry.getValue().getValue(elContext);
                     invokeMethod(object, entry.getKey(), value);

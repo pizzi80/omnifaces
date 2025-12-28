@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import jakarta.faces.component.UIComponent;
@@ -223,7 +222,7 @@ public final class Converters {
         var builder = new StringBuilder();
         var i = 0;
 
-        for (Entry<K, V> entry : map.entrySet()) {
+        for (var entry : map.entrySet()) {
             if (i++ > 0 && entrySeparator != null) {
                 builder.append(entrySeparator);
             }

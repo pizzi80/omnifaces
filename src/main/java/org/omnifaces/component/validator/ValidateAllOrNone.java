@@ -52,10 +52,10 @@ public class ValidateAllOrNone extends ValidateMultipleFields {
      */
     @Override
     public boolean validateValues(FacesContext context, List<UIInput> inputs, List<Object> values) {
-        boolean hasValue = false;
-        boolean hasNoValue = false;
+        var hasValue = false;
+        var hasNoValue = false;
 
-        for (Object value : values) {
+        for (var value : values) {
             boolean currentHasValue = !isEmpty(value);
             hasValue |= currentHasValue;
             hasNoValue |= !currentHasValue;

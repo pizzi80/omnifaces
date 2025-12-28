@@ -149,7 +149,7 @@ class FacesConfigXmlImpl implements FacesConfigXml {
         var resourceBundleNodes = getNodeList(facesConfigXml, xpath, XPATH_RESOURCE_BUNDLE);
         var resourceBundles = new LinkedHashMap<String, String>(resourceBundleNodes.getLength(), 1);
 
-        for (int i = 0; i < resourceBundleNodes.getLength(); i++) {
+        for (var i = 0; i < resourceBundleNodes.getLength(); i++) {
             var node = resourceBundleNodes.item(i);
             var varName = xpath.compile(XPATH_VAR).evaluate(node).trim();
             var baseName = xpath.compile(XPATH_BASE_NAME).evaluate(node).trim();
@@ -173,7 +173,7 @@ class FacesConfigXmlImpl implements FacesConfigXml {
 
         NodeList supportedLocaleNodes = getNodeList(facesConfigXml, xpath, XPATH_SUPPORTED_LOCALE);
 
-        for (int i = 0; i < supportedLocaleNodes.getLength(); i++) {
+        for (var i = 0; i < supportedLocaleNodes.getLength(); i++) {
             Locale supportedLocale = parseLocale(getTextContent(supportedLocaleNodes.item(i)));
 
             if (!supportedLocales.contains(supportedLocale)) {
@@ -192,7 +192,7 @@ class FacesConfigXmlImpl implements FacesConfigXml {
         List<Class<? extends ResourceHandler>> resourceHandlers = new ArrayList<>();
         NodeList resourceHandlerNodes = getNodeList(facesConfigXml, xpath, XPATH_RESOURCE_HANDLER);
 
-        for (int i = 0; i < resourceHandlerNodes.getLength(); i++) {
+        for (var i = 0; i < resourceHandlerNodes.getLength(); i++) {
             Class<? extends ResourceHandler> resourceHandler = toClass(getTextContent(resourceHandlerNodes.item(i)));
             resourceHandlers.add(resourceHandler);
         }
@@ -208,7 +208,7 @@ class FacesConfigXmlImpl implements FacesConfigXml {
         List<Class<? extends ExceptionHandlerFactory>> exceptionHandlerFactories = new ArrayList<>();
         NodeList exceptionHandlerFactoryNodes = getNodeList(facesConfigXml, xpath, XPATH_EXCEPTION_HANDLER_FACTORY);
 
-        for (int i = 0; i < exceptionHandlerFactoryNodes.getLength(); i++) {
+        for (var i = 0; i < exceptionHandlerFactoryNodes.getLength(); i++) {
             Class<? extends ExceptionHandlerFactory> exceptionHandlerFactory = toClass(getTextContent(exceptionHandlerFactoryNodes.item(i)));
             exceptionHandlerFactories.add(exceptionHandlerFactory);
         }

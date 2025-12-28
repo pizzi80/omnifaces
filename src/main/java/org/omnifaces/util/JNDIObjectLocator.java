@@ -275,7 +275,7 @@ public class JNDIObjectLocator implements Serializable {
      * @return Resulting object, or <code>null</code> if there is none.
      */
     public <T> T getObject(Class<T> beanClass) {
-        String jndiName = namespace + "/" + guessJNDIName(beanClass);
+        var jndiName = namespace + "/" + guessJNDIName(beanClass);
         boolean remote = remoteAnnotation.get() != null && beanClass.isAnnotationPresent(remoteAnnotation.get());
         return getJNDIObject(jndiName, remote && !cacheRemote);
     }
@@ -360,7 +360,7 @@ public class JNDIObjectLocator implements Serializable {
     @SuppressWarnings("unchecked")
     private <T> T lookup(String name, boolean clearCache) {
         initialContextLock.lock();
-        boolean shouldClearCache = false;
+        var shouldClearCache = false;
 
         try {
             return (T) initialContext.get().lookup(name);

@@ -31,7 +31,6 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Map.Entry;
 import java.util.TimeZone;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -227,9 +226,9 @@ class TestDates {
     }
 
     private static <D, Z> void testFormatDate(D date, Z zone) {
-        String pattern = "yyyy-MM-dd'T'HH:mm:ss";
-        String expectedDate = "1978-03-26";
-        String expectedTime = "12:35:00";
+        var pattern = "yyyy-MM-dd'T'HH:mm:ss";
+        var expectedDate = "1978-03-26";
+        var expectedTime = "12:35:00";
 
         String actualResult;
 
@@ -313,7 +312,7 @@ class TestDates {
         daysBetween = Dates.daysBetween(calendar, zonedDateTime);
         assertEquals(5, daysBetween, "Diff is 5 days");
 
-        Date date = new Date();
+        var date = new Date();
         OffsetDateTime offsetDateTime = OffsetDateTime.now().plusDays(3);
         daysBetween = Dates.daysBetween(date, offsetDateTime);
         assertEquals(3, daysBetween, "Diff is 3 days");
@@ -323,8 +322,8 @@ class TestDates {
     void testMonths() {
         assertEquals(12, Dates.getMonths().size(), "There are 12 months");
 
-        int index = 1;
-        for (Entry<String, Integer> month : Dates.getMonths().entrySet()) {
+        var index = 1;
+        for (var month : Dates.getMonths().entrySet()) {
             assertEquals(index++, month.getValue().intValue(), "Month index");
         }
     }
@@ -333,8 +332,8 @@ class TestDates {
     void testDaysOfWeek() {
         assertEquals(7, Dates.getDaysOfWeek().size(), "There are 7 days of week");
 
-        int index = 1;
-        for (Entry<String, Integer> dayOfWeek : Dates.getDaysOfWeek().entrySet()) {
+        var index = 1;
+        for (var dayOfWeek : Dates.getDaysOfWeek().entrySet()) {
             assertEquals(index++, dayOfWeek.getValue().intValue(), "Day of week index");
         }
     }

@@ -82,7 +82,7 @@ public final class CacheInitializer {
     private static Map<String, String> getCacheSetting(ServletContext context) {
         Map<String, String> settings = new HashMap<>();
 
-        for (String initParameterName : list(context.getInitParameterNames())) {
+        for (var initParameterName : list(context.getInitParameterNames())) {
             if (initParameterName.startsWith(CACHE_PROVIDER_SETTING_INIT_PARAM_PREFIX)) {
                 settings.put(
                     initParameterName.substring(CACHE_PROVIDER_SETTING_INIT_PARAM_PREFIX.length()),

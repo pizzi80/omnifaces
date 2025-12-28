@@ -158,7 +158,7 @@ public class InvokeActionEventListener extends DefaultPhaseListener implements S
         Set<UIComponent> components = (Set<UIComponent>) context.getAttributes().get(type);
 
         if (components != null) {
-            for (UIComponent component : components) {
+            for (var component : components) {
                 context.getApplication().publishEvent(context, type, component);
             }
         }

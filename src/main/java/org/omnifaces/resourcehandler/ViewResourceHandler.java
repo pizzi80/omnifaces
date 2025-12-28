@@ -115,7 +115,7 @@ public class ViewResourceHandler extends DefaultResourceHandler {
         if (facesServletRegistration != null) {
             Collection<String> existingMappings = facesServletRegistration.getMappings();
 
-            for (String viewResource : splitAndTrim(viewResourcesParam, ",").toList()) {
+            for (var viewResource : splitAndTrim(viewResourcesParam, ",").toList()) {
                 if (!viewResource.startsWith("/")) {
                     throw new IllegalArgumentException(format(ERROR_MISSING_FORWARD_SLASH, viewResource));
                 }

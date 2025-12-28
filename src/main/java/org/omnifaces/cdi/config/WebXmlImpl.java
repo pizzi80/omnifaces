@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.xml.xpath.XPath;
@@ -174,7 +173,7 @@ class WebXmlImpl implements WebXml {
     }
 
     private Set<String> findExactMatchRoles(String url) {
-        for (Entry<String, Set<String>> entry : securityConstraints.entrySet()) {
+        for (var entry : securityConstraints.entrySet()) {
             if (isExactMatch(entry.getKey(), url)) {
                 return entry.getValue();
             }
@@ -184,12 +183,12 @@ class WebXmlImpl implements WebXml {
     }
 
     private Set<String> findPrefixMatchRoles(String url) {
-        String urlMatch = "";
+        var urlMatch = "";
 
         for (String path = url; !path.isEmpty(); path = path.substring(0, path.lastIndexOf('/'))) {
             Set<String> roles = null;
 
-            for (Entry<String, Set<String>> entry : securityConstraints.entrySet()) {
+            for (var entry : securityConstraints.entrySet()) {
                 if (urlMatch.length() < entry.getKey().length() && isPrefixMatch(entry.getKey(), path)) {
                     urlMatch = entry.getKey();
                     roles = entry.getValue();
@@ -206,7 +205,7 @@ class WebXmlImpl implements WebXml {
 
     private Set<String> findSuffixMatchRoles(String url) {
         if (url.contains(".")) {
-            for (Entry<String, Set<String>> entry : securityConstraints.entrySet()) {
+            for (var entry : securityConstraints.entrySet()) {
                 if (isSuffixMatch(url, entry.getKey())) {
                     return entry.getValue();
                 }
@@ -296,7 +295,7 @@ class WebXmlImpl implements WebXml {
         NodeList welcomeFileList = getNodeList(webXml, xpath, XPATH_WELCOME_FILE);
         List<String> welcomeFiles = new ArrayList<>(welcomeFileList.getLength());
 
-        for (int i = 0; i < welcomeFileList.getLength(); i++) {
+        for (var i = 0; i < welcomeFileList.getLength(); i++) {
             welcomeFiles.add(getTextContent(welcomeFileList.item(i)));
         }
 
@@ -312,7 +311,7 @@ class WebXmlImpl implements WebXml {
         var exceptionTypes = getNodeList(webXml, xpath, XPATH_EXCEPTION_TYPE);
         var errorPageLocations = new HashMap<Class<Throwable>, String>(exceptionTypes.getLength(), 1);
 
-        for (int i = 0; i < exceptionTypes.getLength(); i++) {
+        for (var i = 0; i < exceptionTypes.getLength(); i++) {
             var node = exceptionTypes.item(i);
             var exceptionClass = (Class<Throwable>) Class.forName(getTextContent(node));
             var exceptionLocation = xpath.compile(XPATH_LOCATION).evaluate(node.getParentNode()).trim();
@@ -368,7 +367,7 @@ class WebXmlImpl implements WebXml {
         var constraints = getNodeList(webXml, xpath, XPATH_SECURITY_CONSTRAINT);
         var securityConstraints = new LinkedHashMap<String, Set<String>>(constraints.getLength(), 1);
 
-        for (int i = 0; i < constraints.getLength(); i++) {
+        for (var i = 0; i < constraints.getLength(); i++) {
             var constraint = constraints.item(i);
             var roles = Collections.<String>emptySet();
             var auth = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT);
@@ -377,14 +376,14 @@ class WebXmlImpl implements WebXml {
                 var authRoles = getNodeList(constraint, xpath, XPATH_AUTH_CONSTRAINT_ROLE_NAME);
                 roles = new HashSet<>(authRoles.getLength(), 1);
 
-                for (int j = 0; j < authRoles.getLength(); j++) {
+                for (var j = 0; j < authRoles.getLength(); j++) {
                     roles.add(getTextContent(authRoles.item(j)));
                 }
             }
 
             var urlPatterns = getNodeList(constraint, xpath, XPATH_WEB_RESOURCE_URL_PATTERN);
 
-            for (int j = 0; j < urlPatterns.getLength(); j++) {
+            for (var j = 0; j < urlPatterns.getLength(); j++) {
                 var urlPattern = getTextContent(urlPatterns.item(j));
                 var allRoles = securityConstraints.get(urlPattern);
 

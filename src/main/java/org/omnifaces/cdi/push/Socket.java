@@ -29,8 +29,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
 import jakarta.el.ValueExpression;
@@ -39,7 +37,6 @@ import jakarta.faces.FacesException;
 import jakarta.faces.application.ResourceDependency;
 import jakarta.faces.component.FacesComponent;
 import jakarta.faces.component.UIComponent;
-import jakarta.faces.component.behavior.ClientBehavior;
 import jakarta.faces.component.behavior.ClientBehaviorHolder;
 import jakarta.faces.context.FacesContext;
 import jakarta.faces.event.ComponentSystemEvent;
@@ -875,7 +872,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
         var clientId = getClientId(getFacesContext());
         var scripts = new StringBuilder("{");
 
-        for (Entry<String, List<ClientBehavior>> entry : clientBehaviorsByEvent.entrySet()) {
+        for (var entry : clientBehaviorsByEvent.entrySet()) {
             var event = entry.getKey();
             var clientBehaviors = entry.getValue();
             scripts.append(scripts.length() > 1 ? "," : "").append(event).append(":[");
@@ -906,7 +903,7 @@ public class Socket extends ScriptFamily implements ClientBehaviorHolder {
             return;
         }
 
-        for (ClientBehavior behavior : behaviors) {
+        for (var behavior : behaviors) {
             behavior.decode(context, this);
         }
     }

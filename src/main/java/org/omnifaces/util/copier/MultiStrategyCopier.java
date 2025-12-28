@@ -45,7 +45,7 @@ public class MultiStrategyCopier implements Copier {
     @Override
     public Object copy(Object object) {
 
-        for (Copier copier : COPIERS) {
+        for (var copier : COPIERS) {
 
             try {
                 return copier.copy(object);

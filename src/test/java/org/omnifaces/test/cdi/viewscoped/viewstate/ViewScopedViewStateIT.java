@@ -194,13 +194,13 @@ public class ViewScopedViewStateIT extends OmniFacesIT {
         init();
         assertEquals("init", getMessagesText());
         var firstBean = bean.getText();
-        String firstViewState = ajaxViewState.getAttribute("value");
+        var firstViewState = ajaxViewState.getAttribute("value");
         var firstTab = browser.getWindowHandle();
 
         // Open new tab, copy view state from first tab into second tab and re-execute via ajax.
         openNewTab(newtab);
         var secondBean = bean.getText();
-        String secondViewState = nonAjaxViewState.getAttribute("value");
+        var secondViewState = nonAjaxViewState.getAttribute("value");
         assertEquals("init", getMessagesText());
         assertNotEquals(secondBean, firstBean);
         assertNotEquals(secondViewState, firstViewState);

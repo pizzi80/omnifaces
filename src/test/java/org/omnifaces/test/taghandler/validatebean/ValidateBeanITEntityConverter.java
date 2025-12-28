@@ -22,7 +22,7 @@ public class ValidateBeanITEntityConverter implements Converter<ValidateBeanITCo
 
     @Override
     public ValidateBeanITConvertedEntity getAsObject(FacesContext context, UIComponent component, String submittedValue) {
-        ValidateBeanITConvertedEntity entity = new ValidateBeanITConvertedEntity();
+        var entity = new ValidateBeanITConvertedEntity();
         entity.setValue(submittedValue);
         return entity;
     }

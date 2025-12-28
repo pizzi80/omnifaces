@@ -19,7 +19,7 @@ public class ValidateBeanITEntityCopier implements Copier {
     @Override
     public ValidateBeanITEntity copy(Object object) {
         ValidateBeanITEntity original = (ValidateBeanITEntity) object;
-        ValidateBeanITEntity copy = new ValidateBeanITEntity();
+        var copy = new ValidateBeanITEntity();
         copy.setNumber1(original.getNumber1());
         copy.setNumber2(original.getNumber2());
         return copy;

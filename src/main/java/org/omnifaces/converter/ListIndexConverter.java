@@ -93,7 +93,7 @@ public class ListIndexConverter implements Converter<Object> {
 
     @Override
     public String getAsString(FacesContext context, UIComponent component, Object value) {
-        for (int i = 0; i < list.size(); i++) {
+        for (var i = 0; i < list.size(); i++) {
             if (list.get(i).equals(value)) {
                 return Integer.toString(i);
             }

@@ -408,7 +408,7 @@ public final class ComponentsLocal {
         var normalizedViewId = normalizeViewId(context, viewId);
         var viewHandler = context.getApplication().getViewHandler();
         var view = viewHandler.createView(context, normalizedViewId);
-        FacesContext temporaryContext = new TemporaryViewFacesContext(context, view);
+        var temporaryContext = new TemporaryViewFacesContext(context, view);
 
         try {
             setContext(temporaryContext);

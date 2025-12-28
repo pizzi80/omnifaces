@@ -55,7 +55,7 @@ public final class Platform {
     public static ServletRegistration getFacesServletRegistration(ServletContext servletContext) {
         ServletRegistration facesServletRegistration = null;
 
-        for (ServletRegistration registration : servletContext.getServletRegistrations().values()) {
+        for (var registration : servletContext.getServletRegistrations().values()) {
             if (FacesServlet.class.getName().equals(registration.getClassName())) {
                 facesServletRegistration = registration;
                 break;

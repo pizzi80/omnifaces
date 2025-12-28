@@ -163,7 +163,7 @@ public class HashParam extends OnloadParam {
         var oldHashQueryString = getHashQueryString(context);
         var hashParams = toParameterMap(getRequestParameter(context, "hash"));
 
-        for (HashParam hashParam : getHashParameters(context)) {
+        for (var hashParam : getHashParameters(context)) {
             var values = hashParams.get(hashParam.getName());
             hashParam.decodeImmediately(context, values != null ? values.get(0) : "");
         }

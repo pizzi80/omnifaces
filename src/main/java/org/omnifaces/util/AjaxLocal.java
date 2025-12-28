@@ -84,7 +84,7 @@ public final class AjaxLocal {
     public static void update(FacesContext context, String... clientIds) {
         var renderIds = getContext(context).getRenderIds();
 
-        for (String clientId : clientIds) {
+        for (var clientId : clientIds) {
             if (clientId.charAt(0) != '@') {
                 renderIds.add(clientId);
             }
@@ -132,13 +132,13 @@ public final class AjaxLocal {
         var separator = UINamingContainer.getSeparatorChar(context);
         var renderIds = getContext(context).getRenderIds();
 
-        for (UIComponent column : table.getChildren()) {
+        for (var column : table.getChildren()) {
             if (column instanceof UIColumn) {
                 if (!column.isRendered()) {
                     continue;
                 }
 
-                for (UIComponent cell : column.getChildren()) {
+                for (var cell : column.getChildren()) {
                     if (!cell.isRendered()) {
                         continue;
                     }
@@ -156,7 +156,7 @@ public final class AjaxLocal {
         var columnId = columns.getId();
         var columnCount = columns.getRowCount();
 
-        for (UIComponent cell : columns.getChildren()) {
+        for (var cell : columns.getChildren()) {
             if (!cell.isRendered()) {
                 continue;
             }
@@ -192,7 +192,7 @@ public final class AjaxLocal {
         var column = findColumn(table, index);
 
         if (column != null && column.isRendered()) {
-            for (UIComponent cell : column.getChildren()) {
+            for (var cell : column.getChildren()) {
                 if (!cell.isRendered()) {
                     continue;
                 }
@@ -209,7 +209,7 @@ public final class AjaxLocal {
     private static UIColumn findColumn(UIData table, int index) {
         var columnIndex = 0;
 
-        for (UIComponent child : table.getChildren()) {
+        for (var child : table.getChildren()) {
             if (child instanceof UIColumn column && columnIndex++ == index) {
                 return column;
             }
@@ -246,7 +246,7 @@ public final class AjaxLocal {
 
         var omniContext = OmniPartialViewContext.getCurrentInstance(context);
 
-        for (String script : scripts) {
+        for (var script : scripts) {
             omniContext.addCallbackScript(script);
         }
     }

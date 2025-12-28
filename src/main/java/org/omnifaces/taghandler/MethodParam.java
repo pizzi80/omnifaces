@@ -60,7 +60,7 @@ public class MethodParam extends TagHandler {
         ValueExpression valueExpression = value.getValueExpression(ctx, Object.class);
 
         // A method expression that wraps the value expression and uses its own invoke method to get the value from the wrapped expression.
-        MethodExpression methodExpression = new MethodExpressionValueExpressionAdapter(valueExpression);
+        var methodExpression = new MethodExpressionValueExpressionAdapter(valueExpression);
 
         // Using the variable mapper so the expression is scoped to the body of the Facelets tag. Since the variable mapper only accepts
         // value expressions, we once again wrap it by a value expression that directly returns the method expression.

@@ -104,7 +104,7 @@ public class SocketFacesListener implements SystemEventListener {
         var listeners = view.getListenersForEventClass(PostAddToViewEvent.class);
 
         if (listeners != null) {
-            for (SystemEventListener listener : listeners) {
+            for (var listener : listeners) {
                 if (listener instanceof SocketFacesListener) {
                     return;
                 }

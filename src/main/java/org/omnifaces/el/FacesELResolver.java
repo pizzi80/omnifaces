@@ -51,7 +51,7 @@ public class FacesELResolver extends ELResolver {
     private static final Map<String, Method> FACES_PROPERTIES = new ConcurrentHashMap<>();
 
     static {
-        for (Method method : Faces.class.getDeclaredMethods()) {
+        for (var method : Faces.class.getDeclaredMethods()) {
             if (method.getParameterTypes().length > 0 || !isOneInstanceOf(method.getReturnType(), String.class, boolean.class)) {
                 continue;
             }

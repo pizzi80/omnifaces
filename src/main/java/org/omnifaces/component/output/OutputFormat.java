@@ -97,7 +97,7 @@ public class OutputFormat extends HtmlOutputFormat {
     public void encodeBegin(FacesContext context) throws IOException {
         if (getVar() != null) {
             ResponseWriter originalResponseWriter = context.getResponseWriter();
-            StringWriter buffer = new StringWriter();
+            var buffer = new StringWriter();
             context.setResponseWriter(originalResponseWriter.cloneWithWriter(buffer));
             context.getAttributes().put(this + "_writer", originalResponseWriter);
             context.getAttributes().put(this + "_buffer", buffer);

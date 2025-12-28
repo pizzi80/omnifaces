@@ -128,7 +128,7 @@ public class SelectItemsIndexConverter implements Converter<Object> {
 
         List<Object> selectItemValues = selectItemValuesByPhaseId.getValue();
 
-        for (int i = 0; i < selectItemValues.size(); i++) {
+        for (var i = 0; i < selectItemValues.size(); i++) {
             Object selectItemValue = selectItemValues.get(i);
 
             if (isEmpty(modelValue) ? isEmpty(selectItemValue) : modelValue.equals(selectItemValue)) {

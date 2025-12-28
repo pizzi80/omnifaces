@@ -25,7 +25,6 @@ import static org.omnifaces.util.Utils.stream;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map.Entry;
 import java.util.logging.Logger;
 
 import jakarta.faces.application.Resource;
@@ -185,7 +184,7 @@ public class UnmappedResourceHandler extends DefaultResourceHandler {
 
         externalContext.setResponseContentType(resource.getContentType());
 
-        for (Entry<String, String> header : resource.getResponseHeaders().entrySet()) {
+        for (var header : resource.getResponseHeaders().entrySet()) {
             externalContext.setResponseHeader(header.getKey(), header.getValue());
         }
 
@@ -243,13 +242,13 @@ public class UnmappedResourceHandler extends DefaultResourceHandler {
         }
 
         String pathInfo = context.getExternalContext().getRequestPathInfo();
-        String resourceName = (pathInfo != null) ? pathInfo.substring(1) : "";
+        var resourceName = (pathInfo != null) ? pathInfo.substring(1) : "";
 
         if (resourceName.isEmpty()) {
             return null;
         }
 
-        String libraryName = context.getExternalContext().getRequestParameterMap().get("ln");
+        var libraryName = context.getExternalContext().getRequestParameterMap().get("ln");
         return FacesLocal.createResource(context, libraryName, resourceName);
     }
 

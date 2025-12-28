@@ -338,7 +338,7 @@ public class OmniPartialViewContext extends PartialViewContextWrapper {
                 }
 
                 if (context.callbackScripts != null) {
-                    for (String callbackScript : context.callbackScripts) {
+                    for (var callbackScript : context.callbackScripts) {
                         startEval();
                         write(callbackScript);
                         endEval();

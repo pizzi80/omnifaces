@@ -182,7 +182,7 @@ public final class JNDI {
      * @since 3.9
      */
     public static String guessJNDIName(String className) {
-        String lookupname = className.substring(className.lastIndexOf(".") + 1);
+        var lookupname = className.substring(className.lastIndexOf(".") + 1);
         // Support naming convention that strips Local/Remote from the
         // end of an interface class to try to determine the actual bean name,
         // to avoid @EJB(beanName="myBeanName"), and just use plain old @EJB.

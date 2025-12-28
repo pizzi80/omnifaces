@@ -58,14 +58,14 @@ public class CallbackPhaseListener implements PhaseListener {
 
     @Override
     public void beforePhase(PhaseEvent event) {
-        for (PhaseListener phaseListener : getCallbackPhaseListenersForEvent(event)) {
+        for (var phaseListener : getCallbackPhaseListenersForEvent(event)) {
             phaseListener.beforePhase(event);
         }
     }
 
     @Override
     public void afterPhase(PhaseEvent event) {
-        for (PhaseListener phaseListener : getCallbackPhaseListenersForEvent(event)) {
+        for (var phaseListener : getCallbackPhaseListenersForEvent(event)) {
             phaseListener.afterPhase(event);
         }
     }
@@ -105,7 +105,7 @@ public class CallbackPhaseListener implements PhaseListener {
 
         Set<PhaseListener> phaseListenersForEvent = new HashSet<>();
 
-        for (PhaseListener phaseListener : phaseListeners) {
+        for (var phaseListener : phaseListeners) {
             if (isPhaseMatch(event, phaseListener.getPhaseId())) {
                 phaseListenersForEvent.add(phaseListener);
             }

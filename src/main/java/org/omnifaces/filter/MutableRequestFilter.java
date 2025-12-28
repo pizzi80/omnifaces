@@ -105,7 +105,7 @@ public class MutableRequestFilter extends HttpFilter {
      */
     @Override
     public void doFilter(HttpServletRequest request, HttpServletResponse response, HttpSession session, FilterChain chain) throws ServletException, IOException {
-        MutableRequest mutableRequest = new MutableRequest(request);
+        var mutableRequest = new MutableRequest(request);
         request.setAttribute(MUTABLE_REQUEST, mutableRequest);
         chain.doFilter(mutableRequest, response);
     }
@@ -149,7 +149,7 @@ public class MutableRequestFilter extends HttpFilter {
             if (mutableHeaderMap == null) {
                 mutableHeaderMap = new HashMap<>();
 
-                for (String name : list(super.getHeaderNames())) {
+                for (var name : list(super.getHeaderNames())) {
                     mutableHeaderMap.put(name, new ArrayList<>(list(super.getHeaders(name))));
                 }
             }
@@ -204,7 +204,7 @@ public class MutableRequestFilter extends HttpFilter {
             if (mutableParameterMap == null) {
                 mutableParameterMap = new HashMap<>();
 
-                for (String name : list(super.getParameterNames())) {
+                for (var name : list(super.getParameterNames())) {
                     mutableParameterMap.put(name, new ArrayList<>(asList(super.getParameterValues(name))));
                 }
             }

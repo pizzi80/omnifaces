@@ -62,7 +62,7 @@ public final class CombinedResourceInputStream extends InputStream {
         streams = new ArrayList<>();
         String domainURL = getRequestDomainURL();
 
-        for (Resource resource : resources) {
+        for (var resource : resources) {
             InputStream stream;
 
             try {
@@ -135,7 +135,7 @@ public final class CombinedResourceInputStream extends InputStream {
     public void close() throws IOException {
         IOException caught = null;
 
-        for (InputStream stream : streams) {
+        for (var stream : streams) {
             IOException e = Utils.close(stream);
 
             if (caught == null) {

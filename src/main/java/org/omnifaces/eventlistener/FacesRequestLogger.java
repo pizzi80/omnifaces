@@ -282,7 +282,7 @@ public class FacesRequestLogger extends DefaultPhaseListener {
         public String toString() {
             Map<Integer, String> duration = new TreeMap<>();
 
-            for (PhaseId phase : PhaseId.VALUES) {
+            for (var phase : PhaseId.VALUES) {
                 duration.put(phase.getOrdinal(), getDuration(phase));
             }
 

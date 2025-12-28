@@ -18,9 +18,7 @@ import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Array;
-import java.lang.reflect.RecordComponent;
 import java.time.temporal.Temporal;
 import java.util.Collection;
 import java.util.Date;
@@ -84,7 +82,7 @@ public final class Json {
      * @since 3.6
      */
     public static String encode(Object object, UnaryOperator<String> propertyNameFormatter) {
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
         encode(object, builder, propertyNameFormatter);
         return builder.toString();
     }
@@ -140,9 +138,9 @@ public final class Json {
      */
     private static void encodeCollection(Collection<?> collection, StringBuilder builder, UnaryOperator<String> propertyNameFormatter) {
         builder.append('[');
-        int i = 0;
+        var i = 0;
 
-        for (Object element : collection) {
+        for (var element : collection) {
             if (i++ > 0) {
                 builder.append(',');
             }
@@ -160,7 +158,7 @@ public final class Json {
         builder.append('[');
         int length = Array.getLength(array);
 
-        for (int i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             if (i > 0) {
                 builder.append(',');
             }
@@ -176,7 +174,7 @@ public final class Json {
      */
     private static void encodeMap(Map<?, ?> map, StringBuilder builder, UnaryOperator<String> propertyNameFormatter) {
         builder.append('{');
-        int i = 0;
+        var i = 0;
 
         for (Entry<?, ?> entry : map.entrySet()) {
             if (i++ > 0) {
@@ -196,9 +194,9 @@ public final class Json {
      */
     private static void encodeRecord(Record instance, StringBuilder builder, UnaryOperator<String> propertyNameFormatter) {
         builder.append('{');
-        int i = 0;
+        var i = 0;
 
-        for (RecordComponent component : instance.getClass().getRecordComponents()) {
+        for (var component : instance.getClass().getRecordComponents()) {
             Object value;
 
             try {
@@ -238,9 +236,9 @@ public final class Json {
         }
 
         builder.append('{');
-        int i = 0;
+        var i = 0;
 
-        for (PropertyDescriptor property : beanInfo.getPropertyDescriptors()) {
+        for (var property : beanInfo.getPropertyDescriptors()) {
             if (property.getReadMethod() == null || "class".equals(property.getName())) {
                 continue;
             }

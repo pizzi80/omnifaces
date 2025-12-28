@@ -38,7 +38,7 @@ public class InputFileITBean {
     }
 
     public void uploadMultiple() {
-        for (Part file : files) {
+        for (var file : files) {
             addGlobalInfo(" uploadMultiple: " + file.getSize() + ", " + getSubmittedFileName(file));
         }
     }

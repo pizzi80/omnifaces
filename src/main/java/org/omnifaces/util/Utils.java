@@ -1137,7 +1137,7 @@ public final class Utils {
         }
 
         try {
-            InputStream deflated = new ByteArrayInputStream(Base64.getUrlDecoder().decode(string));
+            var deflated = new ByteArrayInputStream(Base64.getUrlDecoder().decode(string));
             return new String(new InflaterInputStream(deflated).readAllBytes(), UTF_8);
         }
         catch (UnsupportedEncodingException e) {
