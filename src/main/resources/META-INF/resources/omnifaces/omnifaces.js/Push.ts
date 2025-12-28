@@ -102,10 +102,7 @@ export module Push {
             this.socket.onmessage = (event: MessageEvent) => {
                 const message = JSON.parse(event.data);
                 self.onmessage(message, self.channel, event);
-                const functions = self.behaviors[message];
-                if (functions && functions.length) {
-                    functions.forEach(behavior => behavior());
-                }
+                self.behaviors[message]?.forEach(behavior => behavior());
             };
 
             this.socket.onclose = (event: CloseEvent) => {
@@ -217,7 +214,7 @@ export module Push {
      * @return Base URL
      */
     function getBaseURL(host: string): string {
-        host = host || "";
+        host = host ?? "";
         const base = (!host || host.startsWith("/")) ? window.location.host
                 : (host.startsWith(":")) ? window.location.hostname
                 : "";
