@@ -46,7 +46,7 @@ Lenny Primak
     For his work on ViewExpiredExceptionHandler and ExceptionSuppressor
 
 Leonardo Bernardes
-    For his work on <sec:xyz> tags.
+    For his work on <sec:authorize>, <sec:isAuthenticated> and <sec:isAnonymous> tags.
 
 And of course a general thank you to everyone who contributed by creating an issue, pointing out a defect, etc.
 
