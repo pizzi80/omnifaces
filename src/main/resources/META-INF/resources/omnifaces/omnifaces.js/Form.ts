@@ -42,7 +42,7 @@ export module Form {
                         return originalViewState;
                     }
 
-                    const execute = options?.execute;
+                    const execute = options ? options.execute : null;
 
                     if (!execute || execute.includes("@form") || execute.includes("@all")) {
                         return originalViewState;
