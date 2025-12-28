@@ -47,12 +47,12 @@ export module Highlight {
             const input = getElementByIdOrName(clientId);
 
             if (input) {
-                input.className += " " + styleClass;
+                input.classList.add(styleClass);
                 input.setAttribute(DATA_HIGHLIGHT_CLASS, styleClass);
                 const label = labelsByFor[input.id];
 
                 if (label) {
-                    label.className += " " + styleClass;
+                    label.classList.add(styleClass);
                     input.setAttribute(DATA_HIGHLIGHT_LABEL, "true");
                 }
 
@@ -76,8 +76,7 @@ export module Highlight {
         const labels = document.getElementsByTagName("LABEL") as HTMLCollectionOf<HTMLLabelElement>;
         const labelsByFor: Record<string, HTMLLabelElement> = {};
 
-        for (var i = 0; i < labels.length; i++) {
-            const label = labels[i];
+        for (const label of Array.from(labels)) {
             const htmlFor = label.htmlFor;
 
             if (htmlFor) {
@@ -117,14 +116,13 @@ export module Highlight {
 
         if (styleClass) {
             input.removeAttribute(DATA_HIGHLIGHT_CLASS);
-            const regex = new RegExp(" " + styleClass, "g");
-            input.className = input.className.replace(regex, "");
+            input.classList.remove(styleClass);
             let label = input.getAttribute(DATA_HIGHLIGHT_LABEL);
 
             if (label) {
                 input.removeAttribute(DATA_HIGHLIGHT_LABEL);
                 label = labelsByFor[input.id];
-                label.className = label.className.replace(regex, "");
+                label.classList.remove(styleClass);
             }
         }
     }

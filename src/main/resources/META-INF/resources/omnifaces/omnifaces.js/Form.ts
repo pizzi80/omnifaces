@@ -38,35 +38,34 @@ export module Form {
                 faces.getViewState = function(form: HTMLFormElement) {
                     const originalViewState = originalGetViewState(form);
 
-                    if (form.dataset["partialsubmit"] != "true") {
+                    if (form.dataset["partialsubmit"] !== "true") {
                         return originalViewState;
                     }
 
-                    const execute = options ? options.execute : null;
+                    const execute = options?.execute;
 
-                    if (!execute || execute.indexOf("@form") != -1 || execute.indexOf("@all") != -1) {
+                    if (!execute || execute.includes("@form") || execute.includes("@all")) {
                         return originalViewState;
                     }
 
                     let executeIds: string[] = [];
                     let encodedExecuteIds: string[] = [];
 
-                    if (execute.indexOf("@none") == -1) {
-                        const sourceId = source instanceof HTMLElement ? source.id : source
+                    if (!execute.includes("@none")) {
+                        const sourceId = source instanceof HTMLElement ? source.id : source;
                         executeIds = execute.replace("@this", sourceId).split(" ");
                         encodedExecuteIds = executeIds.map(encodeURIComponent);
                     }
 
-                    encodedExecuteIds.push(VIEW_STATE_PARAM);
-                    encodedExecuteIds.push(CLIENT_WINDOW_PARAM);
+                    encodedExecuteIds.push(VIEW_STATE_PARAM, CLIENT_WINDOW_PARAM);
 
                     const partialViewState: string[] = [];
 
                     originalViewState.replace(/([^=&]+)=([^&]*)/g, function(_entry: any, key: string, value: string) {
-                        if (encodedExecuteIds.indexOf(key) > -1 || containsNamedChild(executeIds, key)) {
-                            partialViewState.push(key + "=" + value);
+                        if (encodedExecuteIds.includes(key) || containsNamedChild(executeIds, key)) {
+                            partialViewState.push(`${key}=${value}`);
                         }
-                    }); 
+                    });
 
                     return partialViewState.join("&");
                 }
@@ -89,7 +88,7 @@ export module Form {
             }
         }
         catch (e) {
-            console.warn("Cannot determine if " + executeIds + " contains child " + name, e);
+            console.warn(`Cannot determine if ${executeIds} contains child ${name}`, e);
         }
 
         return false;        

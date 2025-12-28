@@ -89,7 +89,7 @@ export module Util {
      * @param fn Can be function, or string representing function name, or undefined.
      */
     export function resolveFunction(fn: any) {
-        return (typeof fn !== "function") && (fn = window[fn] || function(){}), fn;
+        return typeof fn === "function" ? fn : (window[fn] ?? (() => {}));
     }
 
     /**
@@ -97,18 +97,16 @@ export module Util {
      * @return The first Faces form of the current document.
      */
     export function getFacesForm(): HTMLFormElement | null {
-        for (let i = 0; i < document.forms.length; i++) {
-            const form = document.forms[i];
+        const facesForm = Array.from(document.forms).find(form => form[VIEW_STATE_PARAM]);
 
-            if (form[VIEW_STATE_PARAM]) {
-                return form;
-            }
+        if (facesForm) {
+            return facesForm;
         }
 
         const faces = window.faces;
 
-        if ((!faces || faces.getProjectStage() == "Development") && window.console && console.error) {
-            console.error(ERROR_MISSING_FORM);
+        if (!faces || faces.getProjectStage() === "Development") {
+            console.error?.(ERROR_MISSING_FORM);
         }
 
         return null;
@@ -151,24 +149,24 @@ export module Util {
         const completeFunction = resolveFunction(complete);
 
         const script = document.createElement("script");
-        const head = document.head || document.documentElement;
+        const head = document.head ?? document.documentElement;
 
         script.async = true;
         script.src = url;
         script.setAttribute("crossorigin", crossorigin || "anonymous");
         script.setAttribute("integrity", integrity || "");
 
-        script.onerror = function() {
+        script.onerror = () => {
             errorFunction();
             completeFunction();
-        }
+        };
 
-        script.onload = function() {
+        script.onload = () => {
             successFunction();
             completeFunction();
-        }
+        };
 
-        addOnloadListener(function() {
+        addOnloadListener(() => {
             beginFunction();
             head.appendChild(script);
         });
@@ -184,13 +182,7 @@ export module Util {
      * @param listener The event listener to be added or removed on the given target via given functions.
      */
     function handleEventListener(target: any, functionName: string, events: string, listener: Function) {
-        const eventParts = events.replace(/^\s+|\s+$/g, "").split(/\s+/);
-
-        for (let event of eventParts) {
-            if (target[functionName]) {
-                target[functionName](event, listener);
-            }
-        }
+        events.trim().split(/\s+/).forEach(event => target[functionName]?.(event, listener));
     }
 
     /**
@@ -203,9 +195,9 @@ export module Util {
         const submitFunction = facesImpl[functionName];
 
         if (submitFunction) {
-            facesImpl[functionName] = function() {
+            facesImpl[functionName] = function(...args: any[]) {
                 listener();
-                return submitFunction.apply(this, arguments);
+                return submitFunction.apply(this, args);
             };
         }
     }

@@ -91,27 +91,21 @@ export module Push {
 
             this.socket = new WebSocket(this.url);
 
-            this.socket.onopen = function() {
+            this.socket.onopen = () => {
                 if (self.reconnectAttempts == null) {
                     self.onopen(self.channel);
                 }
 
                 self.reconnectAttempts = 0;
-            }
+            };
 
-            this.socket.onmessage = function(event: MessageEvent) {
+            this.socket.onmessage = (event: MessageEvent) => {
                 const message = JSON.parse(event.data);
                 self.onmessage(message, self.channel, event);
-                const functions = self.behaviors[message];
+                self.behaviors[message]?.forEach(behavior => behavior());
+            };
 
-                if (functions && functions.length) {
-                    for (let behavior of functions) {
-                        behavior();
-                    }
-                }
-            }
-
-            this.socket.onclose = function(event: CloseEvent) {
+            this.socket.onclose = (event: CloseEvent) => {
                 if (!self.socket
                     || (event.code == 1000 && event.reason == REASON_EXPIRED)
                     || (event.code == 1008 && event.reason == REASON_UNKNOWN_CHANNEL)
@@ -124,7 +118,7 @@ export module Push {
                     self.onerror(event.code, self.channel, event);
                     setTimeout(self.open.bind(self), RECONNECT_INTERVAL * self.reconnectAttempts++);
                 }
-            }
+            };
         }
 
         /**
@@ -220,11 +214,11 @@ export module Push {
      * @return Base URL
      */
     function getBaseURL(host: string): string {
-        host = host || "";
-        const base = (!host || host.indexOf("/") == 0) ? window.location.host
-                : (host.indexOf(":") == 0) ? window.location.hostname
+        host = host ?? "";
+        const base = (!host || host.startsWith("/")) ? window.location.host
+                : (host.startsWith(":")) ? window.location.hostname
                 : "";
-        return URL_PROTOCOL + base + host + URI_PREFIX + "/";
+        return `${URL_PROTOCOL}${base}${host}${URI_PREFIX}/`;
     }
 
     /**
@@ -240,7 +234,7 @@ export module Push {
             return socket;
         }
         else {
-            throw new Error("Unknown channel: " + channel);
+            throw new Error(`Unknown channel: ${channel}`);
         }
     }
 

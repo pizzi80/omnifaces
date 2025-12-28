@@ -22,67 +22,58 @@
  * @see PWAResourceHandler
  * @see <a href="https://css-tricks.com/serviceworker-for-offline/">https://css-tricks.com/serviceworker-for-offline/</a>
  */
-var cacheName = "omnifaces.4.6.4"; // Should be bumped every time this sw.unminified.js logic is changed.
-var cacheableResources = $cacheableResources;
-var offlineResource = $offlineResource;
+const cacheName = "omnifaces.5.0"; // Should be bumped every time this sw.unminified.js logic is changed.
+const cacheableResources = $cacheableResources;
+const offlineResource = $offlineResource;
 
 /**
  * Add all cacheable resources.
  */
 self.addEventListener("install", function(event) {
-    event.waitUntil(caches.open(cacheName).then(function(event) {
-        return event.addAll(cacheableResources);
-    }));
+    event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(cacheableResources)));
 });
 
 /**
  * Offline-aware fetch.
  */
 self.addEventListener("fetch", function(event) {
-    var request = event.request;
-    var requestURL = new URL(request.url);
+    const request = event.request;
+    const requestURL = new URL(request.url);
 
     if (requestURL.origin !== self.location.origin) {
         return; // Not our resource.
     }
 
     requestURL.searchParams.delete('v'); // Removes the v= parameter usually indicating the cache bust version (VersionedResourceHandler, OmniVersionResourceHandler, PrimeResourceHandler, etc).
-    var url = requestURL.toString();
-    var method = request.method;
-    var sendEvent = function(name, detail) {
-        self.clients.matchAll().then(function(clients) {
-            clients.forEach(function(client) {
+    const url = requestURL.toString();
+    const method = request.method;
+    const sendEvent = (name, detail) => {
+        self.clients.matchAll().then(clients => {
+            clients.forEach(client => {
                 client.postMessage({
                     type: "omnifaces.event",
-                    name: name,
-                    detail: detail
+                    name,
+                    detail
                 });
             });
         });
     };
 
-    function sendOnlineEvent() {
-        sendEvent("omnifaces.online", {
-            method: method,
-            url: url
-        });
-    }
+    const sendOnlineEvent = () => {
+        sendEvent("omnifaces.online", { method, url });
+    };
 
-    function sendOfflineEvent(error) {
-        sendEvent("omnifaces.offline", {
-            method: method,
-            url: url,
-            error: error
-        });
-    }
+    const sendOfflineEvent = (error) => {
+        sendEvent("omnifaces.offline", { method, url, error });
+    };
 
     if (method == "GET") {
-        var navigated = event.request.mode == "navigate";
-        var resource = url.indexOf("/jakarta.faces.resource/") > -1;
+        const navigated = event.request.mode == "navigate";
+        const resource = url.includes("/jakarta.faces.resource/");
 
         if (navigated || resource) {
             event.respondWith(caches.match(url).then(function(cached) {
-                var fetched = fetch(request).then(fetchedFromNetwork, unableToResolve).catch(unableToResolve);
+                const fetched = fetch(request).then(fetchedFromNetwork, unableToResolve).catch(unableToResolve);
                 return navigated ? fetched : (cached || fetched);
 
                 function fetchedFromNetwork(response) {
@@ -108,7 +99,7 @@ self.addEventListener("fetch", function(event) {
         }
     }
     else if (method == "POST") { // Do not cache! Merely check if online or offline. This works with Faces because its POST requests are by default postback.
-        fetch(url + (url.indexOf("?") > -1 ? "&" : "?") + "omnifaces.event=sw.js").then(sendOnlineEvent, sendOfflineEvent).catch(sendOfflineEvent);
+        fetch(url + (url.includes("?") ? "&" : "?") + "omnifaces.event=sw.js").then(sendOnlineEvent, sendOfflineEvent).catch(sendOfflineEvent);
     }
 });
 
@@ -116,11 +107,5 @@ self.addEventListener("fetch", function(event) {
  * Prune old caches.
  */
 self.addEventListener("activate", function(event) {
-    event.waitUntil(caches.keys().then(function(keys) {
-        return Promise.all(keys.filter(function(key) {
-            return key.startsWith("omnifaces.") && key != cacheName;
-        }).map(function(key) {
-            return caches.delete(key);
-        }));
-    }));
+    event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("omnifaces.") && key !== cacheName).map(key => caches.delete(key)))));
 });
