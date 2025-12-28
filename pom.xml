@@ -308,6 +308,37 @@
                 </executions>
             </plugin>
 
+            <!-- Configure the *.old.taglib.xml generators. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>xml-maven-plugin</artifactId>
+                <version>1.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-old-taglib-files</id>
+                        <goals>
+                            <goal>transform</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <transformationSets>
+                        <transformationSet>
+                            <dir>src/main/resources/META-INF</dir>
+                            <includes><include>omnifaces.taglib.xml</include></includes>
+                            <stylesheet>src/main/generate-omnifaces-ui.old.taglib.xsl</stylesheet>
+                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-ui</outputDir>
+                        </transformationSet>
+                        <transformationSet>
+                            <dir>src/main/resources/META-INF</dir>
+                            <includes><include>omnifaces.taglib.xml</include></includes>
+                            <stylesheet>src/main/generate-omnifaces-functions.old.taglib.xsl</stylesheet>
+                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-functions</outputDir>
+                        </transformationSet>
+                    </transformationSets>
+                </configuration>
+            </plugin>
+
             <!-- Configure the JavaScript minifier. -->
             <plugin>
                 <groupId>com.github.blutorange</groupId>
@@ -357,38 +388,7 @@
                 </executions>
             </plugin>
 
-            <!-- Configure the *.old.taglib.xml generators -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xml-maven-plugin</artifactId>
-                <version>1.1.0</version>
-                <executions>
-                    <execution>
-                        <id>generate-old-taglib-files</id>
-                        <goals>
-                            <goal>transform</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <transformationSets>
-                        <transformationSet>
-                            <dir>src/main/resources/META-INF</dir>
-                            <includes><include>omnifaces.taglib.xml</include></includes>
-                            <stylesheet>src/main/generate-omnifaces-ui.old.taglib.xsl</stylesheet>
-                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-ui</outputDir>
-                        </transformationSet>
-                        <transformationSet>
-                            <dir>src/main/resources/META-INF</dir>
-                            <includes><include>omnifaces.taglib.xml</include></includes>
-                            <stylesheet>src/main/generate-omnifaces-functions.old.taglib.xsl</stylesheet>
-                            <outputDir>${project.build.directory}/generated-resources/xslt/omnifaces-functions</outputDir>
-                        </transformationSet>
-                    </transformationSets>
-                </configuration>
-            </plugin>
-
-            <!-- Rename these *.old.taglib.xml files and put them back in the right place -->
+            <!-- Rename these *.old.taglib.xml files and put them back in the right place. -->
             <plugin>
                 <groupId>com.coderplus.maven.plugins</groupId>
                 <artifactId>copy-rename-maven-plugin</artifactId>
@@ -396,7 +396,7 @@
                 <executions>
                     <execution>
                         <id>rename-old-taglib-files</id>
-                        <phase>compile</phase>
+                        <phase>process-resources</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
@@ -490,50 +490,7 @@
         <pluginManagement>
             <plugins>
 
-                <!-- Make sure Eclipse itself also runs license format and JavaScript minifier during build. -->
-                <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>com.mycila</groupId>
-                                        <artifactId>license-maven-plugin</artifactId>
-                                        <versionRange>[4.6,)</versionRange>
-                                        <goals>
-                                            <goal>format</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <execute>
-                                            <runOnConfiguration>true</runOnConfiguration>
-                                        </execute>
-                                    </action>
-                                </pluginExecution>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>com.samaxes.maven</groupId>
-                                        <artifactId>minify-maven-plugin</artifactId>
-                                        <versionRange>[1.7.6,)</versionRange>
-                                        <goals>
-                                            <goal>minify</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <execute>
-                                            <runOnConfiguration>true</runOnConfiguration>
-                                        </execute>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
-                </plugin>
-
-                <!-- Global configuration for (integration) test profiles. -->
+                <!-- Global configuration for standard maven plugins. -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
