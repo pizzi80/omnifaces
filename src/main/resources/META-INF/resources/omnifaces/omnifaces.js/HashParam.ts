@@ -21,7 +21,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.component.input.HashParam
  * @since 3.2
  */
-export module HashParam {
+export namespace HashParam {
 
     // Private static fields ------------------------------------------------------------------------------------------
 

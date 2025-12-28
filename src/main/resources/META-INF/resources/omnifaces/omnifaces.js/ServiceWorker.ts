@@ -20,7 +20,7 @@ import { EVENT } from "./OmniFaces";
  * @since 3.7
  * @see PWAResourceHandler
  */
-export module ServiceWorker {
+export namespace ServiceWorker {
     
     // Public static functions ----------------------------------------------------------------------------------------
 

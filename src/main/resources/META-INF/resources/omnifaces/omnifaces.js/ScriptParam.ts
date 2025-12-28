@@ -21,7 +21,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.component.input.ScriptParam
  * @since 3.6
  */
-export module ScriptParam {
+export namespace ScriptParam {
 
     // Public static functions ----------------------------------------------------------------------------------------
 

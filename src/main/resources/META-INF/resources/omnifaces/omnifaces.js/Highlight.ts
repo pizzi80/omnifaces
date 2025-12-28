@@ -19,7 +19,7 @@ import { Util } from "./Util";
  * @author Bauke Scholtz
  * @see org.omnifaces.component.script.Highlight
  */
-export module Highlight {
+export namespace Highlight {
 
     // "Constant" fields ----------------------------------------------------------------------------------------------
 

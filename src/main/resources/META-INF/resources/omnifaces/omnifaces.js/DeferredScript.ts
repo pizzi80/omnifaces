@@ -20,7 +20,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.component.script.DeferredScript
  * @since 1.8
  */
-export module DeferredScript {
+export namespace DeferredScript {
 
     // Private static fields ------------------------------------------------------------------------------------------
 

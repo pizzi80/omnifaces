@@ -24,7 +24,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.cdi.ViewScopeManager
  * @since 2.2
  */
-export module Unload {
+export namespace Unload {
 
     // Private static fields ------------------------------------------------------------------------------------------
 

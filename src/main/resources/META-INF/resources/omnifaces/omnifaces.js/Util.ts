@@ -19,7 +19,7 @@ import { VIEW_STATE_PARAM } from "./OmniFaces";
  * @author Bauke Scholtz
  * @since 2.2
  */
-export module Util {
+export namespace Util {
 
     // "Constant" fields ----------------------------------------------------------------------------------------------
 

@@ -20,7 +20,7 @@ import { EVENT } from "./OmniFaces";
  * @see org.omnifaces.component.input.InputFile
  * @since 2.5
  */
-export module InputFile {
+export namespace InputFile {
 
     // Public static functions ----------------------------------------------------------------------------------------
 

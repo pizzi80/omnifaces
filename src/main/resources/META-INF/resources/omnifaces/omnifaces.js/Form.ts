@@ -22,7 +22,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.component.input.Form
  * @since 3.0
  */
-export module Form {
+export namespace Form {
 
     // Private static functions ---------------------------------------------------------------------------------------
 

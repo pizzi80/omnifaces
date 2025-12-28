@@ -21,7 +21,7 @@ import { Util } from "./Util";
  * @see https://css-tricks.com/the-complete-guide-to-lazy-loading-images/
  * @since 3.10
  */
-export module GraphicImage {
+export namespace GraphicImage {
 
     // Private static functions ---------------------------------------------------------------------------------------
 

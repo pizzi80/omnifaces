@@ -20,7 +20,7 @@ import { Util } from "./Util";
  * @see org.omnifaces.cdi.push.Socket
  * @since 2.3
  */
-export module Push {
+export namespace Push {
 
     // "Constant" fields ----------------------------------------------------------------------------------------------
 
