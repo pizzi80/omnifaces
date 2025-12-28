@@ -114,7 +114,7 @@ export module Push {
             this.socket.onclose = function(event: CloseEvent) {
                 if (!self.socket
                     || (event.code == 1000 && event.reason == REASON_EXPIRED)
-                    || (event.code == 1008 || (event.code == 1005 && event.reason == REASON_UNKNOWN_CHANNEL)) // Older IE versions incorrectly return 1005 instead of 1008, hence the extra check on the message.
+                    || (event.code == 1008 && event.reason == REASON_UNKNOWN_CHANNEL)
                     || (self.reconnectAttempts == null)
                     || (self.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS))
                 {
@@ -176,7 +176,7 @@ export module Push {
         onclose = Util.resolveFunction(onclose);
         const channel = uri.split(/\?/)[0];
 
-        if (!window.WebSocket) { // IE6-9.
+        if (!window.WebSocket) {
             onclose(-1, channel);
             return;
         }

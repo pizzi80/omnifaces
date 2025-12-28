@@ -170,7 +170,7 @@ export module Util {
 
         addOnloadListener(function() {
             beginFunction();
-            head.insertBefore(script, null); // IE6 has trouble with appendChild.
+            head.appendChild(script);
         });
     }
 
