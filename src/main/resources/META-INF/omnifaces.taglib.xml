@@ -8232,4 +8232,15 @@ String name2 = Faces.getRequestParameter("name2"); // value2
         <function-signature>java.lang.String getRemoteAddr()</function-signature>
     </function>
 
+    <function>
+        <description>
+            <![CDATA[
+                Converts the given ISO 3166-1 alpha-2 country code to corresponding Unicode flag emoji.
+            ]]>
+        </description>
+        <function-name>flagEmoji</function-name>
+        <function-class>org.omnifaces.el.functions.Strings</function-class>
+        <function-signature>java.lang.String flagEmoji(java.lang.String)</function-signature>
+    </function>
+
 </facelet-taglib>

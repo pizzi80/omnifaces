@@ -13,8 +13,14 @@
 package org.omnifaces.test.el.functions;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.omnifaces.el.functions.Strings;
 
 class TestStrings {
@@ -38,4 +44,38 @@ class TestStrings {
         assertEquals(expectedText, Strings.stripTags(textWithTags));
     }
 
+    @Test
+    void testFlagEmoji_ValidCodes() {
+        assertEquals("🇺🇸", Strings.flagEmoji("US"), "US should map to United States flag");
+        assertEquals("🇳🇱", Strings.flagEmoji("nl"), "Lowercase nl should map to Netherlands flag");
+        assertEquals("🇧🇷", Strings.flagEmoji("Br"), "Mixed case Br should map to Brazil flag");
+    }
+
+    @Test
+    void testFlagEmoji_NullAndEmpty() {
+        assertNull(Strings.flagEmoji(null), "Null input should return null");
+        assertNull(Strings.flagEmoji(""), "Empty string should return null");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"A", "USA", "12", "U!", "  "})
+    void testFlagEmoji_InvalidFormat_ShouldThrowException(String invalidCode) {
+        assertThrows(IllegalArgumentException.class, () ->  Strings.flagEmoji(invalidCode), "Invalid format or non-letter code should throw IllegalArgumentException");
+    }
+
+    /**
+     * This test ensures that the 'Turkish I' problem doesn't break the emoji math.
+     * In Turkish locale, "i".toUpperCase() is "İ" (U+0130), not "I".
+     */
+    @Test
+    void testFlagEmoji_TurkishLocaleCompatibility() {
+        var originalDefaultLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(new Locale("tr", "TR"));
+            assertEquals("🇮🇳", Strings.flagEmoji("in"), "Should work correctly even in Turkish locale");
+        }
+        finally {
+            Locale.setDefault(originalDefaultLocale);
+        }
+    }
 }

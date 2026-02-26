@@ -13,6 +13,7 @@
 package org.omnifaces.el.functions;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Locale.ENGLISH;
 import static org.omnifaces.util.Faces.getLocale;
 import static org.omnifaces.util.Utils.isEmpty;
 
@@ -29,7 +30,7 @@ import org.omnifaces.util.Utils;
  * <p>
  * Collection of EL functions for string manipulation: <code>o:abbreviate()</code>, <code>o:capitalize()</code>, <code>o:concat()</code>,
  * <code>o:prettyURL()</code>, <code>o:encodeURL()</code>, <code>o:encodeURI()</code>, <code>o:encodeBase64()</code>,
- * <code>o:escapeJS()</code>,  <code>o:stripTags()</code> and <code>o:formatX()</code>.
+ * <code>o:escapeJS()</code>,  <code>o:stripTags()</code>, <code>o:formatX()</code>, and <code>o:getFlagEmoji()</code>.
  * <p>
  * Instead of <code>o:formatX()</code>, you can also use <code>&lt;o:outputFormat&gt;</code>.
  *
@@ -43,6 +44,8 @@ public final class Strings {
     private static final Pattern PATTERN_NON_ALPHANUMERIC_CHARS = Pattern.compile("[^\\p{Alnum}]+");
     private static final Pattern PATTERN_XML_TAGS = Pattern.compile("\\<[^\\>]*+\\>");
     private static final Pattern PATTERN_MULTIPLE_SPACES = Pattern.compile("\\s\\s+");
+    private static final int UNICODE_REGIONAL_INDICATOR_A = 0x1F1E6;
+    private static final String ERROR_INVALID_COUNTRY_CODE = "Country code '%s' must be a 2-letter string.";
 
     // Constructors ---------------------------------------------------------------------------------------------------
 
@@ -324,4 +327,32 @@ public final class Strings {
         return result.toString();
     }
 
+    /**
+     * Converts the given ISO 3166-1 alpha-2 country code to corresponding Unicode flag emoji.
+     * @param countryCode The two-letter ISO country code (e.g., "US", "NL", "BR"). Case-insensitive.
+     * @return The Unicode flag emoji, or {@code null} if input is empty.
+     * @throws IllegalArgumentException If the code is not a valid ISO 3166-1 alpha-2 code.
+     * @since 5.1
+     */
+    public static String flagEmoji(String countryCode) {
+        if (countryCode == null || countryCode.isEmpty()) {
+            return null;
+        }
+
+        if (countryCode.length() != 2) {
+            throw new IllegalArgumentException(ERROR_INVALID_COUNTRY_CODE.formatted(countryCode));
+        }
+
+        var flagEmoji = new StringBuilder();
+
+        for (char c : countryCode.toUpperCase(ENGLISH).toCharArray()) {
+            if (!Character.isLetter(c)) {
+                throw new IllegalArgumentException(ERROR_INVALID_COUNTRY_CODE.formatted(countryCode));
+            }
+
+            flagEmoji.appendCodePoint(UNICODE_REGIONAL_INDICATOR_A + (c - 'A'));
+        }
+
+        return flagEmoji.toString();
+    }
 }
