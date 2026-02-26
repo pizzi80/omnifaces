@@ -67,25 +67,25 @@
         <maven.source.excludeResources>true</maven.source.excludeResources>
 
         <!-- Test server versions. -->
-        <test.wildfly-mojarra.version>38.0.1.Final</test.wildfly-mojarra.version> <!-- https://mvnrepository.com/artifact/org.wildfly/wildfly-preview-dist -->
-        <test.liberty-myfaces.version>26.0.0.1-beta</test.liberty-myfaces.version> <!-- https://mvnrepository.com/artifact/io.openliberty.beta/openliberty-runtime / https://mvnrepository.com/artifact/io.openliberty/openliberty-runtime -->
-        <test.glassfish-mojarra.version>8.0.0-M12</test.glassfish-mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish --> <!-- NOTE: M13-M15 are failing with 'Could not locate admin-cli.jar module' -->
-        <test.tomcat.version>11.0.15</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
-        <test.payara-mojarra.version>7.2025.2</test.payara-mojarra.version> <!-- https://mvnrepository.com/artifact/fish.payara.distributions/payara-web -->
-        <test.quarkus.version>3.30.4</test.quarkus.version> <!-- https://mvnrepository.com/artifact/io.quarkus.platform/quarkus-bom -->
+        <test.wildfly-mojarra.version>39.0.1.Final</test.wildfly-mojarra.version> <!-- https://mvnrepository.com/artifact/org.wildfly/wildfly-preview-dist -->
+        <test.liberty-myfaces.version>26.0.0.3-beta</test.liberty-myfaces.version> <!-- https://mvnrepository.com/artifact/io.openliberty.beta/openliberty-runtime / https://mvnrepository.com/artifact/io.openliberty/openliberty-runtime -->
+        <test.glassfish-mojarra.version>8.0.0</test.glassfish-mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish.main.distributions/glassfish -->
+        <test.tomcat.version>11.0.18</test.tomcat.version> <!-- https://mvnrepository.com/artifact/org.apache.tomcat/tomcat -->
+        <test.payara-mojarra.version>7.2026.2</test.payara-mojarra.version> <!-- https://mvnrepository.com/artifact/fish.payara.distributions/payara-web -->
+        <test.quarkus.version>3.31.4</test.quarkus.version> <!-- https://mvnrepository.com/artifact/io.quarkus.platform/quarkus-bom -->
         <test.piranha.version>25.6.0</test.piranha.version> <!-- https://mvnrepository.com/artifact/cloud.piranha.arquillian/piranha-arquillian-server -->
 
         <!-- Test impl versions for servletcontainers (Tomcat). -->
-        <test.mojarra.version>4.1.5</test.mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
+        <test.mojarra.version>4.1.6</test.mojarra.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.faces -->
         <test.faces5.version>5.0.0-SNAPSHOT</test.faces5.version>
         <test.mojarra5.version>5.0.0-SNAPSHOT</test.mojarra5.version>
         <test.myfaces.version>4.1.2</test.myfaces.version> <!-- https://mvnrepository.com/artifact/org.apache.myfaces.core/myfaces-impl -->
-        <test.weld.version>6.0.3.Final</test.weld.version> <!-- https://mvnrepository.com/artifact/org.jboss.weld.servlet/weld-servlet-shaded -->
+        <test.weld.version>6.0.4.Final</test.weld.version> <!-- https://mvnrepository.com/artifact/org.jboss.weld.servlet/weld-servlet-shaded -->
         <test.hibernateValidator.version>9.1.0.Final</test.hibernateValidator.version> <!-- https://mvnrepository.com/artifact/org.hibernate.validator/hibernate-validator -->
         <test.jsonp.version>2.0.1</test.jsonp.version> <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
         <test.jstl.version>3.0.1</test.jstl.version> <!-- https://mvnrepository.com/artifact/org.glassfish.web/jakarta.servlet.jsp.jstl -->
-        <test.tyrus.version>2.2.1</test.tyrus.version> <!-- https://mvnrepository.com/artifact/org.glassfish.tyrus/tyrus-container-servlet -->
-        <test.primefaces.version>15.0.10</test.primefaces.version> <!-- https://mvnrepository.com/artifact/org.primefaces/primefaces -->
+        <test.tyrus.version>2.2.2</test.tyrus.version> <!-- https://mvnrepository.com/artifact/org.glassfish.tyrus/tyrus-container-servlet -->
+        <test.primefaces.version>15.0.13</test.primefaces.version> <!-- https://mvnrepository.com/artifact/org.primefaces/primefaces -->
 
         <!-- Arquillian config. -->
         <arquillian.browser>chrome</arquillian.browser> <!-- To use a different browser, use e.g. mvn clean verify -Darquillian.browser=firefox -->
@@ -167,7 +167,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.14.1</version>
+            <version>6.0.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -179,19 +179,19 @@
         <dependency>
             <groupId>org.jboss.arquillian.junit5</groupId>
             <artifactId>arquillian-junit5-container</artifactId>
-            <version>1.8.0.Final</version> <!-- NOTE: 1.8.1 and newer don't work with GlassFish: java.lang.reflect.MalformedParameterizedTypeException: Mismatch of count of formal and actual type arguments in constructor of org.jboss.arquillian.container.spi.Container: 0 formal argument(s) 1 actual argument(s) -->
+            <version>1.10.0.Final</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jboss.shrinkwrap.resolver</groupId>
             <artifactId>shrinkwrap-resolver-impl-maven-archive</artifactId>
-            <version>3.3.4</version>
+            <version>3.3.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.38.0</version>
+            <version>4.41.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -558,7 +558,7 @@
                 <dependency>
                     <groupId>org.wildfly.arquillian</groupId>
                     <artifactId>wildfly-arquillian-container-managed</artifactId>
-                    <version>5.1.0.Beta6</version>
+                    <version>5.1.0.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -677,9 +677,9 @@
             <id>glassfish-mojarra</id>
             <dependencies>
                 <dependency>
-                    <groupId>org.omnifaces.arquillian</groupId>
+                    <groupId>ee.omnifish.arquillian</groupId>
                     <artifactId>arquillian-glassfish-server-managed</artifactId>
-                    <version>1.8</version>
+                    <version>2.1.2</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -723,7 +723,7 @@
                 <dependency>
                     <groupId>org.jboss.arquillian.container</groupId>
                     <artifactId>arquillian-tomcat-managed-10</artifactId>
-                    <version>1.2.2.Final</version>
+                    <version>1.2.4.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -802,7 +802,7 @@
                 <dependency>
                     <groupId>org.jboss.arquillian.container</groupId>
                     <artifactId>arquillian-tomcat-managed-10</artifactId>
-                    <version>1.2.2.Final</version>
+                    <version>1.2.4.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -882,7 +882,7 @@
                 <dependency>
                     <groupId>org.jboss.arquillian.container</groupId>
                     <artifactId>arquillian-tomcat-managed-10</artifactId>
-                    <version>1.2.2.Final</version>
+                    <version>1.2.4.Final</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -959,9 +959,9 @@
             <id>payara-mojarra</id>
             <dependencies>
                 <dependency>
-                    <groupId>org.omnifaces.arquillian</groupId>
+                    <groupId>ee.omnifish.arquillian</groupId>
                     <artifactId>arquillian-glassfish-server-managed</artifactId>
-                    <version>1.6</version>
+                    <version>2.1.2</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
