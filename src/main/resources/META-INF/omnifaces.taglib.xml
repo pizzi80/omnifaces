@@ -1603,6 +1603,16 @@ public class ValidateValuesBean implements MultiFieldValidator {
         <attribute>
             <description>
                 <![CDATA[
+                    Whether to invalidate <strong>all</strong> fields or only those which are invalid.
+                ]]>
+            </description>
+            <name>invalidateAll</name>
+            <required>false</required>
+            <type>boolean</type>
+        </attribute>
+        <attribute>
+            <description>
+                <![CDATA[
                     The validator message to be shown on failure. Any "{0}" placeholder in the message will be
                     substituted with a comma separated string of labels of the referenced input components.
                 ]]>
