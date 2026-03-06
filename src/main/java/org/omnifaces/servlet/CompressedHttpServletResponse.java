@@ -23,6 +23,7 @@ import static org.omnifaces.util.Utils.splitAndTrim;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -121,11 +122,17 @@ public class CompressedHttpServletResponse extends HttpServletResponseOutputWrap
          * Returns an output stream which is compressed using this algorithm for the given HTTP servlet response.
          * @param response The HTTP servlet response to be compressed with this algorithm.
          * @return An output stream which is compressed using this algorithm.
+         * @throws IOException When the output stream cannot be constructed because of IO reason.
          * @throws UnsupportedOperationException When the output stream cannot be constructed for some reason.
          */
-        public OutputStream createOutputStream(HttpServletResponse response) {
+        public OutputStream createOutputStream(HttpServletResponse response) throws IOException {
             try {
                 return getOutputStreamClass().getConstructor(OutputStream.class).newInstance(response.getOutputStream());
+            } catch (InvocationTargetException e) {
+                if (e.getCause() instanceof IOException) {
+                    throw (IOException) e.getCause();
+                }
+                throw new UnsupportedOperationException(e);
             } catch (Exception e) {
                 throw new UnsupportedOperationException(e);
             }
