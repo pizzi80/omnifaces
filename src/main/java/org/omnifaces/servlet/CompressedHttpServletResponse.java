@@ -16,6 +16,7 @@ import static java.lang.Boolean.FALSE;
 import static java.util.Arrays.stream;
 import static java.util.Collections.list;
 import static java.util.Optional.ofNullable;
+import static org.omnifaces.util.Exceptions.extract;
 import static org.omnifaces.util.Reflection.invokeStaticMethod;
 import static org.omnifaces.util.Reflection.toClassOrNull;
 import static org.omnifaces.util.Utils.isOneOf;
@@ -128,12 +129,14 @@ public class CompressedHttpServletResponse extends HttpServletResponseOutputWrap
         public OutputStream createOutputStream(HttpServletResponse response) throws IOException {
             try {
                 return getOutputStreamClass().getConstructor(OutputStream.class).newInstance(response.getOutputStream());
-            } catch (InvocationTargetException e) {
-                if (e.getCause() instanceof IOException) {
-                    throw (IOException) e.getCause();
+            }
+            catch (Exception e) {
+                var ioe = extract(e, IOException.class);
+
+                if (ioe != null) {
+                    throw ioe;
                 }
-                throw new UnsupportedOperationException(e);
-            } catch (Exception e) {
+
                 throw new UnsupportedOperationException(e);
             }
         }
