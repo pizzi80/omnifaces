@@ -12,14 +12,6 @@
  */
 package org.omnifaces.cdi.push;
 
-import static java.lang.String.format;
-import static java.util.Collections.emptySet;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
-import static javax.websocket.CloseReason.CloseCodes.NORMAL_CLOSURE;
-import static org.omnifaces.cdi.push.SocketEndpoint.PARAM_CHANNEL;
-import static org.omnifaces.util.Beans.getReference;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
@@ -67,6 +59,8 @@ public class SocketSessionManager {
 	private static final String WARNING_TOMCAT_WEB_SOCKET_BOMBED =
 		"Tomcat cannot handle concurrent push messages. A push message has been sent only after %s retries."
 			+ " Consider rate limiting sending push messages. For example, once every 500ms.";
+
+    private static volatile SocketSessionManager instance;
 
 	// Properties -----------------------------------------------------------------------------------------------------
 
@@ -216,10 +210,22 @@ public class SocketSessionManager {
 
 	/**
 	 * Internal usage only. Awkward workaround for it being unavailable via {@code @Inject} in endpoint in Tomcat+Weld/OWB.
-	 * {@code CDI.current()} could have been used, but it is unavailable during {@code SocketEndpoint#onClose()} in WildFly.
+	 * The instance is refreshed on every successful CDI lookup so that hot-redeploys are picked up automatically.
+	 * When CDI is unavailable (e.g. during {@code SocketEndpoint#onClose()} in WildFly), the last cached instance is returned.
 	 */
 	static SocketSessionManager getInstance() {
-		return getReference(SocketSessionManager.class);
+		try {
+		    SocketSessionManager current = getReference(SocketSessionManager.class);
+
+			if (current != null) {
+				instance = current;
+			}
+		}
+		catch (Exception ignore) {
+			// CDI unavailable (e.g. during onClose in WildFly), fall back to last cached instance.
+		}
+
+		return instance;
 	}
 
 	// Helpers --------------------------------------------------------------------------------------------------------
