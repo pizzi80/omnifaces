@@ -476,6 +476,43 @@
                 </executions>
             </plugin>
 
+            <!-- Configure the vdldoc generator. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>generate-vdldoc</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includePluginDependencies>true</includePluginDependencies>
+                    <mainClass>org.omnifaces.vdldoc.Main</mainClass>
+                    <arguments>
+                        <argument>-d</argument>
+                        <argument>${project.build.directory}/reports/vdldoc</argument>
+                        <argument>-windowtitle</argument>
+                        <argument>OmniFaces ${project.version} VDL Documentation</argument>
+                        <argument>-doctitle</argument>
+                        <argument>OmniFaces ${project.version} VDL Documentation</argument>
+                        <argument>src/main/resources/META-INF/omnifaces.taglib.xml</argument>
+                        <argument>src/main/resources/META-INF/omnifaces-security.taglib.xml</argument>
+                    </arguments>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.omnifaces</groupId>
+                        <artifactId>vdldoc</artifactId>
+                        <version>3.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
             <!-- Configure snapshot deployment (release deployment is done via 'release' profile). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
