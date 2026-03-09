@@ -71,6 +71,8 @@ public class SocketSessionManager {
             + " A push message could NOT be sent after %s retries of " + TOMCAT_WEB_SOCKET_RETRY_TIMEOUT + "ms apart."
             + " Consider rate limiting sending push messages. For example, once every 500ms.";
 
+    private static volatile SocketSessionManager instance;
+
     // Properties -----------------------------------------------------------------------------------------------------
 
     private final ConcurrentHashMap<String, Collection<Session>> socketSessions = new ConcurrentHashMap<>();
@@ -242,10 +244,22 @@ public class SocketSessionManager {
 
     /**
      * Internal usage only. Awkward workaround for it being unavailable via {@code @Inject} in endpoint in Tomcat+Weld/OWB.
-     * {@code CDI.current()} could have been used, but it is unavailable during {@code SocketEndpoint#onClose()} in WildFly.
+     * The instance is refreshed on every successful CDI lookup so that hot-redeploys are picked up automatically.
+     * When CDI is unavailable (e.g. during {@code SocketEndpoint#onClose()} in WildFly), the last cached instance is returned.
      */
     static SocketSessionManager getInstance() {
-        return getReference(SocketSessionManager.class);
+        try {
+            SocketSessionManager current = getReference(SocketSessionManager.class);
+
+            if (current != null) {
+                instance = current;
+            }
+        }
+        catch (Exception ignore) {
+            // CDI unavailable (e.g. during onClose in WildFly), fall back to last cached instance.
+        }
+
+        return instance;
     }
 
     // Helpers --------------------------------------------------------------------------------------------------------
