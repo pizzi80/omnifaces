@@ -43,6 +43,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -710,27 +711,33 @@ public final class FacesLocal {
         return context.getApplication().getDefaultLocale();
     }
 
+    private static volatile List<Locale> supported_locales = null;
+
     /**
      * @see Faces#getSupportedLocales()
      */
     public static List<Locale> getSupportedLocales(FacesContext context) {
-        var application = context.getApplication();
-        var supportedLocales = new ArrayList<Locale>();
-        var defaultLocale = application.getDefaultLocale();
+        if (supported_locales == null) {
+            var application = context.getApplication();
+            var supportedLocales = new ArrayList<Locale>();
+            var defaultLocale = application.getDefaultLocale();
 
-        if (defaultLocale != null) {
-            supportedLocales.add(defaultLocale);
-        }
-
-        for (var iter = application.getSupportedLocales(); iter.hasNext();) {
-            var supportedLocale = iter.next();
-
-            if (!supportedLocale.equals(defaultLocale)) {
-                supportedLocales.add(supportedLocale);
+            if (defaultLocale != null) {
+                supportedLocales.add(defaultLocale);
             }
+
+            for (var iter = application.getSupportedLocales(); iter.hasNext();) {
+                var supportedLocale = iter.next();
+
+                if (!supportedLocale.equals(defaultLocale)) {
+                    supportedLocales.add(supportedLocale);
+                }
+            }
+
+            supported_locales = supportedLocales;
         }
 
-        return supportedLocales;
+        return supported_locales;
     }
 
     /**
