@@ -12,6 +12,14 @@
  */
 package org.omnifaces.cdi.push;
 
+import static java.lang.String.format;
+import static java.util.Collections.emptySet;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+import static javax.websocket.CloseReason.CloseCodes.NORMAL_CLOSURE;
+import static org.omnifaces.cdi.push.SocketEndpoint.PARAM_CHANNEL;
+import static org.omnifaces.util.Beans.getReference;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
